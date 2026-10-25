@@ -8,6 +8,15 @@
     "extension"
   ],
   "scripts": {
+    "dev": "npm run dev -w extension",
+    "build": "npm run build -w extension",
+    "test": "npm run test -w extension",
+    "test:e2e": "npm run test:e2e -w extension",
+    "test:mutation": "npm run test:mutation -w extension",
+    "lint": "npm run lint -w extension",
+    "format": "npm run format -w extension",
+    "typecheck": "npm run check -w extension",
+    "storybook": "npm run storybook -w extension",
     "prepare": "cd .. && husky acerola-sync/.husky && node acerola-sync/scripts/git/setup-git.mjs"
   },
   "devDependencies": {
