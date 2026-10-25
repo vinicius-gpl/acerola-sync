@@ -1,1 +1,2 @@
 sh acerola-sync/scripts/git/branch-guard.sh commit
+cd acerola-sync && npm run lint
