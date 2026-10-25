@@ -1,0 +1,38 @@
+@import './tailwind.css';
+
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--border);
+	border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--muted-foreground);
+}
+
+img {
+	image-rendering: -webkit-optimize-contrast;
+	image-rendering: smooth;
+	transform: translateZ(0);
+	backface-visibility: hidden;
+}
+
+/* O svelte-sonner aplica alinhamento do ícone via estilo inline (JS), que vence regras CSS
+   comuns por especificidade. `!important` é necessário pra sobrepor o inline e centralizar
+   o ícone com o texto (título + descrição) em vez de alinhar pelo topo. */
+[data-sonner-toast] {
+	align-items: center !important;
+}
+
+[data-sonner-toast] [data-icon] {
+	align-self: center !important;
+	margin-top: 0 !important;
+}
