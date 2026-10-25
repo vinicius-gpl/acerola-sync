@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+**/coverage
+**/storybook-static
+**/target
+**/.output
+**/.wxt
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+.git
+**/*.tsbuildinfo
