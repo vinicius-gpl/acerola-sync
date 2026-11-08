@@ -228,6 +228,10 @@ local com `mise run deploy`.
 No GitHub:
 
 - **Repositório** (secret): `DEPLOY_KEY`, usada pelos workflows de release para o commit de versão.
+- **Repositório** (secret): `EXTENSION_KEY`, a chave privada RSA da extensão. O release tira dela
+  a pública e põe no `key` do manifest: é daí que sai o id fixo da extensão (o mesmo em qualquer
+  PC, e o retorno do login do AniList depende dele). A mesma chave fica no 1Password, item
+  "ACEROLA SYNC EXTENSION KEY", que o `mise run build:extension` usa no build local.
 - **Environment `production`** (usado pelo deploy):
   - secrets: `DATABASE_URL`, `ENCRYPTION_KEY`, `SSH_PRIVATE_KEY`, `SSH_PASSPHRASE`;
   - variables: `SERVER_IP`, `DOMAIN`, `ANILIST_CLIENT_ID`, `ALLOWED_ANILIST_USER_ID`.

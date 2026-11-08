@@ -13,9 +13,17 @@ run = [
 ]
 
 [tasks."build:extension"]
-description = "Gera a extensão (Chrome) em extension/.output"
+description = "Gera a extensão (Chrome) em extension/.output, com o id fixo"
 dir = "{{config_root}}/extension"
-run = "npm run build"
+# A chave da extensão fica no 1Password (item "ACEROLA SYNC EXTENSION KEY"); só a pública
+# entra no build, e é dela que sai o mesmo id do Release.
+run = """
+VAULT=$(op item get "ACEROLA SYNC EXTENSION KEY" --format json | jq -r .vault.id)
+KEY=$(op read "op://$VAULT/ACEROLA SYNC EXTENSION KEY/private key" \
+  | openssl pkey -pubout -outform DER | base64 -w0)
+test -n "$KEY" || { echo "Sem a chave da extensão no 1Password (rode: op signin)"; exit 1; }
+EXTENSION_PUBLIC_KEY="$KEY" npm run build
+"""
 
 [tasks.build]
 description = "Server + extensão"
