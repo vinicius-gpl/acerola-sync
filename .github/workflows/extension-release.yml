@@ -1,0 +1,96 @@
+name: "Release/Extension"
+
+# Tag `extension/<canal>/v<versão>` (canal: alpha, beta ou prod). Sobe a versão no
+# `extension/package.json`, gera os .zip do Chrome e do Firefox, devolve o bump para a `main`
+# e a `develop` e publica o Release com os .zip. Fora de `prod`, o Release é pré-lançamento.
+
+on:
+  push:
+    tags:
+      - 'extension/**/v*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: acerola-sync
+    env:
+      # Os hooks do repositório (lint, trava de branch) são para quem commita na mão.
+      HUSKY: 0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 25.9.0
+          cache: npm
+          cache-dependency-path: acerola-sync/package-lock.json
+
+      - name: Extract version
+        run: node scripts/release/bump.mjs --tag "$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bump version
+        run: node scripts/release/bump.mjs extension "$VERSION"
+
+      - name: Test
+        run: npm run test -w extension
+
+      - name: Build zips (Chrome e Firefox)
+        working-directory: acerola-sync/extension
+        run: |
+          npm run zip
+          npm run zip:firefox
+          ls -la .output/*.zip
+
+      - name: Commit version bump
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add acerola-sync/extension/package.json
+          if ! git diff --staged --quiet; then
+            git commit -m "[build](extension): Versão ${VERSION} [skip ci]"
+            BUMP_SHA=$(git rev-parse HEAD)
+            git checkout -- .
+
+            until git push origin HEAD:main; do
+              git fetch origin main
+              git checkout -- .
+              git rebase origin/main
+            done
+
+            git fetch origin develop
+            git checkout -B develop origin/develop
+            git cherry-pick "$BUMP_SHA"
+            git checkout -- .
+            until git push origin develop; do
+              git fetch origin develop
+              git checkout -- .
+              git rebase origin/develop
+            done
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Acerola Sync Extension v${{ env.VERSION }}
+          draft: false
+          prerelease: ${{ env.CHANNEL != 'prod' }}
+          files: |
+            acerola-sync/extension/.output/*-chrome.zip
+            acerola-sync/extension/.output/*-firefox.zip
+          generate_release_notes: true
