@@ -90,4 +90,4 @@ O deploy usa o Ansible em [`acerola-sync/server/.config/ansible/`](acerola-sync/
 - Padrão de design: [`.claude/skills/acerola-design/SKILL.md`](.claude/skills/acerola-design/SKILL.md)
 - Regras do projeto e de commit: [CLAUDE.md](CLAUDE.md) e [`.gitmessage`](.gitmessage)
 - Assets dos READMEs: [`docs/github/`](docs/github/) (a capa é gerada de `docs/github/source/hero.html`)
-- Licença: [LICENSE](LICENSE) (MIT)
+- Licença: [LICENSE](LICENSE) (MPL-2.0, a mesma do acerola-reader)
