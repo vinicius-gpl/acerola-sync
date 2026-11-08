@@ -4,7 +4,7 @@ description = "Servidor do Acerola Sync — sincroniza a lista de anime e mangá
 edition = "2021"
 license = "MPL-2.0"
 name = "acerola-sync"
-version = "0.1.0"
+version = "1.0.0"
 
 [lib]
 name = "acerola_sync_lib"
