@@ -8,11 +8,11 @@ Uma extensão não é um app único. Cada entrypoint em `extension/svelte/src/en
 
 | Contexto | O que é | Estado |
 |---|---|---|
-| **background** | Service worker sem tela e sem DOM. Fala com o server, agenda tarefas e recebe mensagens. | `background.ts` |
-| **popup** | Janela que abre ao clicar no ícone. | `popup/` |
-| **página da extensão** | Aba inteira (`chrome-extension://<id>/<pagina>.html`), candidata à tela com a lista de animes e mangás. | a fazer |
+| **background** | Service worker sem tela e sem DOM. Fala com o server, agenda tarefas e recebe mensagens. | `background.ts`: roteia o tracking e registra os sites personalizados |
+| **popup** | Janela que abre ao clicar no ícone. | `popup/`: lista, busca, histórico, obra, configurações e vincular |
+| **página da extensão** | Aba inteira (`chrome-extension://<id>/<pagina>.html`). | `app/`: a mesma interface do popup em tela cheia, e a tela de vincular obra |
 | **sidepanel / options** | Painel lateral e página de configurações. | a fazer |
-| **content script** | Código injetado nos sites de anime e mangá para detectar o episódio ou capítulo aberto. | a fazer |
+| **content script** | Código injetado nos sites de anime e mangá para detectar o episódio ou capítulo aberto. | `*.content.ts` (Sakura, MangaDex, Crunchyroll, Netflix) e `custom.content.ts` (registrado em runtime) |
 
 Os contextos não compartilham variáveis. A comunicação é por mensagens (`browser.runtime.sendMessage` / `onMessage`).
 
@@ -23,13 +23,13 @@ Os contextos não compartilham variáveis. A comunicação é por mensagens (`br
   - `setInterval` longo não funciona; agendamento é com `browser.alarms`.
   - Estado que precisa durar vai para o `storage`.
 - **Popup:** fecha ao perder o foco, o componente Svelte é desmontado e remonta do zero na próxima abertura. Nada importante pode ficar só em `$state`.
-- **Impacto no projeto:** pequeno, porque debounce, outbox e lote do AniList ficam no server. A extensão só envia o evento ("vi o episódio 5").
+- **Impacto no projeto:** pequeno, porque o espelho, a agenda e o reenvio de pendências ficam no server. A extensão só envia o evento ("vi o episódio 5").
 
 ## 3. Storage
 
 - `localStorage` existe no popup e nas páginas, mas **não existe no service worker**.
 - O padrão é `browser.storage.local` (assíncrono, visível em todos os contextos). O projeto usa o wrapper `storage` de `wxt/utils/storage`, com chaves em `lib/constants/storage-keys.ts`.
-- **Pendência:** o paraglide usa a estratégia `localStorage`. Funciona no popup, mas não no background.
+- **Pendência:** o paraglide usa a estratégia `localStorage`. Funciona no popup; no content script ele lê o `localStorage` do site e cai no idioma do navegador. O background não mostra texto.
 
 ## 4. Manifest e permissões
 
@@ -38,9 +38,10 @@ Tudo que a extensão faz precisa ser declarado no manifest, gerado pelo WXT a pa
 | Permissão | Para quê | Estado |
 |---|---|---|
 | `storage` | Tema, modo e cache | já declarada |
-| `alarms` | Tarefas agendadas no background | a fazer |
-| `identity` | Login OAuth (`launchWebAuthFlow`) | a fazer |
-| `host_permissions` | Sites dos content scripts e a URL do server | a fazer |
+| `identity` | Login OAuth (`launchWebAuthFlow`) | declarada |
+| `scripting` | Registrar o script nos sites personalizados | declarada |
+| `host_permissions` | Sites embutidos (Sakura, MangaDex, Crunchyroll, Netflix) | declarada |
+| `optional_host_permissions` | Sites personalizados, pedidos na hora de salvar | declarada |
 
 ## 5. Segurança
 
@@ -63,7 +64,8 @@ popup / páginas (Svelte) ───msg────┘                       Post
 
 - `browser.identity.launchWebAuthFlow` abre o login do AniList.
 - No Chrome, o redirect é `https://<id-da-extensao>.chromiumapp.org/`. Esse endereço precisa estar cadastrado no app do AniList.
-- A extensão só repassa o `code` ao server, que faz a troca pelo token.
+- Implicit grant (`response_type=token`), como o AniMouto: o token volta no fragmento do redirect, sem client secret. A extensão só repassa o token ao server.
+- A tela de login mostra a URL de redirect para copiar no app do AniList.
 - No Firefox o redirect é diferente. O WXT abstrai parte da API, mas não essa URL.
 
 ## 8. Diferenças em relação ao acerola-reader (Tauri)
