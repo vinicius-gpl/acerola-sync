@@ -83,11 +83,18 @@ jobs:
             done
           fi
 
+      # O texto vem de `.github/release/extension.md` (destaques e instalação); a lista de
+      # mudanças gerada pelo GitHub entra embaixo.
+      - name: Release notes
+        working-directory: ${{ github.workspace }}
+        run: sed "s/{{VERSION}}/${VERSION}/g" .github/release/extension.md > "$RUNNER_TEMP/notes.md"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Acerola Sync Extension v${{ env.VERSION }}
+          name: Acerola Sync ${{ env.VERSION }}
+          body_path: ${{ runner.temp }}/notes.md
           draft: false
           prerelease: ${{ env.CHANNEL != 'prod' }}
           files: |
