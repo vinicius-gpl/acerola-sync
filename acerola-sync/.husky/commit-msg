@@ -1,0 +1,4 @@
+if [ "$(git config --get project.admin 2>/dev/null)" = "true" ]; then
+  exit 0
+fi
+cd acerola-sync && npx --no -- commitlint --edit "$1"

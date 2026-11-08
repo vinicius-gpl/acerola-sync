@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+#
+# Uma imagem só, com o binário do server. A extensão não entra aqui: ela é empacotada pelo
+# WXT e publicada nas lojas, não servida pelo container.
+#
+# Contexto do build: a pasta do server (ver .config/docker/compose.yml). Em produção fica
+# atrás do Caddy do servidor, que resolve domínio e TLS (.config/ansible).
+
+FROM rust:1.95-bookworm AS build
+WORKDIR /repo/server
+COPY Cargo.toml Cargo.lock ./
+COPY src src
+RUN --mount=type=cache,id=acerola-sync-cargo,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,id=acerola-sync-target,target=/repo/server/target,sharing=locked \
+    cargo build --release --locked \
+    && cp target/release/acerola-sync /usr/local/bin/acerola-sync
+
+FROM debian:bookworm-slim AS app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /usr/local/bin/acerola-sync /usr/local/bin/acerola-sync
+USER nobody
+EXPOSE 3010
+CMD ["acerola-sync"]

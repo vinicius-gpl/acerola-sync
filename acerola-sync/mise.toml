@@ -1,0 +1,36 @@
+[tools]
+node = "25.9.0"
+rust = "1.95"
+
+# `mise run build` sobe os dois; `build:server` / `build:extension` sobem só um.
+[tasks."build:server"]
+description = "Rebuilda a imagem do server e sobe o container"
+dir = "{{config_root}}/server/.config/docker"
+# A rede `proxy` é a do Caddy no servidor; localmente é criada vazia se ainda não existir.
+run = [
+  "docker network inspect proxy >/dev/null 2>&1 || docker network create proxy",
+  "docker compose up -d --build",
+]
+
+[tasks."build:extension"]
+description = "Gera a extensão (Chrome) em extension/.output"
+dir = "{{config_root}}/extension"
+run = "npm run build"
+
+[tasks.build]
+description = "Server + extensão"
+depends = ["build:server", "build:extension"]
+
+# Deploy do server com o Ansible (server/.config/ansible/deploy.yml). Servidor e domínio vêm do
+# `server/.config/ansible/hosts.ini` (copie do hosts.example.ini); os segredos, do ambiente: DATABASE_URL,
+# ENCRYPTION_KEY, ANILIST_CLIENT_ID e, opcional, ALLOWED_ANILIST_USER_ID.
+[tasks.deploy]
+description = "Deploy do server no VPS via Ansible"
+dir = "{{config_root}}"
+run = """
+ansible-playbook -i server/.config/ansible/hosts.ini server/.config/ansible/deploy.yml \
+  -e "database_url=$DATABASE_URL" \
+  -e "encryption_key=$ENCRYPTION_KEY" \
+  -e "anilist_client_id=$ANILIST_CLIENT_ID" \
+  -e "allowed_anilist_user_id=${ALLOWED_ANILIST_USER_ID:-}"
+"""
