@@ -1,4 +1,5 @@
 @import './tailwind.css';
+@import './tokens.css';
 
 ::-webkit-scrollbar {
 	width: 6px;

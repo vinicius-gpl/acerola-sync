@@ -1,0 +1,59 @@
+/* Tokens de forma e sombra do Acerola Sync. As cores vêm de `colors/catppuccin.css` (cópia
+   exata do acerola-reader) e não são redefinidas aqui.
+
+   Use só estes raios: nada de `rounded-[…]`, `rounded-xl`, `rounded-3xl` em código novo.
+   - `rounded-sheet` (32px): painel/folha inteira (painel lateral da obra).
+   - `rounded-card`  (28px): cartões grandes (destaque, estado do sync, perfil, hero).
+   - `rounded-tile`  (24px): blocos de número, linhas de lista, capas.
+   - `rounded-inner` (16px): elementos dentro de um cartão (capa pequena, campo).
+   - `rounded-full`: pílulas, fichas, botões redondos.
+   Sombras: `shadow-lift` (card parado), `shadow-float` (o que flutua: barra, painel, toast).
+   Sobre capa ou arte: `bg-scrim/…`, `from-scrim/…`, `text-on-scrim`.
+   O script `scripts/design/check-design.mjs` recusa o que fugir disso. */
+@theme {
+	--radius-sheet: 32px;
+	--radius-card: 28px;
+	--radius-tile: 24px;
+	--radius-inner: 16px;
+
+	/* Véu escuro sobre capa/arte (legível em qualquer imagem, nos dois modos) e o texto por
+	   cima dele. Não mudam com o modo de propósito: a arte da capa é a mesma. */
+	--color-scrim: #000000;
+	--color-on-scrim: #ffffff;
+
+	--shadow-float: 0 16px 40px -12px rgb(0 0 0 / 0.55);
+	--shadow-lift: 0 10px 24px -10px rgb(0 0 0 / 0.45);
+}
+
+/* Fade nas pontas de uma faixa que rola na horizontal (fichas): o item cortado some aos poucos
+   em vez de o texto parar seco na beira. A cor da máscara não aparece, só a opacidade conta. */
+@utility fade-x-start {
+	mask-image: linear-gradient(to right, transparent, #000 28px);
+}
+@utility fade-x-end {
+	mask-image: linear-gradient(to left, transparent, #000 28px);
+}
+@utility fade-x-both {
+	mask-image: linear-gradient(
+		to right,
+		transparent,
+		#000 28px,
+		#000 calc(100% - 28px),
+		transparent
+	);
+}
+@utility fade-y {
+	mask-image: linear-gradient(
+		to bottom,
+		transparent,
+		#000 20px,
+		#000 calc(100% - 20px),
+		transparent
+	);
+}
+
+/* Topo de área rolável: o conteúdo some aos poucos embaixo da barra do popup em vez de
+   encostar nela. */
+@utility fade-y-top {
+	mask-image: linear-gradient(to bottom, transparent, #000 14px);
+}

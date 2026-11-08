@@ -9,14 +9,32 @@
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import { toastIconEnter } from '$lib/utils/toast-icon-motion.utils';
 
-	let { ...restProps }: SonnerProps = $props();
+	let { toastOptions, class: className, ...restProps }: SonnerProps = $props();
 </script>
 
 <Sonner
 	theme={mode.current}
 	richColors
-	class="toaster group"
-	style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
+	class="toaster group {className ?? ''}"
+	toastOptions={{
+		classes: {
+			// Mesmo desenho dos cartões do app: raio de cartão, sem borda, cor do estado no fundo
+			// (`*-soft`) e no texto. As cores vêm das variáveis do sonner, abaixo.
+			toast:
+				'group toast rounded-card! border-0! px-4 py-3.5 text-sm font-semibold shadow-float! backdrop-blur-2xl',
+			title: 'font-black text-sm tracking-tight',
+			description: 'text-xs opacity-80 leading-relaxed mt-0.5',
+			actionButton:
+				'rounded-full! bg-primary! text-primary-foreground! font-bold text-xs px-3 py-1.5 transition-transform active:scale-95',
+			cancelButton:
+				'rounded-full! bg-muted! text-muted-foreground! font-medium text-xs px-3 py-1.5',
+			closeButton:
+				'rounded-full! border-0! bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors p-1',
+			...toastOptions?.classes
+		},
+		...toastOptions
+	}}
+	style="--border-radius: var(--radius-card); --normal-bg: var(--color-card); --normal-text: var(--color-card-foreground); --normal-border: transparent; --success-bg: var(--color-success-soft); --success-text: var(--color-success); --success-border: transparent; --error-bg: var(--color-destructive-soft); --error-text: var(--color-destructive); --error-border: transparent; --warning-bg: var(--color-warning-soft); --warning-text: var(--color-warning); --warning-border: transparent; --info-bg: var(--color-info-soft); --info-text: var(--color-info); --info-border: transparent;"
 	{...restProps}
 >
 	{#snippet loadingIcon()}

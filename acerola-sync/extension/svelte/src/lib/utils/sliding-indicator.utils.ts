@@ -49,9 +49,11 @@ export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (n
 
 		const containerRect = node.getBoundingClientRect();
 		const rect = active.getBoundingClientRect();
+		// O indicador mora dentro do container: num container com rolagem (fichas que não cabem),
+		// a posição é a do conteúdo, então soma o quanto já rolou.
 		const full: Record<TrackedProp, number> = {
-			x: rect.left - containerRect.left,
-			y: rect.top - containerRect.top,
+			x: rect.left - containerRect.left + node.scrollLeft,
+			y: rect.top - containerRect.top + node.scrollTop,
 			width: rect.width,
 			height: rect.height
 		};
@@ -80,20 +82,47 @@ export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (n
 	// pode medir a largura errada até o layout se estabilizar de vez.
 	document.fonts?.ready?.then(() => snap(false));
 
-	const mutationObserver = new MutationObserver(() => snap(true));
+	// O tamanho de cada item conta, não só o do container: trocar Anime ↔ Mangá muda o texto
+	// da ficha ativa ("Assistindo" ↔ "Lendo") sem mudar qual está ativa, e um container com
+	// `max-w-full` nem muda de largura. Sem isso, a pílula ficava com a largura antiga.
+	const resizeObserver =
+		typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => snap(false));
+	const observed = new Set<Element>();
+	function observeItems() {
+		if (!resizeObserver) return;
+		for (const child of node.children) {
+			if (child === indicator || observed.has(child)) continue;
+			observed.add(child);
+			resizeObserver.observe(child);
+		}
+		for (const child of observed) {
+			if (child.parentElement !== node) {
+				observed.delete(child);
+				resizeObserver.unobserve(child);
+			}
+		}
+	}
+	resizeObserver?.observe(node);
+	observeItems();
+
+	const mutationObserver = new MutationObserver((mutations) => {
+		// Item que entra ou sai (ex.: aba "Reassistindo" só aparece com contagem) também move os
+		// outros; texto que muda dentro de um item muda a largura dele.
+		if (mutations.some((mutation) => mutation.type === 'childList')) observeItems();
+		snap(mutations.some((mutation) => mutation.type === 'attributes'));
+	});
 	mutationObserver.observe(node, {
 		attributes: true,
+		childList: true,
+		characterData: true,
 		subtree: true,
-		attributeFilter: ['aria-current', 'data-state']
+		attributeFilter: ['aria-current', 'aria-selected', 'data-state']
 	});
-
-	const resizeObserver = new ResizeObserver(() => snap(false));
-	resizeObserver.observe(node);
 
 	return {
 		destroy() {
 			mutationObserver.disconnect();
-			resizeObserver.disconnect();
+			resizeObserver?.disconnect();
 			tween?.kill();
 			indicator.remove();
 		}
