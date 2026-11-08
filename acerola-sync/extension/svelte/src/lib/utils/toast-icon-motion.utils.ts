@@ -5,8 +5,9 @@ import { cn } from '$lib/utils/cn.utils';
 export type ToastIconVariant = 'loading' | 'success' | 'error' | 'warning' | 'info';
 
 const BURST_COLOR: Partial<Record<ToastIconVariant, string>> = {
-	success: 'bg-green-500/35',
-	error: 'bg-destructive/30'
+	success: 'bg-success/35',
+	error: 'bg-destructive/30',
+	warning: 'bg-warning/30'
 };
 
 // Cria e anima um anel que expande e desaparece atrás do ícone — dá peso ao resultado
