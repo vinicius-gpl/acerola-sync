@@ -2,7 +2,7 @@
 
 > Extensão (Chrome/Firefox) + server próprio para lista, lançamentos e tracking de anime e mangá, só com o AniList.
 > Funções inspiradas no [MALSync](https://github.com/MALSync/MALSync). Visual próprio, com a paleta única e os componentes do acerola-reader.
-> Licença: MIT. Uso pessoal: uma instância, um usuário.
+> Licença: MPL-2.0 (a mesma do acerola-reader). Uso pessoal: uma instância, um usuário.
 
 ## 1. Princípios
 
@@ -184,7 +184,7 @@ Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só clar
 - Os content scripts não falam com o server: mandam mensagem ao background, que tem a sessão.
 - Um aviso pequeno (shadow DOM) mostra "Detectado", "Marcado" ou "Não achei". O botão **Vincular manualmente** abre a tela de busca para corrigir o mapeamento.
 - Sites personalizados usam `optional_host_permissions`: a permissão do domínio é pedida ao salvar, e o background registra o script com `scripting.registerContentScripts`.
-- Nada de código copiado do MALSync (GPL-3.0): as regras foram reescritas aqui, em MIT.
+- Nada de código copiado do MALSync (GPL-3.0): as regras foram reescritas aqui, em MPL-2.0.
 
 ## 5. Deploy
 
