@@ -1,26 +1,26 @@
-# Este compose sobe o server e o Postgres dele.
-#
-# O banco só existe na rede interna do compose: em produção ele NÃO tem porta publicada, e só
-# o server fala com ele. Localmente a porta fica presa em `127.0.0.1`, para o `cargo run` da
-# máquina de quem programa conseguir conectar — nunca em `0.0.0.0`.
+# Este compose sobe só o server. O Postgres é externo: o endereço vem do `DATABASE_URL` em
+# `server/.env`.
 #
 # Em produção fica atrás de um Traefik (ex.: Coolify), que resolve domínio e TLS;
 # localmente é só `-p 3010:3010`.
+name: acerola-sync
+
 services:
   server:
+    container_name: acerola-sync-server
+    image: acerola-sync-server
     build:
       context: ..
       dockerfile: docker/dockerfile
     env_file:
       - path: ../server/.env
-        required: false
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-acerola}:${POSTGRES_PASSWORD:-acerola}@postgres:5432/${POSTGRES_DB:-acerola_sync}
+        required: true
     ports:
       - '3010:3010'
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # Deixa o container alcançar um Postgres rodando na própria máquina via
+    # `host.docker.internal` (no Linux esse nome não existe sem isso).
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     # O teste usa o `bash` que já está na imagem — nada de instalar `curl` só pra isso.
     # `start_period` dá tempo às migrations, que o server aplica sozinho ao subir.
     healthcheck:
@@ -35,24 +35,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-
-  postgres:
-    image: postgres:18
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-acerola}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-acerola}
-      POSTGRES_DB: ${POSTGRES_DB:-acerola_sync}
-    ports:
-      - '127.0.0.1:5432:5432'
-    # Sem o volume, cada `up --build` recriaria o container e o banco junto: tudo o que foi
-    # sincronizado sumiria sem aviso.
-    volumes:
-      - postgres-data:/var/lib/postgresql
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-acerola} -d ${POSTGRES_DB:-acerola_sync}']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres-data:
