@@ -27,15 +27,15 @@ export default defineConfig({
 			128: 'icon/128.png'
 		},
 		action: { default_title: 'Acerola Sync' },
-		// Id fixo em qualquer PC. Sem isso, extensão carregada sem compactação ganha um id por
-		// pasta, e o retorno do login do AniList (https://<id>.chromiumapp.org/) só vale num PC.
-		// `key` é só a chave PÚBLICA (id: odbdekpmcfcdipkcachembgdoimcapbp); a privada não é
-		// usada pela extensão. No Firefox o id fixo é o `gecko.id`.
+		// Id fixo em qualquer PC: o Chrome tira o id da chave pública em `key`. Ela vem de
+		// EXTENSION_PUBLIC_KEY, derivada no build da privada guardada no secret EXTENSION_KEY
+		// (release) ou no 1Password (`mise run build:extension`). Sem ela, o id depende da pasta.
+		// No Firefox o id fixo é o `gecko.id`.
 		...(browser === 'firefox'
 			? { browser_specific_settings: { gecko: { id: 'acerola-sync@acerola.app' } } }
-			: {
-					key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv+mSAylxWFFWkf+fGwnYkvCVQAAyHbau/vTPQkAtLT6tCnukAtnj+ayV6tzmvgJSYrVy7pb/s4H3JCHDH6pSlWXDRy5zWeDPvkJQjNz4S9ZL2osaFMDYKrzltmk0P94oHEEU1XhgOR1Hj4LjHrBhBz5RMcIRANbQas5a1H82Tg0pZfcODo/0JGiOpTFutMYgpV2ajks/kjXSuWQnm+ewb5LLdItnkrp0wqxgHaC9xgIdQOJ2A0zxgBK+fVfp9++phDAYYdMtTp7Sec76qCcJ1Js5cNQF5Ccj+0MTgWXUIdGJp9IVEWpJK1ta6MKL9lgJ5hhbfg8CcWNlX/mIiwvomQIDAQAB'
-				}),
+			: process.env.EXTENSION_PUBLIC_KEY
+				? { key: process.env.EXTENSION_PUBLIC_KEY }
+				: {}),
 		// storage: tema e sessão · identity: OAuth do AniList · scripting: sites personalizados ·
 		// favicon (só Chrome): ícone dos sites nos ajustes, vindo do cache do navegador.
 		permissions: [

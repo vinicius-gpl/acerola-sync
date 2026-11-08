@@ -70,7 +70,7 @@ mise run build:server      # só o server: rebuilda a imagem e sobe o container
 mise run build:extension   # só a extensão (extension/.output/chrome-mv3)
 ```
 
-O server lê `acerola-sync/server/.env` (modelo em `.env.example`: Postgres, chave de criptografia e Client ID do AniList). A extensão carrega em `chrome://extensions` → modo desenvolvedor → "Carregar sem compactação" → `extension/.output/chrome-mv3`.
+O `build:extension` lê a chave da extensão no 1Password (`op signin` antes) para sair com o id fixo. O server lê `acerola-sync/server/.env` (modelo em `.env.example`: Postgres, chave de criptografia e Client ID do AniList). A extensão carrega em `chrome://extensions` → modo desenvolvedor → "Carregar sem compactação" → `extension/.output/chrome-mv3`.
 
 ## Release e deploy
 
