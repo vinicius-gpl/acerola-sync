@@ -1,0 +1,68 @@
+name: "Release/Server"
+
+# Tag `server/<canal>/v<versão>` (canal: alpha, beta ou prod). Só sobe a versão no
+# `server/Cargo.toml` (e no Cargo.lock) e devolve o commit para a `main` e a `develop`.
+# Não gera Release nem imagem: o deploy é pelo Ansible (`acerola-sync/.config/ansible`).
+
+on:
+  push:
+    tags:
+      - 'server/**/v*'
+
+jobs:
+  bump:
+    name: Bump version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: acerola-sync
+    env:
+      HUSKY: 0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 25.9.0
+
+      - name: Extract version
+        run: node scripts/release/bump.mjs --tag "$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+
+      - name: Bump version
+        run: node scripts/release/bump.mjs server "$VERSION"
+
+      - name: Commit version bump
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add acerola-sync/server/Cargo.toml acerola-sync/server/Cargo.lock
+          if ! git diff --staged --quiet; then
+            git commit -m "[build](backend): Versão ${VERSION} [skip ci]"
+            BUMP_SHA=$(git rev-parse HEAD)
+            git checkout -- .
+
+            until git push origin HEAD:main; do
+              git fetch origin main
+              git checkout -- .
+              git rebase origin/main
+            done
+
+            git fetch origin develop
+            git checkout -B develop origin/develop
+            git cherry-pick "$BUMP_SHA"
+            git checkout -- .
+            until git push origin develop; do
+              git fetch origin develop
+              git checkout -- .
+              git rebase origin/develop
+            done
+          fi

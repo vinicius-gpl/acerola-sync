@@ -1,0 +1,95 @@
+name: "Deploy/Server"
+
+# No molde do deploy do relay: testa, e o Ansible manda o código por rsync, escreve o `.env`,
+# sobe o container e entrega o domínio ao Caddy.
+#
+# Automático: a cada tag `server/prod/v*`. Manual: botão "Run workflow" (escolha a tag ou a
+# branch).
+
+on:
+  push:
+    tags:
+      - 'server/prod/v*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Testes do server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acerola-sync/server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: acerola-sync/server
+
+      - name: Format
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test
+
+  deploy:
+    name: Deploy no VPS
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: acerola-sync
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible and Rsync
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible rsync
+
+      - name: Setup SSH Agent and Key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
+          ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
+          printf '%s\n' "$SSH_PRIVATE_KEY" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+          ssh-keygen -p -P "$SSH_PASSPHRASE" -N "" -f /tmp/ssh_key
+          ssh-add /tmp/ssh_key
+          rm -f /tmp/ssh_key
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Create Ansible Inventory
+        run: |
+          echo "[acerola_sync]" > .config/ansible/hosts.ini
+          echo "$SERVER_IP ansible_user=admin domain=$DOMAIN" >> .config/ansible/hosts.ini
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          DOMAIN: ${{ secrets.DOMAIN }}
+
+      - name: Run Deploy Playbook
+        run: |
+          ansible-playbook -i .config/ansible/hosts.ini .config/ansible/deploy.yml \
+            -e "database_url=$DATABASE_URL" \
+            -e "encryption_key=$ENCRYPTION_KEY" \
+            -e "anilist_client_id=$ANILIST_CLIENT_ID" \
+            -e "allowed_anilist_user_id=$ALLOWED_ANILIST_USER_ID"
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
+          ALLOWED_ANILIST_USER_ID: ${{ secrets.ALLOWED_ANILIST_USER_ID }}
