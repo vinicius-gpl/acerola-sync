@@ -50,7 +50,10 @@ impl TestDb {
         };
         let name = format!("acerola_test_{}", rand_suffix());
         let mut admin = PgConnection::connect(&admin_url).await.expect("admin connection");
-        sqlx::query(&format!("CREATE DATABASE {name}")).execute(&mut admin).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE DATABASE {name}")))
+            .execute(&mut admin)
+            .await
+            .unwrap();
 
         let url = replace_database(&admin_url, &name);
         let pool = PgPoolOptions::new().max_connections(5).connect(&url).await.unwrap();
@@ -61,10 +64,13 @@ impl TestDb {
     pub async fn drop(self) {
         self.pool.close().await;
         let mut admin = PgConnection::connect(&self.admin_url).await.unwrap();
-        sqlx::query(&format!("DROP DATABASE IF EXISTS {} WITH (FORCE)", self.name))
-            .execute(&mut admin)
-            .await
-            .unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "DROP DATABASE IF EXISTS {} WITH (FORCE)",
+            self.name
+        )))
+        .execute(&mut admin)
+        .await
+        .unwrap();
     }
 }
 
