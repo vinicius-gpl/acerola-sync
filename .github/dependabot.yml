@@ -1,0 +1,63 @@
+# Mesmo molde do acerola-reader: PRs semanais na `develop`, agrupados, com a mensagem no
+# formato do projeto (`[chore](<local>): Bump …`) para passar no commitlint.
+version: 2
+updates:
+  - package-ecosystem: "cargo"
+    directory: "/acerola-sync/server"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "[chore](deps)"
+    labels:
+      - "dependencies"
+      - "rust"
+      - "backend"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/acerola-sync"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "[chore](deps)"
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "extension"
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/acerola-sync/server/.config/docker"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "[chore](docker)"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "[chore](ci)"
+    labels:
+      - "dependencies"
+      - "github_actions"
+    groups:
+      actions:
+        patterns:
+          - "*"
