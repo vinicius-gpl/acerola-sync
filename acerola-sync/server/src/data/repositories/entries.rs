@@ -1,4 +1,4 @@
-use sqlx::{PgExecutor, PgPool};
+use sqlx::{AssertSqlSafe, PgExecutor, PgPool};
 
 use crate::{
     data::models::entry::{Entry, EntryCount, EntryFacets, EntryWithMedia},
@@ -85,7 +85,10 @@ pub async fn count_by_status(
          GROUP BY media.media_type, entries.status
          ORDER BY media.media_type, entries.status"
     );
-    Ok(bind_filters(sqlx::query_as(&sql).bind(user_id), filters, false).fetch_all(pool).await?)
+    // O SQL dinâmico só junta constantes (`FILTER_SQL`); os valores vão por bind.
+    Ok(bind_filters(sqlx::query_as(AssertSqlSafe(sql)).bind(user_id), filters, false)
+        .fetch_all(pool)
+        .await?)
 }
 
 /// Gêneros, formatos e anos que existem na lista do usuário, para montar os filtros.
@@ -283,11 +286,13 @@ pub async fn list_with_media(
          LIMIT $9 OFFSET $10",
         sort.order_by()
     );
-    let entries: Vec<Entry> = bind_filters(sqlx::query_as(&sql).bind(user_id), filters, true)
-        .bind(page.limit)
-        .bind(page.offset)
-        .fetch_all(pool)
-        .await?;
+    // Só constantes (`FILTER_SQL` e a ordem de um enum fechado); os valores vão por bind.
+    let entries: Vec<Entry> =
+        bind_filters(sqlx::query_as(AssertSqlSafe(sql)).bind(user_id), filters, true)
+            .bind(page.limit)
+            .bind(page.offset)
+            .fetch_all(pool)
+            .await?;
 
     attach_media(pool, entries).await
 }

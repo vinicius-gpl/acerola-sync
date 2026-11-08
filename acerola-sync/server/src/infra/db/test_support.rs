@@ -30,7 +30,10 @@ impl TestDatabase {
         let name = format!("acerola_unit_{}_{}", std::process::id(), nanos);
 
         let mut admin = PgConnection::connect(&admin_url).await.expect("conexão admin");
-        sqlx::query(&format!("CREATE DATABASE {name}")).execute(&mut admin).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!("CREATE DATABASE {name}")))
+            .execute(&mut admin)
+            .await
+            .unwrap();
 
         let (base, _) = admin_url.rsplit_once('/').expect("URL com nome de banco");
         let pool = PgPoolOptions::new()
@@ -45,10 +48,13 @@ impl TestDatabase {
     pub async fn drop(self) {
         self.pool.close().await;
         let mut admin = PgConnection::connect(&self.admin_url).await.unwrap();
-        sqlx::query(&format!("DROP DATABASE IF EXISTS {} WITH (FORCE)", self.name))
-            .execute(&mut admin)
-            .await
-            .unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "DROP DATABASE IF EXISTS {} WITH (FORCE)",
+            self.name
+        )))
+        .execute(&mut admin)
+        .await
+        .unwrap();
     }
 }
 
