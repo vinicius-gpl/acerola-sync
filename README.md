@@ -44,8 +44,8 @@ Inspirado no MALSync, mas só com AniList e para uso pessoal: uma instância, um
 | --- | --- | --- | --- |
 | [`acerola-sync/server/`](acerola-sync/server/README.md) | API e espelho do AniList | Rust + axum + sqlx + Postgres | [server/README.md](acerola-sync/server/README.md) |
 | [`acerola-sync/extension/`](acerola-sync/extension/README.md) | Extensão de navegador (Chrome e Firefox) | WXT + Svelte 5 + Tailwind v4 + GSAP | [extension/README.md](acerola-sync/extension/README.md) |
-| [`acerola-sync/.config/docker/`](acerola-sync/.config/docker/) | Imagem e compose do server | Docker | [docs/ARQUITETURA.md](docs/ARQUITETURA.md) |
-| [`acerola-sync/.config/ansible/`](acerola-sync/.config/ansible/) | Deploy do server num VPS | Ansible + Caddy | [Release e deploy](#release-e-deploy) |
+| [`acerola-sync/server/.config/docker/`](acerola-sync/server/.config/docker/) | Imagem e compose do server | Docker | [docs/ARQUITETURA.md](docs/ARQUITETURA.md) |
+| [`acerola-sync/server/.config/ansible/`](acerola-sync/server/.config/ansible/) | Deploy do server num VPS | Ansible + Caddy | [Release e deploy](#release-e-deploy) |
 
 ## Como as peças se conectam
 
@@ -81,7 +81,7 @@ Tags no mesmo molde do acerola-reader: `<app>/<canal>/v<versão>`, canal `alpha`
 | `extension/prod/v1.2.0` | Sobe a versão, testa, gera os `.zip` de Chrome e Firefox e publica o Release. |
 | `server/prod/v1.2.0` | Sobe a versão (commit de bump) e dispara o deploy. |
 
-O deploy usa o Ansible em [`acerola-sync/.config/ansible/`](acerola-sync/.config/ansible/): rsync do código, `.env` gerado, `docker compose up` e a config do Caddy para o domínio do `hosts.ini`. Roda sozinho na tag `server/prod/*`, pelo botão do workflow **Deploy/Server** ou local com `mise run deploy`. Detalhes em [docs/ARQUITETURA.md](docs/ARQUITETURA.md#release-e-deploy) e o modelo de notas em [RELEASE.md](RELEASE.md).
+O deploy usa o Ansible em [`acerola-sync/server/.config/ansible/`](acerola-sync/server/.config/ansible/): rsync do código, `.env` gerado, `docker compose up` e a config do Caddy para o domínio do `hosts.ini`. Roda sozinho na tag `server/prod/*`, pelo botão do workflow **Deploy/Server** ou local com `mise run deploy`. Detalhes em [docs/ARQUITETURA.md](docs/ARQUITETURA.md#release-e-deploy) e o modelo de notas em [RELEASE.md](RELEASE.md).
 
 ## Documentação
 

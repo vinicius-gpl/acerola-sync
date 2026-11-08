@@ -188,7 +188,7 @@ Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só clar
 
 ## 5. Deploy
 
-`acerola-sync/.config/docker/compose.yml` sobe só o `server`. O Postgres é externo e vem do `DATABASE_URL` do `.env`. TLS e domínio ficam no Traefik/Coolify. O endereço do server é configurado na extensão (ex.: `https://sync.acerola.app`), e a extensão não precisa saber onde ele roda.
+`acerola-sync/server/.config/docker/compose.yml` sobe só o `server`. O Postgres é externo e vem do `DATABASE_URL` do `.env`. TLS e domínio ficam no Traefik/Coolify. O endereço do server é configurado na extensão (ex.: `https://sync.acerola.app`), e a extensão não precisa saber onde ele roda.
 
 ## 6. Testes
 
@@ -217,11 +217,11 @@ Tags no mesmo molde do acerola-reader: `<app>/<canal>/v<versão>`, canal `alpha`
 O bump é o `scripts/release/bump.mjs` (testado em `npm run test:release`). Os commits do bot
 rodam com `HUSKY=0` e usam a `DEPLOY_KEY` para poder escrever na `main`.
 
-**Deploy do server** (`acerola-sync/.config/ansible/deploy.yml`, igual ao relay): rsync de `server/` e
-`.config/docker/`, `server/.env` gerado do template, `docker compose up -d --build --wait` (o mesmo
+**Deploy do server** (`acerola-sync/server/.config/ansible/deploy.yml`, igual ao relay): rsync da pasta do
+server (com `.config/docker/`), `.env` gerado do template, `docker compose up -d --build --wait` (o mesmo
 `compose.yml` de casa: porta só em `127.0.0.1`, na rede `proxy` do Caddy) e a config do Caddy gerada do
 template para o `domain` do `hosts.ini` (`/opt/caddy/conf.d/acerola-sync.caddy`, com reload só
-quando ela muda). Sem script shell no playbook: só módulos e templates em `.config/ansible/templates/`.
+quando ela muda). Sem script shell no playbook: só módulos e templates em `server/.config/ansible/templates/`.
 Roda sozinho na tag `server/prod/v*`, pelo botão do workflow `Deploy/Server` (testa antes) ou
 local com `mise run deploy`.
 
