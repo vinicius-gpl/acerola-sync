@@ -19,6 +19,7 @@
     "storybook": "npm run storybook -w extension",
     "prepare": "cd .. && husky acerola-sync/.husky && node acerola-sync/scripts/git/setup-git.mjs",
     "lint:design": "node scripts/design/check-design.mjs",
+    "test:release": "node --test scripts/release/bump.test.mjs",
     "test:design": "node --test scripts/design/check-design.test.mjs"
   },
   "devDependencies": {
