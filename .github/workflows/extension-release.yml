@@ -48,6 +48,15 @@ jobs:
       - name: Test
         run: npm run test -w extension
 
+      # A privada fica só no secret; o manifest recebe a pública (é dela que sai o id fixo).
+      - name: Extension key
+        env:
+          EXTENSION_KEY: ${{ secrets.EXTENSION_KEY }}
+        run: |
+          test -n "$EXTENSION_KEY" || { echo "::error::Falta o secret EXTENSION_KEY"; exit 1; }
+          PUBLIC=$(printf '%s\n' "$EXTENSION_KEY" | openssl pkey -pubout -outform DER | base64 -w0)
+          echo "EXTENSION_PUBLIC_KEY=$PUBLIC" >> "$GITHUB_ENV"
+
       - name: Build zips (Chrome e Firefox)
         working-directory: acerola-sync/extension
         run: |
