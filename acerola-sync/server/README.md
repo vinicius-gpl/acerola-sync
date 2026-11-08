@@ -40,4 +40,4 @@ Os testes de fluxo (`tests/flows.rs`) rodam contra um Postgres de verdade e um A
 
 ## Deploy
 
-Pelo Ansible em [`../.config/ansible/`](../.config/ansible/). Veja [Release e deploy](../../README.md#release-e-deploy).
+Pelo Ansible em [`.config/ansible/`](.config/ansible/), com o compose em [`.config/docker/`](.config/docker/). Veja [Release e deploy](../../README.md#release-e-deploy).
