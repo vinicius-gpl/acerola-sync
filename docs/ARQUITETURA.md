@@ -188,7 +188,7 @@ Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só clar
 
 ## 5. Deploy
 
-`acerola-sync/docker/compose.yml` sobe só o `server`. O Postgres é externo e vem do `DATABASE_URL` do `.env`. TLS e domínio ficam no Traefik/Coolify. O endereço do server é configurado na extensão (ex.: `https://sync.acerola.app`), e a extensão não precisa saber onde ele roda.
+`acerola-sync/.config/docker/compose.yml` sobe só o `server`. O Postgres é externo e vem do `DATABASE_URL` do `.env`. TLS e domínio ficam no Traefik/Coolify. O endereço do server é configurado na extensão (ex.: `https://sync.acerola.app`), e a extensão não precisa saber onde ele roda.
 
 ## 6. Testes
 
@@ -204,3 +204,26 @@ Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só clar
 - [ ] Domínio final do server (`sync.acerola.app` ou outro).
 - [ ] Firefox: cadastrar também o redirect `*.extensions.allizom.org` no app do AniList.
 - [ ] Notificações do AniList (o AniMouto tem) e badge com episódios atrasados.
+
+## Release e deploy
+
+Tags no mesmo molde do acerola-reader: `<app>/<canal>/v<versão>`, canal `alpha`, `beta` ou `prod`.
+
+| Tag | Workflow | O que faz |
+|---|---|---|
+| `extension/prod/v1.2.0` | `.github/workflows/extension-release.yml` | Sobe a versão do `extension/package.json`, testa, gera os `.zip` de Chrome e Firefox, devolve o commit `[build](extension): Versão …` para `main` e `develop` e publica o Release (pré-lançamento fora de `prod`). |
+| `server/prod/v1.2.0` | `.github/workflows/server-release.yml` | Só sobe a versão do `server/Cargo.toml`/`Cargo.lock` e devolve o commit `[build](backend): Versão …` para `main` e `develop`. Sem Release, sem imagem. |
+
+O bump é o `scripts/release/bump.mjs` (testado em `npm run test:release`). Os commits do bot
+rodam com `HUSKY=0` e usam a `DEPLOY_KEY` para poder escrever na `main`.
+
+**Deploy do server** (`acerola-sync/.config/ansible/deploy.yml`, igual ao relay): rsync de `server/` e
+`.config/docker/`, `server/.env` gerado do template, `docker compose up -d --build --wait` (o mesmo
+`compose.yml` de casa: porta só em `127.0.0.1`, na rede `proxy` do Caddy) e a config do Caddy gerada do
+template para o `domain` do `hosts.ini` (`/opt/caddy/conf.d/acerola-sync.caddy`, com reload só
+quando ela muda). Sem script shell no playbook: só módulos e templates em `.config/ansible/templates/`.
+Roda sozinho na tag `server/prod/v*`, pelo botão do workflow `Deploy/Server` (testa antes) ou
+local com `mise run deploy`.
+
+Secrets do GitHub: `DEPLOY_KEY`, `SERVER_IP`, `SSH_PRIVATE_KEY`, `SSH_PASSPHRASE`, `DOMAIN`,
+`DATABASE_URL`, `ENCRYPTION_KEY`, `ANILIST_CLIENT_ID`, `ALLOWED_ANILIST_USER_ID`.
