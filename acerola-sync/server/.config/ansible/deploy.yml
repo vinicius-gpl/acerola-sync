@@ -25,27 +25,22 @@
         fail_msg: >-
           Falta `domain` no hosts.ini ou database_url / encryption_key / anilist_client_id (-e).
 
-    - name: Envia o código do server e o .config/docker
+    - name: Envia o código do server
       ansible.posix.synchronize:
         src: "{{ playbook_dir }}/../../"
         dest: "{{ deploy_path }}/"
         recursive: true
         delete: true
         rsync_opts:
-          # A primeira regra que casa vale: os excludes vêm antes dos includes.
-          - --exclude=target
-          - --exclude=.env
-          - --include=/server/***
-          - --include=/.config/
-          - --include=/.config/docker/***
-          - --include=/.dockerignore
-          - --exclude=/.config/*
-          - --exclude=/*
+          # Só o que o build usa: sem o target, sem o .env local e sem o próprio ansible.
+          - --exclude=/target
+          - --exclude=/.env
+          - --exclude=/.config/ansible
 
     - name: Escreve o .env do server
       ansible.builtin.template:
         src: templates/server.env.j2
-        dest: "{{ deploy_path }}/server/.env"
+        dest: "{{ deploy_path }}/.env"
         mode: "0600"
       no_log: true
 
