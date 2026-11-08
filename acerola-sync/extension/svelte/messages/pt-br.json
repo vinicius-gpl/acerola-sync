@@ -1160,7 +1160,8 @@
 			"fab": "Acerola Sync: o que é esta obra?",
 			"close": "Fechar",
 			"nothing_here": "Nenhuma obra nesta página",
-			"fab_open": "Abrir o Acerola Sync"
+			"fab_open": "Abrir o Acerola Sync",
+			"fab_move": "Ctrl + arrastar move · Ctrl + duplo clique volta ao canto"
 		},
 		"filters": {
 			"search": "Filtrar por título",
