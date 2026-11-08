@@ -1118,7 +1118,12 @@
 				"save": "Salvar site",
 				"saved": "Site adicionado.",
 				"permission_denied": "Sem permissão para esse site, não dá para rastrear.",
-				"search_url": "Busca do site (opcional)"
+				"search_url": "Busca do site (opcional)",
+				"edit": "Editar",
+				"edit_title": "Editar site",
+				"updated": "Site atualizado.",
+				"grant": "Sem permissão · Liberar",
+				"granted": "Site liberado. Recarregue a aba dele."
 			}
 		},
 		"login": {
@@ -1154,7 +1159,8 @@
 			"open_app": "Abrir no Acerola",
 			"fab": "Acerola Sync: o que é esta obra?",
 			"close": "Fechar",
-			"nothing_here": "Nenhuma obra nesta página"
+			"nothing_here": "Nenhuma obra nesta página",
+			"fab_open": "Abrir o Acerola Sync"
 		},
 		"filters": {
 			"search": "Filtrar por título",

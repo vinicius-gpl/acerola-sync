@@ -73,11 +73,19 @@ function openLinkPage(request: LinkRequest) {
  */
 async function openMedia(mediaId: number) {
 	await storage.setItem(STORAGE_KEYS.pendingMedia, { mediaId, at: Date.now() });
-	try {
-		await (browser.action as { openPopup?: () => Promise<void> }).openPopup!();
-	} catch {
+	if (!(await openPopup())) {
 		await storage.removeItem(STORAGE_KEYS.pendingMedia);
 		await browser.tabs.create({ url: browser.runtime.getURL(`/app.html?media=${mediaId}`) });
+	}
+}
+
+/** Abre o popup da extensão. `false` quando o navegador não deixa (Firefox, Chrome antigo). */
+async function openPopup(): Promise<boolean> {
+	try {
+		await (browser.action as { openPopup?: () => Promise<void> }).openPopup!();
+		return true;
+	} catch {
+		return false;
 	}
 }
 
@@ -133,6 +141,11 @@ async function handle(message: ExtensionMessage) {
 
 		case 'open:media':
 			await openMedia(message.mediaId);
+			return;
+
+		case 'open:popup':
+			if (!(await openPopup()))
+				await browser.tabs.create({ url: browser.runtime.getURL('/app.html') });
 			return;
 	}
 }
