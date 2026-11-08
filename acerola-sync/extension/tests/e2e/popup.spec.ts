@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import type { Page, BrowserContext } from '@playwright/test';
 import { expect, test } from './fixtures';
 
@@ -231,6 +234,14 @@ test('app.html?media= abre direto na obra, mesmo mangá com dados repetidos', as
 	expect(errors).toEqual([]);
 });
 
-test('id da extensão é fixo (o login do AniList depende dele)', async ({ extensionId }) => {
-	expect(extensionId).toBe('odbdekpmcfcdipkcachembgdoimcapbp');
+test('id da extensão sai da chave do manifest (o login do AniList depende dele)', async ({
+	extensionId
+}) => {
+	const manifest = JSON.parse(
+		readFileSync(path.resolve('.output/chrome-mv3/manifest.json'), 'utf8')
+	) as { key?: string };
+	test.skip(!manifest.key, 'build sem EXTENSION_PUBLIC_KEY: o id depende da pasta');
+	const hash = createHash('sha256').update(Buffer.from(manifest.key!, 'base64')).digest('hex');
+	const expected = [...hash.slice(0, 32)].map((d) => 'abcdefghijklmnop'[parseInt(d, 16)]).join('');
+	expect(extensionId).toBe(expected);
 });
