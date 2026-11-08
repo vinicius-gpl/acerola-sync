@@ -1,0 +1,35 @@
+node_modules/
+dist/
+build/
+coverage/
+reports/
+.vite/
+.svelte-kit/
+.output/
+.wxt/
+storybook-static/
+playwright-report/
+blob-report/
+test-results/
+.stryker-tmp/
+.eslintcache
+*.tsbuildinfo
+*.log
+
+# Rust
+target/
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+
+# Ajuste local do Claude Code — é de quem programa, não do projeto.
+.claude/settings.local.json
+
+# Inventário do Ansible com o IP do servidor
+acerola-sync/server/.config/ansible/hosts.ini

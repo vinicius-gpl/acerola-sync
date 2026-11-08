@@ -1,0 +1,26 @@
+{
+	"extends": "./.wxt/tsconfig.json",
+	"compilerOptions": {
+		"types": ["@testing-library/jest-dom"],
+		"strict": true,
+		"noUncheckedIndexedAccess": false,
+		"allowJs": true,
+		"checkJs": true,
+		"sourceMap": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"resolveJsonModule": true,
+		"forceConsistentCasingInFileNames": true,
+		"moduleResolution": "bundler",
+		"verbatimModuleSyntax": true
+	},
+	"include": [
+		".wxt/wxt.d.ts",
+		"svelte/src/**/*.d.ts",
+		"svelte/src/**/*.ts",
+		"svelte/src/**/*.js",
+		"svelte/src/**/*.svelte",
+		"svelte/tests/**/*.ts",
+		"svelte/tests/**/*.svelte"
+	]
+}

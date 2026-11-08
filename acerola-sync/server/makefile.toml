@@ -1,0 +1,87 @@
+[config]
+default_to_workspace = false
+skip_core_tasks = true
+
+# ==========================================
+# Core Configuration
+# ==========================================
+
+[tasks.default]
+alias = "test"
+
+[tasks.clean]
+args = ["clean"]
+command = "cargo"
+description = "Clean target"
+workspace = false
+
+# ==========================================
+# Formatting & Linting
+# ==========================================
+
+[tasks.format]
+args = [
+  "fmt",
+  "--all",
+  "--",
+  "--config",
+  "unstable_features=true",
+  "--config",
+  "imports_granularity=Crate,group_imports=StdExternalCrate,reorder_imports=true,format_code_in_doc_comments=true",
+]
+command = "cargo"
+description = "Formats the code with import grouping and doc comment formatting"
+workspace = false
+
+[tasks.lint]
+args = ["clippy", "--all-targets", "--all-features", "--", "-D", "warnings"]
+command = "cargo"
+description = "Run clippy lints"
+workspace = false
+
+[tasks.check]
+args = ["check", "--all-targets", "--all-features"]
+command = "cargo"
+description = "Check Rust code"
+workspace = false
+
+# ==========================================
+# Testing
+# ==========================================
+
+[tasks.test]
+args = ["nextest", "run"]
+command = "cargo"
+description = "Run all tests using nextest"
+workspace = false
+
+[tasks.test-verbose]
+args = ["nextest", "run", "--no-capture"]
+command = "cargo"
+description = "Run all tests using nextest with verbose output"
+workspace = false
+
+[tasks.test-ci]
+args = ["nextest", "run", "--profile", "ci"]
+command = "cargo"
+description = "Run tests in CI profile (longer timeouts, no fail-fast)"
+workspace = false
+
+# ==========================================
+# Coverage
+# ==========================================
+
+[tasks.coverage]
+args = ["llvm-cov", "nextest", "--all-features", "--lcov", "--output-path", "lcov.info"]
+command = "cargo"
+description = "Run tests under coverage instrumentation and emit an lcov report"
+workspace = false
+
+# ==========================================
+# Continuous Integration
+# ==========================================
+
+[tasks.ci]
+dependencies = ["check", "lint", "test-ci"]
+description = "Run full CI pipeline: check, lint, test"
+workspace = false
