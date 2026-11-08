@@ -45,6 +45,9 @@ jobs:
     name: Deploy no VPS
     needs: test
     runs-on: ubuntu-latest
+    # Segredos em `secrets`, o resto em `vars`, tudo no environment `production`
+    # (Settings → Environments), onde dá para exigir aprovação antes do deploy.
+    environment: production
     defaults:
       run:
         working-directory: acerola-sync
@@ -68,7 +71,7 @@ jobs:
           rm -f /tmp/ssh_key
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_IP: ${{ vars.SERVER_IP }}
           SSH_PASSPHRASE: ${{ secrets.SSH_PASSPHRASE }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
@@ -77,8 +80,8 @@ jobs:
           echo "[acerola_sync]" > server/.config/ansible/hosts.ini
           echo "$SERVER_IP ansible_user=admin domain=$DOMAIN" >> server/.config/ansible/hosts.ini
         env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          DOMAIN: ${{ secrets.DOMAIN }}
+          SERVER_IP: ${{ vars.SERVER_IP }}
+          DOMAIN: ${{ vars.DOMAIN }}
 
       - name: Run Deploy Playbook
         run: |
@@ -91,5 +94,5 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-          ANILIST_CLIENT_ID: ${{ secrets.ANILIST_CLIENT_ID }}
-          ALLOWED_ANILIST_USER_ID: ${{ secrets.ALLOWED_ANILIST_USER_ID }}
+          ANILIST_CLIENT_ID: ${{ vars.ANILIST_CLIENT_ID }}
+          ALLOWED_ANILIST_USER_ID: ${{ vars.ALLOWED_ANILIST_USER_ID }}
