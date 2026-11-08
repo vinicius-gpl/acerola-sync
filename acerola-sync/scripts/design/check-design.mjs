@@ -30,7 +30,7 @@ const EXEMPT = [
 	/\/lib\/paraglide\//,
 	/\.test\.ts$/,
 	/\.d\.ts$/,
-	/\/lib\/components\/acerola-(accordion-card|alert-dialog|button|card|command|dialog|hero-button|input|mode-picker|notification|popover|select|settings-header|sonner|switch|toggle-card|toggle-group)\//
+	/\/lib\/components\/acerola-(button|input|popover|sonner|switch)\//
 ];
 
 const PALETTE =
