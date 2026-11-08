@@ -14,5 +14,7 @@ export const STORAGE_KEYS = {
 	/** Cópia dos sites personalizados do server, para o background registrar os scripts. */
 	customSites: 'local:customSites',
 	/** Obra que o aviso do site pediu para abrir no popup (`{ mediaId, at }`); vale por 30s. */
-	pendingMedia: 'local:pendingMedia'
+	pendingMedia: 'local:pendingMedia',
+	/** Onde o botão fixo fica em cada site (`{ [host]: FabPosition }`); igual nos dois PCs. */
+	fabPositions: 'sync:fabPositions'
 } as const;
