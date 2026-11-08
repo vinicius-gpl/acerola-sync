@@ -13,7 +13,18 @@ pub async fn run() {
     let database_pool =
         bios::db::setup_database(&env).await.expect("Erro ao conectar no banco de dados");
 
-    let app = bios::build(bios::AppState { database_pool });
+    let anilist = infra::anilist::AnilistClient::new(&env.anilist_api_url);
+    let state = bios::AppState::new(
+        database_pool,
+        anilist,
+        env.encryption_key,
+        env.anilist_client_id,
+        env.allowed_anilist_user_id,
+    );
+
+    core::workers::scheduler::spawn(state.clone());
+
+    let app = bios::build(state);
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", env.server_port))
         .await
         .expect("Erro ao abrir a porta do servidor");
