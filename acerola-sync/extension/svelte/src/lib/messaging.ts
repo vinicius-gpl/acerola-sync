@@ -31,6 +31,8 @@ export type ExtensionMessage =
 	| { type: 'custom-sites:refresh' }
 	| { type: 'open:link'; request: LinkRequest }
 	| { type: 'open:media'; mediaId: number }
+	/** Botão fixo de site personalizado: abre o popup (ou a página cheia, se não der). */
+	| { type: 'open:popup' }
 	/** Popup → content script da aba: "o que está aberto aí?". */
 	| { type: 'page:current' };
 

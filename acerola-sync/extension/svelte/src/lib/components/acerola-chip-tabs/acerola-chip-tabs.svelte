@@ -37,8 +37,9 @@
 	function measure() {
 		if (!list) return;
 		const { scrollLeft, scrollWidth, clientWidth } = list;
-		canStart = scrollLeft > 1;
-		canEnd = scrollLeft + clientWidth < scrollWidth - 1;
+		// Folga de 2px: arredondamento de subpixel não pode ligar o fade sem ter nada escondido.
+		canStart = scrollLeft > 2;
+		canEnd = scrollLeft + clientWidth < scrollWidth - 2;
 	}
 
 	$effect(() => {
@@ -60,7 +61,18 @@
 		const active = data.active;
 		void tick().then(() => {
 			const chip = list?.querySelector<HTMLElement>(`[data-chip="${active}"]`);
-			chip?.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+			if (!list || !chip) return;
+			// Só rola a faixa na horizontal. `scrollIntoView` também rolava a tela inteira na
+			// vertical (a obra abria rolada, com as ações escondidas).
+			const start = chip.offsetLeft;
+			const end = start + chip.offsetWidth;
+			const left =
+				start < list.scrollLeft
+					? start
+					: end > list.scrollLeft + list.clientWidth
+						? end - list.clientWidth
+						: null;
+			if (left !== null) list.scrollTo?.({ left, behavior: 'smooth' });
 		});
 	});
 </script>
@@ -80,7 +92,9 @@
 		class={cn(
 			// `relative` precisa estar aqui: a classe é reescrita a cada troca de fade e apagaria
 			// o `relative` que o indicador deslizante põe sozinho.
-			'relative isolate flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-full',
+			// `px-px`: largura de ficha quebrada (subpixel) passava ~0,5px da faixa e a borda
+			// da pílula ativa era cortada reta pelo `overflow`.
+			'relative isolate flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-full px-px',
 			canStart && canEnd ? 'fade-x-both' : canStart ? 'fade-x-start' : canEnd && 'fade-x-end'
 		)}
 		use:slidingIndicator={{

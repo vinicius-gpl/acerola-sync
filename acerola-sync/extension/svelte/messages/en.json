@@ -1118,7 +1118,12 @@
 				"save": "Save site",
 				"saved": "Site added.",
 				"permission_denied": "No permission for this site, so it cannot be tracked.",
-				"search_url": "Site search (optional)"
+				"search_url": "Site search (optional)",
+				"edit": "Edit",
+				"edit_title": "Edit site",
+				"updated": "Site updated.",
+				"grant": "No permission · Allow",
+				"granted": "Site allowed. Reload its tab."
 			}
 		},
 		"login": {
@@ -1154,7 +1159,8 @@
 			"open_app": "Open in Acerola",
 			"fab": "Acerola Sync: what is this?",
 			"close": "Close",
-			"nothing_here": "No media on this page"
+			"nothing_here": "No media on this page",
+			"fab_open": "Open Acerola Sync"
 		},
 		"filters": {
 			"search": "Filter by title",

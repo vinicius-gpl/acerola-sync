@@ -29,7 +29,6 @@
 	import { revealIn, spinWhile, staggerIn } from '$lib/utils/motion.utils';
 	import { countdown } from '$lib/utils/time.utils';
 	import { watchLinks } from '$lib/utils/watch-links.utils';
-	import PlayIcon from '@lucide/svelte/icons/play';
 	import RefreshIcon from '@lucide/svelte/icons/refresh-cw';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
@@ -437,7 +436,8 @@
 								</span>
 							</span>
 							<span
-								class="grid size-9 flex-none place-items-center rounded-full {link.kind === 'search'
+								class="grid size-10 flex-none place-items-center rounded-full {link.kind ===
+								'search'
 									? 'bg-surface text-foreground'
 									: 'bg-primary text-primary-foreground'}"
 							>
@@ -445,7 +445,19 @@
 								{#if link.kind === 'search'}
 									<SearchIcon size={16} strokeWidth={3} />
 								{:else}
-									<PlayIcon size={15} strokeWidth={2.5} class="ml-0.5 fill-current" />
+									<!-- Triângulo centrado pelo centro de massa (12,12), não pela caixa: o
+									     play do Lucide parecia torto dentro da bolinha. -->
+									<svg
+										viewBox="0 0 24 24"
+										class="size-5"
+										fill="currentColor"
+										stroke="currentColor"
+										stroke-width="2.5"
+										stroke-linejoin="round"
+										aria-hidden="true"
+									>
+										<path d="M8 4.5 19.5 12 8 19.5Z" />
+									</svg>
 								{/if}
 							</span>
 						</a>

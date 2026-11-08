@@ -19,6 +19,7 @@
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MinusIcon from '@lucide/svelte/icons/minus';
 	import PlusIcon from '@lucide/svelte/icons/plus';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -43,6 +44,8 @@
 		searchUrl: ''
 	});
 	let draft = $state<CustomSiteInput>(emptyDraft());
+	/** Site sendo editado; `null` = cadastro novo. */
+	let editing = $state<CustomSite | null>(null);
 	let sampleUrl = $state('');
 
 	/** Prévia do que a regex tira da URL de exemplo, antes de salvar. */
@@ -61,9 +64,37 @@
 		!!draft.name.trim() && !!draft.matchPattern.trim() && !!draft.urlPattern.trim()
 	);
 
+	/** Sites ligados sem a permissão do domínio: o script não roda lá até liberar. */
+	let missingPermission = $state<string[]>([]);
+
+	async function checkPermissions() {
+		const missing: string[] = [];
+		for (const site of customSites) {
+			const origin = originPattern(site.matchPattern);
+			if (!site.enabled || !origin) continue;
+			try {
+				if (!(await browser.permissions.contains({ origins: [origin] }))) missing.push(site.id);
+			} catch {
+				// Navegador sem a API: não dá para saber, não avisa.
+			}
+		}
+		missingPermission = missing;
+	}
+
+	async function grantSite(site: CustomSite) {
+		const granted = requestOrigin(site.matchPattern);
+		if (!(await granted)) {
+			toast.error(m['sync.settings.custom.permission_denied']());
+			return;
+		}
+		await refreshScripts();
+		toast.success(m['sync.settings.custom.granted']());
+	}
+
 	async function loadCustomSites() {
 		try {
 			customSites = (await app.api?.customSites()) ?? [];
+			void checkPermissions();
 			await storage.setItem(STORAGE_KEYS.customSites, $state.snapshot(customSites));
 		} catch (error) {
 			await app.handleError(error);
@@ -97,24 +128,47 @@
 		await sendMessage({ type: 'custom-sites:refresh' });
 	}
 
-	async function createSite() {
+	function openNew() {
+		editing = null;
+		draft = emptyDraft();
+		sampleUrl = '';
+		dialog = { open: true };
+	}
+
+	function openEdit(site: CustomSite) {
+		editing = site;
+		const { id: _id, ...input } = site;
+		draft = { ...input, titleSelector: site.titleSelector ?? '', searchUrl: site.searchUrl ?? '' };
+		sampleUrl = '';
+		dialog = { open: true };
+	}
+
+	async function saveSite() {
 		if (!app.api) return;
-		const granted = requestOrigin(draft.matchPattern);
+		const current = editing;
+		// Ligado = precisa da permissão do domínio. Se já foi dada, o navegador responde na hora
+		// sem perguntar; se não (site cadastrado fora da tela), é aqui que ela é pedida.
+		const granted = draft.enabled ? requestOrigin(draft.matchPattern) : Promise.resolve(true);
 		try {
 			if (!(await granted)) {
 				toast.error(m['sync.settings.custom.permission_denied']());
 				return;
 			}
-			await app.api.createCustomSite({
+			const input = {
 				...$state.snapshot(draft),
 				titleSelector: draft.titleSelector?.trim() || null,
 				searchUrl: draft.searchUrl?.trim() || null
-			});
+			};
+			if (current) await app.api.updateCustomSite(current.id, input);
+			else await app.api.createCustomSite(input);
+			editing = null;
 			draft = emptyDraft();
 			sampleUrl = '';
 			dialog = { open: false };
 			await refreshScripts();
-			toast.success(m['sync.settings.custom.saved']());
+			toast.success(
+				current ? m['sync.settings.custom.updated']() : m['sync.settings.custom.saved']()
+			);
 		} catch (error) {
 			await app.handleError(error);
 		}
@@ -255,7 +309,7 @@
 			<button
 				type="button"
 				class="flex h-9 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-4 text-xs font-black text-background"
-				onclick={() => (dialog = { open: true })}
+				onclick={openNew}
 			>
 				<PlusIcon size={14} />
 				{m['sync.settings.custom.add']()}
@@ -272,11 +326,30 @@
 							<p class="truncate font-mono text-[11px] text-muted-foreground">
 								{site.matchPattern}
 							</p>
+							{#if missingPermission.includes(site.id)}
+								<button
+									type="button"
+									class="mt-1 flex h-6 cursor-pointer items-center gap-1 rounded-full bg-warning-soft px-2.5 text-[11px] font-bold text-warning"
+									onclick={() => grantSite(site)}
+									data-grant-site={site.id}
+								>
+									{m['sync.settings.custom.grant']()}
+								</button>
+							{/if}
 						</div>
 						<AcerolaSwitch
 							state={{ checked: site.enabled }}
 							events={{ onCheckedChange: (checked) => toggleCustomSite(site, checked) }}
 						/>
+						<button
+							type="button"
+							class="flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-surface hover:text-foreground"
+							aria-label={`${m['sync.settings.custom.edit']()} ${site.name}`}
+							onclick={() => openEdit(site)}
+							data-edit-site={site.id}
+						>
+							<PencilIcon size={15} />
+						</button>
 						<button
 							type="button"
 							class="flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-destructive-soft hover:text-destructive"
@@ -310,7 +383,9 @@
 <AcerolaSheetDialog
 	bind:state={dialog}
 	data={{
-		title: m['sync.settings.custom.dialog_title'](),
+		title: editing
+			? m['sync.settings.custom.edit_title']()
+			: m['sync.settings.custom.dialog_title'](),
 		description: m['sync.settings.custom.help'](),
 		closeLabel: m['sync.tracking.close']()
 	}}
@@ -331,7 +406,7 @@
 					active: draft.mediaType
 				}}
 				events={{ onSelect: (id) => (draft.mediaType = id as MediaType) }}
-				ui={{ size: 'sm', class: 'self-center' }}
+				ui={{ size: 'sm', class: 'flex-none self-center' }}
 			/>
 		</div>
 		<input
@@ -373,7 +448,7 @@
 			type="button"
 			class="mt-1 h-11 cursor-pointer rounded-full bg-primary text-sm font-black text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
 			disabled={!canSave}
-			onclick={createSite}
+			onclick={saveSite}
 		>
 			{m['sync.settings.custom.save']()}
 		</button>

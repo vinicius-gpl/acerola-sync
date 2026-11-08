@@ -209,11 +209,27 @@ async function toggleHereCard(adapter: SiteAdapter) {
 	if (card) void showToast({ ...card, id: HERE_TOAST_ID, durationMs: null });
 }
 
+/** Site personalizado: só a URL é conhecida (sem capa, sem título confiável). */
+export function isCustomSite(adapter: Pick<SiteAdapter, 'id'>): boolean {
+	return adapter.id.startsWith('custom:');
+}
+
 /**
  * Mostra o botão fixo só onde há obra (página da obra, capítulo ou episódio). A página pode
  * ainda estar carregando (SPA): sem obra, tenta de novo um pouco depois.
+ *
+ * Em site personalizado o botão fica em todas as páginas e abre a extensão: lá não dá para
+ * montar o cartão da obra (sem capa, título incerto), e o popup já mostra o que achar da aba.
  */
 async function refreshFab(adapter: SiteAdapter, retry = true) {
+	if (isCustomSite(adapter)) {
+		await setFab({
+			icon: FAB_ICON,
+			label: m['sync.tracking.fab_open'](),
+			onClick: () => void sendMessage({ type: 'open:popup' })
+		});
+		return;
+	}
 	const href = location.href;
 	const hasWork = Boolean(adapter.pageKey(new URL(href))) || Boolean(await currentPage(adapter));
 	if (href !== location.href) return;

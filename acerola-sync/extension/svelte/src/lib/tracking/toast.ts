@@ -58,9 +58,10 @@ const STYLE = `
 		background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 800; }
 	.actions button.secondary { background: color-mix(in srgb, var(--foreground) 10%, transparent); color: var(--foreground); }
 	.actions button:hover { filter: brightness(1.08); }
-	.close { position: absolute; top: 10px; right: 12px; width: 26px; height: 26px; border: 0; border-radius: 999px;
+	.close { position: absolute; top: 10px; right: 12px; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px;
 		display: grid; place-items: center; cursor: pointer; background: transparent; color: var(--foreground);
-		opacity: .6; font: inherit; font-size: 16px; line-height: 1; }
+		opacity: .7; }
+	.close svg { display: block; }
 	.close:hover { opacity: 1; background: color-mix(in srgb, var(--foreground) 10%, transparent); }
 	.fab { width: 52px; height: 52px; border: 0; border-radius: 999px; padding: 0; cursor: pointer;
 		display: grid; place-items: center; background: var(--card);
@@ -76,6 +77,9 @@ const STYLE = `
 	@keyframes in { from { opacity: 0; transform: translateY(12px) scale(.96); } }
 	@media (prefers-reduced-motion: reduce) { .toast, .fab { animation: none; transition: none; } }
 `;
+
+const CLOSE_ICON =
+	'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.25" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 
 const BADGE: Record<ToastTone, string> = { info: 'i', success: '✓', warning: '!', error: '×' };
 
@@ -163,7 +167,8 @@ export async function showToast(options: ToastOptions): Promise<HTMLElement> {
 
 	const close = document.createElement('button');
 	close.className = 'close';
-	close.textContent = '×';
+	// X desenhado (traço grosso, centrado na caixa): o "×" da fonte ficava fino e torto.
+	close.innerHTML = CLOSE_ICON;
 	close.setAttribute('aria-label', m['sync.tracking.close']());
 	close.addEventListener('click', () => closeToast(toast));
 	toast.append(close);

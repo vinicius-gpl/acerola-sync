@@ -25,7 +25,14 @@ function media(id: number, title: string, mediaType: 'ANIME' | 'MANGA' = 'ANIME'
 		genres: ['Drama'],
 		synonyms: [],
 		studios: [],
-		externalLinks: [],
+		externalLinks: [
+			{
+				site: 'Crunchyroll',
+				url: 'https://www.crunchyroll.com/x',
+				kind: 'STREAMING',
+				language: null
+			}
+		],
 		relations: []
 	};
 }
@@ -136,7 +143,14 @@ async function expectAligned(container: Locator, underline = false) {
 					underline ? 0 : Math.abs(indicator.y - active.y),
 					underline ? 0 : Math.abs(indicator.height - active.height)
 				);
-				return off <= 1.5 ? 'ok' : `desalinhado ${off.toFixed(1)}px`;
+				if (off > 0.25) return `desalinhado ${off.toFixed(2)}px`;
+				// A pílula não pode passar da faixa (ali ela é cortada reta pelo overflow).
+				const box = (await container.boundingBox())!;
+				const outside = Math.max(
+					box.x - indicator.x,
+					indicator.x + indicator.width - (box.x + box.width)
+				);
+				return underline || outside <= 0.05 ? 'ok' : `pílula cortada ${outside.toFixed(2)}px`;
 			},
 			{ timeout: 3000 }
 		)
@@ -250,6 +264,9 @@ test('barra de baixo e fichas da obra alinhadas; diálogo no padrão', async ({
 	await mediaStatuses.getByRole('tab').nth(2).click();
 	await expectAligned(mediaStatuses);
 	await page.screenshot({ path: `${SHOTS}/04-obra.png`, fullPage: true });
+	const watch = page.locator('[data-watch-links] a').first();
+	await watch.scrollIntoViewIfNeeded();
+	await watch.screenshot({ path: `${SHOTS}/04b-onde-assistir.png` });
 
 	await page.getByRole('button', { name: /Remover da lista|Remove from list/ }).click();
 	const dialog = page.getByRole('alertdialog');
@@ -298,4 +315,56 @@ test('seletor de horário: cartão dentro do popup, hora escolhida no meio da co
 		.getByRole('option', { name: '30' })
 		.click();
 	await expect(trigger).toHaveText(/21:30/);
+});
+
+test('fichas dentro do formulário de site cabem inteiras, sem corte nem fade', async ({
+	context,
+	page,
+	extensionId
+}) => {
+	await signIn(context);
+	// Em português ("Mangá", nomes maiores) foi onde quebrou.
+	await page.addInitScript(() => localStorage.setItem('PARAGLIDE_LOCALE', 'pt-br'));
+	await mockServer(page);
+	await page.goto(`chrome-extension://${extensionId}/popup.html`);
+	await expect(page.getByText('Sousou no Frieren').first()).toBeVisible();
+	await page.getByRole('navigation').last().getByRole('button').last().click();
+	await page.getByRole('button', { name: /^(Adicionar|Add)$/ }).click();
+
+	const dialog = page.getByRole('dialog');
+	await dialog.getByPlaceholder(/Nome|Name/).fill('AnimeFire');
+	await expect(dialog).toBeVisible();
+	const types = dialog.getByRole('tablist').first();
+	await types.getByRole('tab', { name: /Anime/ }).click();
+	await expectAligned(types);
+	const overflow = await types.evaluate((node) => node.scrollWidth - node.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(1);
+	await expect(types).toHaveAttribute('data-fade', 'none');
+	await page.waitForTimeout(300);
+	await dialog.screenshot({ path: `${SHOTS}/07-form-site.png` });
+	await types.locator('xpath=..').screenshot({ path: `${SHOTS}/07b-fichas-form.png` });
+	// A pílula ativa fica inteira dentro da moldura, com a folga da borda dos dois lados.
+	const frame = (await types.locator('xpath=..').boundingBox())!;
+	const pill = (await types.getByRole('tab', { selected: true }).boundingBox())!;
+	expect(pill.x + pill.width).toBeLessThanOrEqual(frame.x + frame.width - 3);
+	expect(pill.x).toBeGreaterThanOrEqual(frame.x + 3);
+	// A pílula (indicador) não pode passar da faixa que rola: lá ela é cortada reta.
+	const clip = await types.evaluate((node) => {
+		const list = node.getBoundingClientRect();
+		const pill = [...node.children]
+			.find((child) => child.classList.contains('pointer-events-none'))!
+			.getBoundingClientRect();
+		return { left: pill.left - list.left, right: list.right - pill.right };
+	});
+	expect(clip.left).toBeGreaterThanOrEqual(0);
+	expect(clip.right).toBeGreaterThanOrEqual(0);
+	// E a pílula tem o tamanho da ficha (medida depois do zoom de entrada do diálogo).
+	const fit = await types.evaluate((node) => {
+		const pill = [...node.children]
+			.find((child) => child.classList.contains('pointer-events-none'))!
+			.getBoundingClientRect();
+		const tab = node.querySelector('[aria-selected="true"]')!.getBoundingClientRect();
+		return Math.max(Math.abs(pill.left - tab.left), Math.abs(pill.right - tab.right));
+	});
+	expect(fit).toBeLessThanOrEqual(0.1);
 });
