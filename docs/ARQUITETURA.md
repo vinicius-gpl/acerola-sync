@@ -1,224 +1,229 @@
 # Acerola Sync — Arquitetura
 
-> Extensão (Chrome/Firefox) + backend próprio para tracking de anime e mangá, com sync atrasado e econômico com o AniList.
-> Licença: MIT. Uso pessoal primeiro, mas qualquer pessoa pode hospedar a própria instância.
+> Extensão (Chrome/Firefox) + server próprio para lista, lançamentos e tracking de anime e mangá, só com o AniList.
+> Funções inspiradas no [MALSync](https://github.com/MALSync/MALSync). Visual próprio, com a paleta única e os componentes do acerola-reader.
+> Licença: MIT. Uso pessoal: uma instância, um usuário.
 
 ## 1. Princípios
 
-1. **O backend é obrigatório e é a fonte da verdade.** O banco (Postgres) fica no servidor.
-2. **A extensão nunca acessa o banco.** Ela fala só com a API do backend, via HTTPS e token de sessão, e não carrega nenhum segredo dentro do pacote.
-3. **Só o backend fala com o AniList.** Ele guarda o token do AniList criptografado, centraliza o rate limit e envia as mudanças em lote, com atraso.
-4. **A extensão tem um cache local** (IndexedDB) apenas para a UI ser instantânea e funcionar offline. Esse cache é descartável.
-5. **Dados estáticos não vêm do AniList.** Títulos, IDs cruzados e episódios vêm de um dataset offline importado no Postgres.
+1. **O Postgres é um espelho do AniList.** O sync puxa a lista inteira e guarda as obras e as entradas. Busca, lista e tela da obra saem do espelho, sem request ao AniList.
+2. **Escrita vai para os dois ao mesmo tempo.** Cada mudança (+1, status, nota, tracking) vai ao AniList e ao espelho na mesma chamada. Se o AniList estiver fora, ela vale no espelho com `dirty = true` e é reenviada depois.
+3. **O app funciona sem o AniList.** Com a API dele fora, a lista, a busca e o tracking continuam; o que mudou fica pendente.
+4. **Tudo em UTC.** O banco usa `timestamptz` e a agenda roda em UTC. A tela mostra e recebe o horário de Brasília (UTC−3).
+5. **A extensão não guarda segredo.** Ela tem só o token de sessão do server. O token do AniList fica no server, criptografado.
 
 ## 2. Visão geral
 
 ```mermaid
 flowchart LR
   subgraph Browser [Navegador]
-    CS[Content scripts<br/>adapters de sites] --> SW
-    UI[Popup / Side panel<br/>Svelte 5] <--> C[(Cache local<br/>Dexie)]
-    SW[Service worker] <--> C
+    CS[Content scripts<br/>Sakura · MangaDex · Crunchyroll · Netflix · personalizados] -->|mensagem| SW[Service worker]
+    UI[Popup<br/>Svelte 5] --> API
+    SW -->|HTTPS + token de sessão| API
   end
-  SW <-->|HTTPS + JWT<br/>/sync/push · /sync/pull| API
-  subgraph Servidor [VPS · Docker Compose]
-    CADDY[Caddy<br/>TLS automático] --> API[API<br/>Bun + Hono]
-    API <--> PG[(Postgres<br/>rede interna, sem porta pública)]
-    W[Worker<br/>jobs pg-boss] <--> PG
+  subgraph Servidor [Docker · atrás do Traefik/Coolify]
+    API[server<br/>Rust + axum] <--> PG[(Postgres<br/>externo, via DATABASE_URL)]
+    SCH[scheduler<br/>tokio, mesmo processo] <--> PG
   end
-  W -->|pull incremental<br/>push em lote| AL[AniList GraphQL]
-  W -->|1x por semana| DS[anime-offline-database]
-  W -->|cron| MD[MangaDex / sites de mangá]
+  API -->|escrita na hora| AL[AniList GraphQL]
+  SCH -->|sync agendado · reenvio de pendências| AL
 ```
 
-## 3. Segurança
+## 3. Server (`acerola-sync/server`)
 
-### 3.1 Onde fica cada segredo
-| Segredo | Onde fica | Nunca fica em |
+Rust + axum + sqlx, nas mesmas camadas do acerola-reader:
+
+| Camada | O que tem |
+|---|---|
+| `bios` | env, pool do Postgres, `AppState`, rotas, CORS |
+| `cmd` | handlers (`features`) e payloads (`events`) de cada rota |
+| `core/services` | auth, entries (regras de edição), sync (espelho), schedule, search, tracking |
+| `core/workers` | `scheduler`: a cada 30 s confere a agenda; a cada 5 min reenvia pendências |
+| `data` | models e repositories (SQL explícito) |
+| `infra` | cliente do AniList, crypto, migrations, erros |
+
+### 3.1 Cliente do AniList
+
+- Fila única no processo: no máximo **30 req/min** (um terço do limite normal de 90, e igual ao limite quando o AniList está degradado).
+- Em 429, lê o `Retry-After` e pausa todas as chamadas.
+- Falha passageira (rede, 5xx, 429) não vira erro para o usuário: a escrita fica pendente.
+
+### 3.2 Sync (espelho)
+
+Cada query pede só o que a tela usa (`infra/anilist/queries.rs`):
+
+| Query | Campos | Quando |
 |---|---|---|
-| Credenciais do Postgres | `.env` do servidor (só o container da API/worker lê) | extensão, repositório git |
-| `ANILIST_CLIENT_SECRET` | `.env` do servidor | extensão |
-| Token do AniList do usuário | Postgres, **criptografado** com AES-256-GCM (chave em `ENCRYPTION_KEY` no `.env`) | extensão, logs |
-| Refresh token da sessão | extensão: `chrome.storage.local`. Servidor: só o **hash** SHA-256 | `chrome.storage.sync`, logs |
-| Access token (JWT) | só na memória do service worker, curto (15 min) | disco |
+| `LIST_MEDIA_FIELDS` | título, capa `large`, total, status, próximo episódio | lista, incremental, busca, +1 |
+| `DETAIL_MEDIA_FIELDS` | + sinopse, banner, gêneros, capa `extraLarge` | uma vez por obra, ao abrir (`details_synced_at`) |
+| `airing_by_ids` | só o próximo episódio | incremental, 50 obras por request |
 
-### 3.2 Login (OAuth do AniList passando pelo backend)
+A query leve não apaga o que o detalhe trouxe: sinopse, banner, gêneros, temporada e país usam `COALESCE` no upsert.
 
-```mermaid
-sequenceDiagram
-  participant E as Extensão
-  participant AL as AniList
-  participant B as Backend
-  participant DB as Postgres
-  E->>B: POST /auth/start → { state }
-  E->>AL: launchWebAuthFlow(authorize?client_id&redirect_uri=chromiumapp.org&state)
-  AL-->>E: redirect com ?code&state
-  E->>B: POST /auth/anilist { code, state }
-  B->>B: valida state (uso único, expira em 5 min)
-  B->>AL: troca code por token (com client_secret)
-  B->>AL: Viewer { id name }
-  B->>DB: upsert user · salva token AniList criptografado
-  B->>DB: cria sessão (hash do refresh token, nome do dispositivo)
-  B-->>E: { accessToken (15 min), refreshToken (30 dias, rotativo) }
-```
+**Modos:**
+- **Incremental** (padrão): `Page.mediaList(sort: UPDATED_TIME_DESC)` de 50 em 50, parando na primeira entrada que não mudou desde o último pull (com 5 min de folga). Depois atualiza o próximo episódio do que está em lançamento. Normalmente custa **2 requests**. Passou de 20 páginas, vira completo.
+- **Lista inteira**: `MediaListCollection` de anime e de mangá, em pedaços de 500, e remove do espelho o que sumiu do AniList. Roda no primeiro login, quando pedido (`POST /sync?full=true`) ou se o último completo tem mais de 24 h.
 
-- O `client_secret` nunca sai do servidor. A extensão só repassa o `code`.
-- **Refresh rotativo:** cada `/auth/refresh` invalida o refresh token anterior. Se um token antigo for reutilizado, todas as sessões daquele dispositivo são revogadas (detecção de roubo).
-- **Logout e revogação:** `DELETE /auth/session/:id`, com uma lista de dispositivos na tela de opções.
-- **Uso só pessoal:** dá para travar a instância com `ALLOWED_ANILIST_IDS=123456` no `.env`, e ninguém mais consegue logar.
+Passos de qualquer sync:
+1. Envia as entradas `dirty` (o que mudou aqui com o AniList fora).
+2. Puxa conforme o modo. O que ainda está pendente nunca é sobrescrito nem apagado.
+3. Cada passo vira uma linha em `sync_logs`; a tela acompanha ao vivo.
+4. Grava o resultado em `sync_runs`, com o modo e quantos requests ao AniList foram feitos.
 
-### 3.3 Proteções do servidor
-- **Postgres** só na rede interna do Docker, **sem porta exposta**. A API usa um usuário com permissões mínimas, sem ser superusuário e sem DDL; as migrações rodam com outro usuário.
-- **HTTPS obrigatório** via Caddy, com HSTS.
-- **Validação** de todo input com Valibot. Queries só pelo Drizzle (parametrizadas, sem SQL concatenado).
-- **Rate limit por usuário e por IP** na API (ex.: 120 req/min), separado do rate limit do AniList.
-- **CORS** restrito a `chrome-extension://<id>`. Isso não substitui a autenticação: quem protege é o JWT, porque o ID da extensão no Firefox varia por instalação.
-- **Logs** sem tokens nem bodies sensíveis.
-- **Backup diário** com `pg_dump` criptografado, enviado para fora do VPS.
-- **Dependências:** lockfile, `pnpm audit` no CI e Renovate.
+Um sync por vez (`sync_lock`). O `POST /sync` responde **202** na hora e roda em segundo plano; a tela lê `/sync/runs/{id}/logs?after=` a cada 800 ms.
 
-## 4. Monorepo
+### 3.3 Agenda
 
-```
-acerola-sync/
-├─ packages/
-│  ├─ core/        # TS puro: tipos, schemas Valibot, regras de merge, mapping
-│  └─ api-client/  # cliente tipado da API (usado pela extensão)
-├─ apps/
-│  ├─ extension/   # WXT + Svelte 5 + Dexie (cache)
-│  │  ├─ entrypoints/   # background.ts, popup/, sidepanel/, options/, content/*.ts
-│  │  └─ sites/         # adapters (defineSite)
-│  └─ server/      # Bun + Hono + Drizzle + pg-boss
-│     ├─ routes/        # auth, sync, airing, search, manga
-│     ├─ jobs/          # anilist-push, anilist-pull, airing, notifications, dataset, manga
-│     ├─ anilist/       # cliente GraphQL + token bucket
-│     └─ db/            # schema Drizzle + migrações
-├─ docker-compose.yml  # caddy, api, worker, postgres
-├─ .env.example
-└─ docs/
-```
+- `sync_settings.schedule_times` é uma lista de horários `TIME` em UTC. A tela converte de/para o horário de Brasília.
+- Cada horário roda uma vez (`last_scheduled_slot`). Se o server ficou fora no horário, roda uma vez ao voltar, não uma por horário perdido.
+- Salvar a agenda não dispara sync na hora: o horário que já passou hoje conta como atendido.
 
-A API e o worker são o **mesmo código** com entrypoints diferentes (`server.ts` e `worker.ts`), em containers separados.
+### 3.4 Tracking
 
-## 5. Banco (Postgres)
+1. **Resolver** (`POST /track/resolve`): qual obra do AniList é a página do site. Ordem: mapeamento salvo → ID informado pelo site (o MangaDex informa) → título no espelho (pg_trgm, similaridade ≥ 0,75) → busca no AniList (1 request). O resultado fica em `site_mappings`.
+2. **Correção manual** (`PUT /track/mapping`): grava com `source = MANUAL`, que a busca automática nunca sobrescreve.
+3. **Marcar** (`POST /track/progress`), com as regras do MALSync:
+   - nunca diminui o progresso;
+   - não mexe em obra concluída;
+   - planejado, pausado ou largado vira "assistindo/lendo";
+   - chegar no total conclui e preenche as datas (dia de Brasília).
+4. Toda mudança de progresso entra em `history`, com a origem (site ou manual) e a URL.
+
+### 3.5 Banco
 
 | Tabela | Chave | Conteúdo |
 |---|---|---|
-| `users` | `id` | `anilist_user_id`, nome, avatar, configurações (jsonb) |
-| `anilist_tokens` | `user_id` | `ciphertext`, `iv`, `tag`, `expires_at` |
-| `sessions` | `id` | `user_id`, `refresh_hash`, `device`, `last_used_at`, `expires_at`, `revoked_at` |
-| `media` | `id` (AniList) | `mal_id`, `kitsu_id`, títulos/sinônimos (jsonb), formato, episódios, capítulos, status, capa, `next_airing_at`, `fetched_at` (**compartilhada entre usuários**) |
-| `entries` | `(user_id, media_id)` | status, progress, score, datas, notas, `updated_at`, `remote_updated_at`, **`version`** (bigint de uma sequence global) |
-| `outbox` | `(user_id, media_id)` | `changes` (jsonb coalescido), `first_change_at`, `last_change_at`, `priority`, `attempts`, `next_try_at` |
-| `airing` | `(media_id, episode)` | `airing_at` |
-| `site_map` | `(site, slug)` | `media_id`, `user_id` (null = global, preenchido = correção pessoal) |
-| `history` | `id` | `user_id`, `media_id`, unidade (ep/cap), site, `watched_at` |
-| `sync_state` | `user_id` | `last_pull_at`, `last_push_at`, `last_notification_count` |
+| `users` | `id` (AniList) | nome, avatar, token do AniList (`cipher` + `nonce`, AES-256-GCM) |
+| `sessions` | `id` | `user_id`, `token_hash` (SHA-256), dispositivo, `revoked_at` |
+| `media` | `id` (AniList) | títulos, sinônimos, capa, total, status, próximo episódio, `search_text` (índice trigram), `details_synced_at` |
+| `entries` | `(user_id, media_id)` | status, progresso, nota (0–100), datas, `dirty`, `push_attempts`, `last_push_error` |
+| `sync_settings` | `user_id` | `schedule_enabled`, `schedule_times` (UTC), `last_scheduled_slot`, `last_pull_at`, `last_full_sync_at` |
+| `sync_runs` | `id` | gatilho, modo, status, contagens, requests ao AniList, erro |
+| `sync_logs` | `id` | linha a linha de cada sync (nível, mensagem, hora) |
+| `site_mappings` | `(user_id, site, identifier)` | `media_id`, `source` (`AUTO`/`MANUAL`) |
+| `history` | `id` | progresso anterior → novo, origem, URL |
+| `custom_sites` | `id` | match pattern, regex da URL, seletor do título |
 
-**Por que `version`:** toda escrita em `entries` recebe um novo valor da sequence. A extensão pede `GET /sync/pull?since=<version>` e recebe só o que mudou, o que é barato e serve para vários dispositivos ao mesmo tempo.
+### 3.6 API
 
-**Dataset offline:** o job `dataset` baixa o anime-offline-database toda semana e faz upsert em `media` e `site_map`. Os dados são ODbL (pedem atribuição); o código continua MIT.
-
-## 6. Fluxo de sync
-
-### 6.1 Extensão ↔ backend (barato, é o seu servidor)
-
-```mermaid
-sequenceDiagram
-  participant S as Site / Popup
-  participant C as Cache (Dexie)
-  participant SW as Service worker
-  participant B as Backend
-  S->>C: progress = 6 (UI atualiza na hora)
-  C->>SW: fila local de pendências
-  SW->>B: POST /sync/push [{mediaId, changes, clientTs}] (debounce 5 s ou ao fechar a aba)
-  B->>B: upsert entries (version++) + upsert outbox (coalescido)
-  B-->>SW: { entries atualizadas, version }
-  Note over SW: alarm a cada 2–5 min, ou ao abrir o popup
-  SW->>B: GET /sync/pull?since=version (ETag → 304 se nada mudou)
-```
-
-- A fila local da extensão serve só para o caso de ficar **offline**. Quando a rede volta, ela é enviada e esvaziada.
-- O merge com o que já está no banco usa as regras do `core` (seção 6.3).
-
-### 6.2 Backend ↔ AniList (o que precisa ser econômico)
-
-O job `anilist-push` (pg-boss) roda a cada minuto e pega da `outbox` os itens que estão prontos:
-
-| Regra | Padrão |
-|---|---|
-| Debounce: sem mudança nova há X min | 10 min |
-| Teto: o item mais antigo esperando | 60 min |
-| Mudança importante (status, score) | 2 min |
-| "Sincronizar agora" (`POST /sync/flush`) | imediato |
-
-Para cada usuário com itens prontos:
-1. **Pull incremental antes** (`Page.mediaList(userId, sort: UPDATED_TIME_DESC)` até `updatedAt <= last_pull_at`), que normalmente custa 1 request.
-2. **Merge** dos conflitos (6.3).
-3. **Push em lote:** 1 mutation com até ~20 `SaveMediaListEntry` em aliases, que conta como 1 request. *(A validar; se o AniList não aceitar, cai para 1 mutation por mídia.)*
-4. Remove da outbox o que foi enviado. Se falhar, aplica `attempts++` e `next_try_at` com backoff.
-
-**Outros jobs:**
-| Job | Query | Frequência | Custo |
-|---|---|---|---|
-| `anilist-pull` | incremental (captura edições feitas no site do AniList) | 15 min | ~1 req/usuário |
-| `airing` | `Page.airingSchedule(mediaId_in: [RELEASING da lista], próximos 7 dias)` | 1x/dia | 1 req/usuário |
-| `notifications` | `Viewer { unreadNotificationCount }`, e a lista só se o número mudou | 30 min (opcional) | 1 req |
-| `media-refresh` | `Page.media(id_in: [...50])` só para mídias sem dados ou vencidas (TTL de 30 dias para FINISHED, 1 dia para RELEASING) | 1x/dia | 0–2 req |
-| `dataset` | anime-offline-database (GitHub) | 1x/semana | 0 no AniList |
-| `manga` | MangaDex `/manga/{id}/feed` + adapters de servidor | 1–2 h por fonte | 0 no AniList |
-
-**Rate limit do AniList (`server/anilist`):** um token bucket global de **20 req/min** (o AniList permite ~90 e às vezes reduz para 30). Lê `X-RateLimit-Remaining` e `Retry-After`; em 429 pausa tudo com backoff e jitter. Prioridade: push > pull > airing > notificações > metadados.
-
-**Orçamento estimado (1 usuário pesado):** cerca de 140 req/dia, contra um limite de ~90 por minuto.
-
-### 6.3 Regras de merge (no `core`)
-- `progress`: vale o maior, a menos que a mudança local seja marcada como `force` (o usuário voltou o episódio manualmente).
-- `status`: vale o mais recente, mas um adapter nunca rebaixa COMPLETED.
-- `score` e `notes`: vale o mais recente (last-write-wins pelo timestamp).
-- Se o remoto mudou e não há nada local pendente: aplica o remoto em `entries` (`version++`) e não envia nada.
-
-## 7. API (resumo)
+Todas as rotas, menos `/health`, `/auth/config` e `/auth/login`, exigem `Authorization: Bearer <token de sessão>`. Erros seguem `{ errorType, message }`.
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/auth/start` | gera o `state` |
-| POST | `/auth/anilist` | troca o `code` e cria a sessão |
-| POST | `/auth/refresh` | rotaciona o refresh token |
-| GET/DELETE | `/auth/sessions` | lista e revoga dispositivos |
-| GET | `/sync/pull?since=` | entries alteradas (ETag) |
-| POST | `/sync/push` | mudanças do cliente |
-| POST | `/sync/flush` | força o envio ao AniList |
-| GET | `/airing?from=&to=` | agenda |
-| GET | `/search?q=` | busca primeiro em `media` (pg_trgm) e só depois no AniList |
-| POST | `/resolve` | `{site, slug, title}` → `mediaId` (mapping) |
-| GET | `/manga/updates?since=` | capítulos novos |
+| GET | `/health` | status e versão |
+| GET | `/auth/config` | Client ID do AniList (público, vem do `.env`) |
+| POST | `/auth/login` | `{ accessToken }` do AniList → `{ sessionToken, user }` |
+| POST | `/auth/logout` | revoga a sessão |
+| GET | `/me` | perfil |
+| GET | `/entries?mediaType=&status=&limit=&offset=` | lista do espelho com as obras, paginada (48 por vez, máx. 200) |
+| GET | `/entries/counts` | quantas entradas por tipo e status (abas da lista) |
+| PATCH / DELETE | `/entries/{mediaId}` | edita ou remove (AniList + espelho) |
+| GET | `/media/search?q=&mediaType=&remote=` | busca no espelho; AniList só com `remote=true` ou sem resultado |
+| GET | `/media/{id}` | obra + entrada; busca o detalhe no AniList uma vez só |
+| POST | `/sync?full=` | começa um sync (202); `full=true` força a lista inteira |
+| GET | `/sync/status` | agenda, últimos syncs, pendências |
+| GET | `/sync/runs/{id}/logs?after=` | o sync e as linhas de log depois de `after` |
+| PUT | `/sync/schedule` | `{ enabled, times: ["12:00:00"] }` em UTC |
+| POST | `/track/resolve` · `/track/progress` | tracking |
+| PUT / DELETE | `/track/mapping` | correção manual |
+| GET | `/history?limit=` | histórico |
+| GET/POST/PUT/DELETE | `/custom-sites[/{id}]` | sites personalizados (a regex é validada no server) |
 
-A busca usa a extensão **pg_trgm** do Postgres para fazer fuzzy search de títulos direto no banco, sem gastar request no AniList.
+### 3.7 Login e uso pessoal
 
-## 8. Deploy
+- O Client ID do app do AniList fica no `.env` do server (`ANILIST_CLIENT_ID`). A extensão só sabe o endereço do server e pede o Client ID em `/auth/config`.
+- A extensão faz o OAuth do AniList em **implicit grant** (`response_type=token`), como o AniMouto, via `browser.identity.launchWebAuthFlow`. O Client Secret não é usado.
+- O token vai ao server, que confere de quem é (`Viewer`), guarda criptografado e devolve um token de sessão aleatório. No banco fica só o hash.
+- Instância de uma pessoa: o primeiro login vira o dono. Outro usuário do AniList recebe 403. `ALLOWED_ANILIST_USER_ID` trava explicitamente.
 
-`docker-compose.yml`:
-- `caddy`: portas 80/443, TLS automático, proxy para a `api`
-- `api`: Bun + Hono, sem porta pública
-- `worker`: mesmo código, roda os jobs
-- `postgres`: volume persistente, **sem `ports:`**, rede interna
-- `backup`: cron com `pg_dump` + `age` (criptografia), enviando para um storage externo
+### 3.8 Variáveis de ambiente
 
-**Hospedagem:** um VPS pequeno (1 vCPU, 1–2 GB de RAM) dá conta, por cerca de US$ 4–6/mês (Hetzner, Oracle Free Tier etc.). Domínio próprio ou subdomínio grátis (DuckDNS) com o Caddy.
+O pool do Postgres roda **sem cache de statements preparados** (`statement_cache_capacity(0)`): atrás de um pooler (pgbouncer), um statement preparado sobrevive ao restart e quebra depois de uma migration (`cached plan must not change result type`).
 
-## 9. Roadmap
 
-| Fase | Entrega | Estimativa |
+| Variável | Obrigatória | Uso |
 |---|---|---|
-| **0** | Monorepo, docker-compose, Postgres + Drizzle, login AniList, sessões/refresh, extensão WXT + Svelte fazendo login | 25–40 h |
-| **1** | `entries` + `outbox`, pull/push com o AniList, `/sync/*`, lista com +1 no side panel, agenda, notificações | 50–90 h |
-| **2** | Dataset offline, `/resolve` com pg_trgm, 3–5 adapters, histórico | 80–200 h |
-| **3** | Mangá (MangaDex + scrapers no worker) | 40–80 h |
-| **4** | MAL/Kitsu como destinos extras de sync | 30–60 h |
+| `DATABASE_URL` | sim | Postgres |
+| `ENCRYPTION_KEY` | sim | 32 bytes em base64 (`openssl rand -base64 32`) |
+| `ANILIST_CLIENT_ID` | sim | Client ID do app no AniList; a extensão lê em `GET /auth/config` |
+| `SERVER_PORT` | não (3010) | porta |
+| `ALLOWED_ANILIST_USER_ID` | não | trava a instância num usuário |
+| `ANILIST_API_URL` | não | só para teste |
 
-## 10. Decisões em aberto
-- [ ] VPS: qual provedor e qual domínio?
-- [ ] Debounce/teto (10/60 min): ajustar com uso real.
-- [ ] Confirmar se o AniList aceita mutations em lote com aliases.
-- [ ] Atualizações em tempo real para a extensão: polling a cada 2–5 min (simples, recomendado) ou SSE (o service worker do MV3 morre e derruba a conexão).
+## 4. Extensão (`acerola-sync/extension`)
+
+WXT + Svelte 5, com os componentes e temas do acerola-reader.
+
+### 4.1 Interface
+
+A mesma interface roda em dois modos (`lib/screens/AppShell.svelte`):
+- **Popup** (440×600): barra em pílula flutuando embaixo.
+- **Página cheia** (`app.html`, botão "Abrir em aba"): barra em pílula no topo, blocos de números e a obra abrindo num painel à direita.
+
+Telas:
+- **Lista:** as palavras "Anime" e "Mangá" grandes são as abas de tipo. Abas por status com contagem (assistindo, completo, planejado, pausado, largado), como o MALSync. A última obra mexida vira o destaque "Continuar" com o +1 grande. Cards com selos de progresso, atraso e próximo episódio.
+- **Obra:** banner, números (média, total, próximo episódio), status em fichas, progresso com +/−, nota e sinopse.
+- **Buscar:** espelho primeiro; o botão "Buscar também no AniList" gasta 1 request.
+- **Sync:** estado do último sync, botões "Sincronizar agora" e "Lista inteira", **logs ao vivo**, agenda (Brasília, com o UTC ao lado), syncs anteriores e o histórico do que foi marcado.
+- **Ajustes:** conta, modo claro/escuro, sites (liga/desliga), tempo no capítulo e sites personalizados.
+
+Ao abrir o popup numa página de obra ou capítulo de um site rastreado, o topo da lista mostra **essa obra** (o content script responde `page:current`). Se ela não foi achada, o botão "Vincular" abre a busca.
+
+Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só claro/escuro), tipografia grande e pesada, blocos de cor `*-soft` e **nenhuma borda colorida**. Animações com GSAP (`lib/utils/motion.utils.ts`): entrada em cascata dos cards, contagem dos números, pílula que desliza entre as abas, "pulo" do +1 e linhas de log entrando. Quem pede menos movimento no sistema não vê animação. As regras de design (só tokens de cor, raio e sombra; nenhuma borda colorida) estão na skill `.claude/skills/acerola-design` e são conferidas por `npm run lint:design` (pre-commit) e por um hook do Claude Code.
+
+### 4.2 Tracking (estilo MALSync)
+
+| Site | Tipo | Como lê | Gatilho |
+|---|---|---|---|
+| Sakura Mangás | mangá | URL `/obras/<slug>/<cap>/` + `#id-titulo` | N s no capítulo (padrão 10) |
+| MangaDex | mangá | API `chapter/<id>?includes[]=manga` (traz o ID do AniList) | N s no capítulo |
+| Crunchyroll | anime | JSON-LD `TVEpisode`, com o DOM como alternativa | 85% do vídeo |
+| Netflix | anime | título do player (`T1:E5`) | 85% do vídeo, só se já está na lista ou foi vinculado |
+| Personalizado | ambos | regex na URL com `(?<id>)`, `(?<progress>)` e `(?<title>)` opcional | conforme o tipo |
+
+- Os content scripts não falam com o server: mandam mensagem ao background, que tem a sessão.
+- Um aviso pequeno (shadow DOM) mostra "Detectado", "Marcado" ou "Não achei". O botão **Vincular manualmente** abre a tela de busca para corrigir o mapeamento.
+- Sites personalizados usam `optional_host_permissions`: a permissão do domínio é pedida ao salvar, e o background registra o script com `scripting.registerContentScripts`.
+- Nada de código copiado do MALSync (GPL-3.0): as regras foram reescritas aqui, em MIT.
+
+## 5. Deploy
+
+`acerola-sync/server/.config/docker/compose.yml` sobe só o `server`. O Postgres é externo e vem do `DATABASE_URL` do `.env`. TLS e domínio ficam no Traefik/Coolify. O endereço do server é configurado na extensão (ex.: `https://sync.acerola.app`), e a extensão não precisa saber onde ele roda.
+
+## 6. Testes
+
+- Server: `cargo test` roda as regras puras (tracking, agenda, edição, crypto). Os fluxos completos (login, espelho, AniList fora, tracking, agenda) precisam de `TEST_DATABASE_URL=postgres://user:pass@host:port/postgres` e simulam o AniList com wiremock. Cada teste cria e apaga o próprio banco.
+- Server, repositórios: cada `data/repositories/*.rs` tem o seu `mod tests` (regra do acerola-reader), com um banco novo por teste criado por `infra/db/test_support.rs` a partir do mesmo `TEST_DATABASE_URL`.
+- Extensão: `npm test` (componentes, telas, adapters, cliente da API, horários, animações) e `npm run test:e2e` (popup e página cheia em Chromium headless, com o server simulado). Todo componente em `lib/components/` tem `.svelte` + `.test.ts` + `.stories.svelte`.
+- `npm run test:storybook` está quebrado desde antes desta mudança: o Rolldown (Vite 8) falha ao otimizar componentes Svelte (`'new.target' can only be used in functions`).
+
+## 7. Pendências
+
+- [ ] **Cache das capas no R2.** Hoje `cover_url` aponta para o CDN do AniList.
+- [ ] Validar Crunchyroll e Netflix nos sites de verdade. Os seletores foram escritos a partir do MALSync e do HTML conhecido, e só foram testados com HTML de exemplo.
+- [ ] Domínio final do server (`sync.acerola.app` ou outro).
+- [ ] Firefox: cadastrar também o redirect `*.extensions.allizom.org` no app do AniList.
+- [ ] Notificações do AniList (o AniMouto tem) e badge com episódios atrasados.
+
+## Release e deploy
+
+Tags no mesmo molde do acerola-reader: `<app>/<canal>/v<versão>`, canal `alpha`, `beta` ou `prod`.
+
+| Tag | Workflow | O que faz |
+|---|---|---|
+| `extension/prod/v1.2.0` | `.github/workflows/extension-release.yml` | Sobe a versão do `extension/package.json`, testa, gera os `.zip` de Chrome e Firefox, devolve o commit `[build](extension): Versão …` para `main` e `develop` e publica o Release (pré-lançamento fora de `prod`). |
+| `server/prod/v1.2.0` | `.github/workflows/server-release.yml` | Só sobe a versão do `server/Cargo.toml`/`Cargo.lock` e devolve o commit `[build](backend): Versão …` para `main` e `develop`. Sem Release, sem imagem. |
+
+O bump é o `scripts/release/bump.mjs` (testado em `npm run test:release`). Os commits do bot
+rodam com `HUSKY=0` e usam a `DEPLOY_KEY` para poder escrever na `main`.
+
+**Deploy do server** (`acerola-sync/server/.config/ansible/deploy.yml`, igual ao relay): rsync da pasta do
+server (com `.config/docker/`), `.env` gerado do template, `docker compose up -d --build --wait` (o mesmo
+`compose.yml` de casa: porta só em `127.0.0.1`, na rede `proxy` do Caddy) e a config do Caddy gerada do
+template para o `domain` do `hosts.ini` (`/opt/caddy/conf.d/acerola-sync.caddy`, com reload só
+quando ela muda). Sem script shell no playbook: só módulos e templates em `server/.config/ansible/templates/`.
+Roda sozinho na tag `server/prod/v*`, pelo botão do workflow `Deploy/Server` (testa antes) ou
+local com `mise run deploy`.
+
+Secrets do GitHub: `DEPLOY_KEY`, `SERVER_IP`, `SSH_PRIVATE_KEY`, `SSH_PASSPHRASE`, `DOMAIN`,
+`DATABASE_URL`, `ENCRYPTION_KEY`, `ANILIST_CLIENT_ID`, `ALLOWED_ANILIST_USER_ID`.

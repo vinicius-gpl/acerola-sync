@@ -1,0 +1,11 @@
+node_modules
+.wxt
+.output
+dist
+.vitest-attachments
+package-lock.json
+
+# Gerados pelo paraglide/inlang — só o settings.json é versionado
+svelte/project.inlang/*
+!svelte/project.inlang/settings.json
+svelte/src/lib/paraglide

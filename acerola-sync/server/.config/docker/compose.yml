@@ -1,0 +1,51 @@
+# Um compose só, local e no servidor. Sobe só o server: o Postgres é externo (o endereço vem
+# do `DATABASE_URL` no `.env` do server).
+#
+# - Porta presa ao `127.0.0.1`: localmente a extensão usa http://localhost:3010; no servidor
+#   ninguém de fora chega nela.
+# - Rede `proxy` (externa): no servidor é por ela que o Caddy alcança o container e cuida do
+#   domínio e do TLS. Localmente o `mise run build:server` cria a rede se ela não existir.
+name: acerola-sync
+
+services:
+  server:
+    container_name: acerola-sync-server
+    image: acerola-sync-server
+    build:
+      context: ../..
+      dockerfile: .config/docker/dockerfile
+    env_file:
+      - path: ../../.env
+        required: true
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3010:3010'
+    networks:
+      - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    # Deixa o container alcançar um Postgres rodando na própria máquina via
+    # `host.docker.internal` (no Linux esse nome não existe sem isso).
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    # O teste usa o `bash` que já está na imagem — nada de instalar `curl` só pra isso.
+    # `start_period` dá tempo às migrations, que o server aplica sozinho ao subir.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'bash',
+          '-c',
+          'exec 3<>/dev/tcp/127.0.0.1/3010 && printf "GET /health HTTP/1.0\r\n\r\n" >&3 && grep -q "200 OK" <&3',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  proxy:
+    external: true

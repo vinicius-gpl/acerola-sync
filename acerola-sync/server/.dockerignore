@@ -1,0 +1,6 @@
+# Contexto do build é a pasta do server (.config/docker/compose.yml).
+target
+.env
+.env.*
+!.env.example
+.config/ansible

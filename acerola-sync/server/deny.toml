@@ -1,0 +1,51 @@
+# Gerenciamento de licenças
+[licenses]
+version = 2
+confidence-threshold = 0.8 
+allow = [
+  # Licença Principal do Projeto
+  "MIT",
+
+  # Licenças das Dependências
+  "MPL-2.0",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "ISC",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "Zlib",
+  "Unicode-3.0",
+  "Unlicense",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  
+  # Licenças permissivas específicas de dependências
+  "bzip2-1.0.6",
+  "NCSA",
+]
+
+[bans]
+deny = [
+  # Exemplo: proibir bibliotecas de C que dificultam compilação cross-platform
+  {name = "openssl", reason = "Use rustls para segurança nativa em Rust"},
+  {name = "native-tls", reason = "Use rustls"},
+] 
+multiple-versions = "warn" # Avisa se houver duplicatas de bibliotecas
+skip = [] 
+wildcards = "allow" 
+
+[advisories]
+version = 2
+db-urls = ["https://github.com/rustsec/advisory-db"]
+ignore = [
+  # "RUSTSEC-202X-XXXX", # Adicione IDs aqui para ignorar avisos específicos
+] 
+unmaintained = "all"
+unsound = "all"
+yanked = "deny"
+
+[sources]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+unknown-git = "deny"
+unknown-registry = "deny"
