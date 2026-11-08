@@ -2,7 +2,7 @@ name: "Release/Server"
 
 # Tag `server/<canal>/v<versão>` (canal: alpha, beta ou prod). Só sobe a versão no
 # `server/Cargo.toml` (e no Cargo.lock) e devolve o commit para a `main` e a `develop`.
-# Não gera Release nem imagem: o deploy é pelo Ansible (`acerola-sync/.config/ansible`).
+# Não gera Release nem imagem: o deploy é pelo Ansible (`acerola-sync/server/.config/ansible`).
 
 on:
   push:

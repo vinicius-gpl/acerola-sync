@@ -74,15 +74,15 @@ jobs:
 
       - name: Create Ansible Inventory
         run: |
-          echo "[acerola_sync]" > .config/ansible/hosts.ini
-          echo "$SERVER_IP ansible_user=admin domain=$DOMAIN" >> .config/ansible/hosts.ini
+          echo "[acerola_sync]" > server/.config/ansible/hosts.ini
+          echo "$SERVER_IP ansible_user=admin domain=$DOMAIN" >> server/.config/ansible/hosts.ini
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           DOMAIN: ${{ secrets.DOMAIN }}
 
       - name: Run Deploy Playbook
         run: |
-          ansible-playbook -i .config/ansible/hosts.ini .config/ansible/deploy.yml \
+          ansible-playbook -i server/.config/ansible/hosts.ini server/.config/ansible/deploy.yml \
             -e "database_url=$DATABASE_URL" \
             -e "encryption_key=$ENCRYPTION_KEY" \
             -e "anilist_client_id=$ANILIST_CLIENT_ID" \
