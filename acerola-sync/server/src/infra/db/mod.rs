@@ -1,3 +1,4 @@
+use sqlx::SqlSafeStr;
 use std::borrow::Cow;
 
 use sqlx::{
@@ -94,7 +95,7 @@ fn migration(version: i64, description: &'static str, sql: &'static str) -> Migr
         version,
         Cow::Borrowed(description),
         MigrationType::Simple,
-        Cow::Borrowed(sql),
+        sql.into_sql_str(),
         false,
     )
 }

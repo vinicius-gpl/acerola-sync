@@ -6,7 +6,7 @@
 # Contexto do build: a pasta do server (ver .config/docker/compose.yml). Em produção fica
 # atrás do Caddy do servidor, que resolve domínio e TLS (.config/ansible).
 
-FROM rust:1.95-bookworm AS build
+FROM rust:1.98-bookworm AS build
 WORKDIR /repo/server
 COPY Cargo.toml Cargo.lock ./
 COPY src src
