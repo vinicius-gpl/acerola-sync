@@ -1,5 +1,5 @@
 # Um compose só, local e no servidor. Sobe só o server: o Postgres é externo (o endereço vem
-# do `DATABASE_URL` em `server/.env`).
+# do `DATABASE_URL` no `.env` do server).
 #
 # - Porta presa ao `127.0.0.1`: localmente a extensão usa http://localhost:3010; no servidor
 #   ninguém de fora chega nela.
@@ -15,7 +15,7 @@ services:
       context: ../..
       dockerfile: .config/docker/dockerfile
     env_file:
-      - path: ../../server/.env
+      - path: ../../.env
         required: true
     restart: unless-stopped
     ports:
