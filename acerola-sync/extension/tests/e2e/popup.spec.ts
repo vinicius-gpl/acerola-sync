@@ -230,3 +230,7 @@ test('app.html?media= abre direto na obra, mesmo mangá com dados repetidos', as
 	await expect(page.getByText(/Relacionadas|Related/)).toBeVisible();
 	expect(errors).toEqual([]);
 });
+
+test('id da extensão é fixo (o login do AniList depende dele)', async ({ extensionId }) => {
+	expect(extensionId).toBe('odbdekpmcfcdipkcachembgdoimcapbp');
+});
