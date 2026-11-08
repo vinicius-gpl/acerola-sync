@@ -1,0 +1,69 @@
+# Deploy do server do Acerola Sync, no mesmo molde do relay do acerola-reader: manda o código
+# por rsync, escreve o `.env`, sobe o container e entrega o domínio ao Caddy que já roda no
+# servidor (container `caddy`, rede docker `proxy`, configs em /opt/caddy/conf.d).
+#
+# Servidor e domínio vêm do inventário (hosts.ini). Os segredos chegam por -e (no GitHub,
+# pelos secrets; local, pelo `mise run deploy`).
+
+- name: Deploy do Acerola Sync
+  hosts: acerola_sync
+  vars:
+    deploy_path: /opt/acerola-sync
+    caddy_conf_dir: /opt/caddy/conf.d
+    rust_log: info
+    allowed_anilist_user_id: ""
+    ansible_ssh_common_args: -o ServerAliveInterval=30 -o ServerAliveCountMax=20
+
+  tasks:
+    - name: Confere o que o deploy precisa
+      ansible.builtin.assert:
+        that:
+          - domain is defined and domain | length > 0
+          - database_url is defined and database_url | length > 0
+          - encryption_key is defined and encryption_key | length > 0
+          - anilist_client_id is defined and anilist_client_id | length > 0
+        fail_msg: >-
+          Falta `domain` no hosts.ini ou database_url / encryption_key / anilist_client_id (-e).
+
+    - name: Envia o código do server e o .config/docker
+      ansible.posix.synchronize:
+        src: "{{ playbook_dir }}/../../"
+        dest: "{{ deploy_path }}/"
+        recursive: true
+        delete: true
+        rsync_opts:
+          # A primeira regra que casa vale: os excludes vêm antes dos includes.
+          - --exclude=target
+          - --exclude=.env
+          - --include=/server/***
+          - --include=/.config/
+          - --include=/.config/docker/***
+          - --include=/.dockerignore
+          - --exclude=/.config/*
+          - --exclude=/*
+
+    - name: Escreve o .env do server
+      ansible.builtin.template:
+        src: templates/server.env.j2
+        dest: "{{ deploy_path }}/server/.env"
+        mode: "0600"
+      no_log: true
+
+    - name: Recompila e sobe o container
+      ansible.builtin.command:
+        cmd: docker compose up -d --build --wait
+        chdir: "{{ deploy_path }}/.config/docker"
+      changed_when: true
+
+    - name: Gera a config do Caddy para o domínio
+      ansible.builtin.template:
+        src: templates/acerola-sync.caddy.j2
+        dest: "{{ caddy_conf_dir }}/acerola-sync.caddy"
+        mode: "0644"
+      notify: Recarrega o Caddy
+
+  handlers:
+    - name: Recarrega o Caddy
+      ansible.builtin.command:
+        cmd: docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+      changed_when: true

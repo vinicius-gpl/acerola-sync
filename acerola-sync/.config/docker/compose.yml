@@ -1,8 +1,10 @@
-# Este compose sobe só o server. O Postgres é externo: o endereço vem do `DATABASE_URL` em
-# `server/.env`.
+# Um compose só, local e no servidor. Sobe só o server: o Postgres é externo (o endereço vem
+# do `DATABASE_URL` em `server/.env`).
 #
-# Em produção fica atrás de um Traefik (ex.: Coolify), que resolve domínio e TLS;
-# localmente é só `-p 3010:3010`.
+# - Porta presa ao `127.0.0.1`: localmente a extensão usa http://localhost:3010; no servidor
+#   ninguém de fora chega nela.
+# - Rede `proxy` (externa): no servidor é por ela que o Caddy alcança o container e cuida do
+#   domínio e do TLS. Localmente o `mise run build:server` cria a rede se ela não existir.
 name: acerola-sync
 
 services:
@@ -10,13 +12,21 @@ services:
     container_name: acerola-sync-server
     image: acerola-sync-server
     build:
-      context: ..
-      dockerfile: docker/dockerfile
+      context: ../..
+      dockerfile: .config/docker/dockerfile
     env_file:
-      - path: ../server/.env
+      - path: ../../server/.env
         required: true
+    restart: unless-stopped
     ports:
-      - '3010:3010'
+      - '127.0.0.1:3010:3010'
+    networks:
+      - proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
     # Deixa o container alcançar um Postgres rodando na própria máquina via
     # `host.docker.internal` (no Linux esse nome não existe sem isso).
     extra_hosts:
@@ -35,3 +45,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+networks:
+  proxy:
+    external: true
