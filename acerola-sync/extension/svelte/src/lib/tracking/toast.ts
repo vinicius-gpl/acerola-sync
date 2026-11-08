@@ -9,6 +9,11 @@ import { storage } from 'wxt/utils/storage';
 // fixo do Acerola (como o lápis do MALSync). É DOM puro num shadow root: o CSS do site não
 // vaza para dentro e o nosso não vaza para fora. As cores vêm do próprio `catppuccin.css` do
 // tema (injetado no shadow root), nunca escritas aqui.
+//
+// Ctrl + arrastar o botão move o canto inteiro (botão e avisos) e a posição fica salva por site
+// (`storage.sync`, igual nos dois PCs). Ela é guardada como distância até o canto mais perto, então
+// sobrevive a redimensionar a janela; os avisos abrem do lado do botão que cabe na tela.
+// Ctrl + duplo clique devolve ao canto inferior direito.
 
 export type ToastTone = 'info' | 'success' | 'warning' | 'error';
 
@@ -28,6 +33,13 @@ export type ToastOptions = {
 
 export const DEFAULT_TOAST_MS = 9000;
 
+export type FabPosition = { x: 'left' | 'right'; y: 'top' | 'bottom'; dx: number; dy: number };
+
+export const DEFAULT_FAB_POSITION: FabPosition = { x: 'right', y: 'bottom', dx: 16, dy: 16 };
+
+const FAB_SIZE = 52;
+const EDGE_GAP = 8;
+
 const TONE_VARS: Record<ToastTone, { bg: string; fg: string }> = {
 	info: { bg: 'var(--card)', fg: 'var(--foreground)' },
 	success: { bg: 'var(--success-soft)', fg: 'var(--success)' },
@@ -38,13 +50,20 @@ const TONE_VARS: Record<ToastTone, { bg: string; fg: string }> = {
 const STYLE = `
 	${paletteCss}
 	.dock { display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
-		font-family: 'DM Sans Variable', system-ui, sans-serif; }
-	.stack { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+		font-family: 'DM Sans Variable', system-ui, sans-serif; --from-y: 12px; --origin: bottom right; }
+	.stack { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; transition: opacity 180ms; }
+	.dock[data-x='left'], .dock[data-x='left'] .stack { align-items: flex-start; }
+	.dock[data-x='left'] { --origin: bottom left; }
+	.dock[data-y='top'] { flex-direction: column-reverse; --from-y: -12px; --origin: top right; }
+	.dock[data-y='top'][data-x='left'] { --origin: top left; }
+	.dock[data-y='top'] .stack { flex-direction: column-reverse; }
+	.dock.dragging .stack { opacity: .45; pointer-events: none; }
+	.dock.dragging .fab { opacity: 1; cursor: grabbing; transform: scale(1.08); }
 	.toast { position: relative; display: flex; align-items: center; gap: 16px; width: 400px;
 		max-width: calc(100vw - 32px); box-sizing: border-box; padding: 14px 20px 14px 14px;
 		border-radius: 28px; background: var(--tone-bg); color: var(--tone-fg); font-size: 15px;
 		line-height: 1.4; box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--crust) 90%, transparent);
-		animation: in 260ms cubic-bezier(.2,.8,.2,1); }
+		transform-origin: var(--origin); animation: in 260ms cubic-bezier(.2,.8,.2,1); }
 	.toast img { width: 60px; height: 86px; object-fit: cover; border-radius: 16px; flex: none; }
 	.badge { width: 48px; height: 48px; border-radius: 999px; flex: none; display: grid; place-items: center;
 		background: color-mix(in srgb, var(--tone-fg) 18%, transparent); font-weight: 900; font-size: 18px; }
@@ -74,8 +93,8 @@ const STYLE = `
 	.fab:hover, .fab:focus-visible { opacity: 1; }
 	.fab img { width: 30px; height: 30px; }
 	.fab[hidden] { display: none; }
-	@keyframes in { from { opacity: 0; transform: translateY(12px) scale(.96); } }
-	@media (prefers-reduced-motion: reduce) { .toast, .fab { animation: none; transition: none; } }
+	@keyframes in { from { opacity: 0; transform: translateY(var(--from-y)) scale(.92); } }
+	@media (prefers-reduced-motion: reduce) { .toast, .fab, .stack { animation: none; transition: none; } }
 `;
 
 const CLOSE_ICON =
@@ -91,11 +110,97 @@ async function currentMode() {
 	return resolveMode(saved ?? 'dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
 
+function siteKey() {
+	return location.hostname;
+}
+
+async function savedPositions() {
+	return (await storage.getItem<Record<string, FabPosition>>(STORAGE_KEYS.fabPositions)) ?? {};
+}
+
+async function savePosition(position: FabPosition | null) {
+	const all = await savedPositions();
+	if (position) all[siteKey()] = position;
+	else delete all[siteKey()];
+	await storage.setItem(STORAGE_KEYS.fabPositions, all);
+}
+
+/** Prende o canto do dock (onde fica o botão) à distância salva, sem sair da janela. */
+function applyPosition(position: FabPosition) {
+	if (!host || !dock) return;
+	const maxX = Math.max(EDGE_GAP, window.innerWidth - FAB_SIZE - EDGE_GAP);
+	const maxY = Math.max(EDGE_GAP, window.innerHeight - FAB_SIZE - EDGE_GAP);
+	const dx = Math.min(Math.max(position.dx, EDGE_GAP), maxX);
+	const dy = Math.min(Math.max(position.dy, EDGE_GAP), maxY);
+	host.style.left = position.x === 'left' ? `${dx}px` : 'auto';
+	host.style.right = position.x === 'right' ? `${dx}px` : 'auto';
+	host.style.top = position.y === 'top' ? `${dy}px` : 'auto';
+	host.style.bottom = position.y === 'bottom' ? `${dy}px` : 'auto';
+	dock.dataset.x = position.x;
+	dock.dataset.y = position.y;
+}
+
+/** Posição a partir de onde o botão está: distância até o canto mais perto. */
+export function positionFromRect(
+	rect: { left: number; top: number; width: number; height: number },
+	viewport: { width: number; height: number }
+): FabPosition {
+	const left = rect.left + rect.width / 2 < viewport.width / 2;
+	const top = rect.top + rect.height / 2 < viewport.height / 2;
+	return {
+		x: left ? 'left' : 'right',
+		y: top ? 'top' : 'bottom',
+		dx: Math.round(left ? rect.left : viewport.width - rect.left - rect.width),
+		dy: Math.round(top ? rect.top : viewport.height - rect.top - rect.height)
+	};
+}
+
+let position: FabPosition = DEFAULT_FAB_POSITION;
+let draggedAt = 0;
+
+/** Ctrl + arrastar move o canto; o clique que termina o arrasto não abre nada. */
+function makeDraggable(fab: HTMLButtonElement) {
+	fab.addEventListener('pointerdown', (event) => {
+		if (!event.ctrlKey || event.button !== 0) return;
+		event.preventDefault();
+		const start = fab.getBoundingClientRect();
+		const offsetX = event.clientX - start.left;
+		const offsetY = event.clientY - start.top;
+		let moved = false;
+		fab.setPointerCapture(event.pointerId);
+
+		const move = (e: PointerEvent) => {
+			moved = true;
+			dock!.classList.add('dragging');
+			position = positionFromRect(
+				{ left: e.clientX - offsetX, top: e.clientY - offsetY, width: FAB_SIZE, height: FAB_SIZE },
+				{ width: window.innerWidth, height: window.innerHeight }
+			);
+			applyPosition(position);
+		};
+		const end = () => {
+			fab.removeEventListener('pointermove', move);
+			dock!.classList.remove('dragging');
+			if (!moved) return;
+			draggedAt = Date.now();
+			void savePosition(position);
+		};
+		fab.addEventListener('pointermove', move);
+		fab.addEventListener('pointerup', end, { once: true });
+		fab.addEventListener('pointercancel', end, { once: true });
+	});
+	fab.addEventListener('dblclick', (event) => {
+		if (!event.ctrlKey) return;
+		position = DEFAULT_FAB_POSITION;
+		applyPosition(position);
+		void savePosition(null);
+	});
+}
+
 async function ensureDock(): Promise<HTMLElement> {
 	if (dock && host?.isConnected) return dock;
 	host = document.createElement('acerola-sync-toast');
-	host.style.cssText =
-		'all: initial; position: fixed; z-index: 2147483647; bottom: 16px; right: 16px;';
+	host.style.cssText = 'all: initial; position: fixed; z-index: 2147483647;';
 	const root = host.attachShadow({ mode: 'open' });
 	const style = document.createElement('style');
 	style.textContent = STYLE;
@@ -107,6 +212,9 @@ async function ensureDock(): Promise<HTMLElement> {
 	dock.append(stack);
 	root.append(style, dock);
 	document.documentElement.append(host);
+	position = (await savedPositions())[siteKey()] ?? DEFAULT_FAB_POSITION;
+	applyPosition(position);
+	window.addEventListener('resize', () => applyPosition(position));
 	return dock;
 }
 
@@ -216,10 +324,16 @@ export async function setFab(
 		img.alt = '';
 		fab.append(img);
 		container.append(fab);
+		makeDraggable(fab);
 	}
 	fab.querySelector('img')!.src = options.icon;
-	fab.title = options.label;
+	fab.title = `${options.label}\n${m['sync.tracking.fab_move']()}`;
 	fab.setAttribute('aria-label', options.label);
-	fab.onclick = options.onClick;
+	const onClick = options.onClick;
+	// Ctrl + clique é do arrasto (e o clique logo depois de soltar também).
+	fab.onclick = (event) => {
+		if (event.ctrlKey || Date.now() - draggedAt < 300) return;
+		onClick();
+	};
 	fab.hidden = false;
 }

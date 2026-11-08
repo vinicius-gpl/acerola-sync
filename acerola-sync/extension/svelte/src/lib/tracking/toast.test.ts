@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const store = new Map<string, unknown>();
 vi.mock('wxt/utils/storage', () => ({
-	storage: { getItem: vi.fn(async () => 'dark') }
+	storage: {
+		getItem: vi.fn(async (key: string) => (key === 'local:mode' ? 'dark' : store.get(key))),
+		setItem: vi.fn(async (key: string, value: unknown) => void store.set(key, value))
+	}
 }));
 
-const { DEFAULT_TOAST_MS, dismissToast, setFab, showToast } = await import('./toast');
+const { DEFAULT_TOAST_MS, dismissToast, positionFromRect, setFab, showToast } =
+	await import('./toast');
 
 function shadow() {
 	return document.querySelector('acerola-sync-toast')!.shadowRoot!;
@@ -18,6 +23,7 @@ describe('toast do site', () => {
 	afterEach(() => {
 		vi.useRealTimers();
 		document.querySelector('acerola-sync-toast')?.remove();
+		store.clear();
 	});
 
 	it('some depois do tempo padrão (9s)', async () => {
@@ -81,5 +87,74 @@ describe('toast do site', () => {
 		await showToast({ title: 'Depois' });
 		const dock = shadow().querySelector('.dock')!;
 		expect(dock.lastElementChild!.className).toBe('fab');
+	});
+
+	it('sem posição salva fica no canto inferior direito', async () => {
+		await setFab({ icon: 'x.png', label: 'Acerola', onClick: vi.fn() });
+		const host = document.querySelector<HTMLElement>('acerola-sync-toast')!;
+		expect(host.style.right).toBe('16px');
+		expect(host.style.bottom).toBe('16px');
+		expect(shadow().querySelector<HTMLElement>('.dock')!.dataset).toMatchObject({
+			x: 'right',
+			y: 'bottom'
+		});
+	});
+
+	it('usa a posição salva deste site e os avisos abrem do lado do botão', async () => {
+		store.set('sync:fabPositions', {
+			[location.hostname]: { x: 'left', y: 'top', dx: 40, dy: 120 },
+			'outro.site': { x: 'right', y: 'bottom', dx: 300, dy: 300 }
+		});
+		await setFab({ icon: 'x.png', label: 'Acerola', onClick: vi.fn() });
+		const host = document.querySelector<HTMLElement>('acerola-sync-toast')!;
+		expect(host.style.left).toBe('40px');
+		expect(host.style.top).toBe('120px');
+		expect(host.style.right).toBe('auto');
+		expect(shadow().querySelector<HTMLElement>('.dock')!.dataset).toMatchObject({
+			x: 'left',
+			y: 'top'
+		});
+	});
+
+	it('Ctrl + clique não abre nada; clique normal abre', async () => {
+		const onClick = vi.fn();
+		await setFab({ icon: 'x.png', label: 'Acerola', onClick });
+		const fab = shadow().querySelector<HTMLButtonElement>('.fab')!;
+		fab.dispatchEvent(new MouseEvent('click', { ctrlKey: true }));
+		expect(onClick).not.toHaveBeenCalled();
+		fab.click();
+		expect(onClick).toHaveBeenCalledOnce();
+	});
+
+	it('Ctrl + duplo clique esquece a posição do site e volta ao canto', async () => {
+		store.set('sync:fabPositions', {
+			[location.hostname]: { x: 'left', y: 'top', dx: 40, dy: 120 }
+		});
+		await setFab({ icon: 'x.png', label: 'Acerola', onClick: vi.fn() });
+		const fab = shadow().querySelector<HTMLButtonElement>('.fab')!;
+		fab.dispatchEvent(new MouseEvent('dblclick', { ctrlKey: true }));
+		await vi.waitFor(() => expect(store.get('sync:fabPositions')).toEqual({}));
+		const host = document.querySelector<HTMLElement>('acerola-sync-toast')!;
+		expect(host.style.right).toBe('16px');
+		expect(host.style.bottom).toBe('16px');
+	});
+});
+
+describe('positionFromRect', () => {
+	const viewport = { width: 1000, height: 800 };
+
+	it('mede até o canto mais perto do centro do botão', () => {
+		expect(positionFromRect({ left: 900, top: 700, width: 52, height: 52 }, viewport)).toEqual({
+			x: 'right',
+			y: 'bottom',
+			dx: 48,
+			dy: 48
+		});
+		expect(positionFromRect({ left: 30, top: 20, width: 52, height: 52 }, viewport)).toEqual({
+			x: 'left',
+			y: 'top',
+			dx: 30,
+			dy: 20
+		});
 	});
 });

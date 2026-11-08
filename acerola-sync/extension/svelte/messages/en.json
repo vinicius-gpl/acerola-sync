@@ -1160,7 +1160,8 @@
 			"fab": "Acerola Sync: what is this?",
 			"close": "Close",
 			"nothing_here": "No media on this page",
-			"fab_open": "Open Acerola Sync"
+			"fab_open": "Open Acerola Sync",
+			"fab_move": "Ctrl + drag to move · Ctrl + double-click to reset"
 		},
 		"filters": {
 			"search": "Filter by title",
