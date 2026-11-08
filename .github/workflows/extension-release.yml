@@ -24,13 +24,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 25.9.0
           cache: npm
@@ -99,7 +99,7 @@ jobs:
         run: sed "s/{{VERSION}}/${VERSION}/g" .github/release/extension.md > "$RUNNER_TEMP/notes.md"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Acerola Sync ${{ env.VERSION }}
