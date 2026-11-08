@@ -225,5 +225,11 @@ quando ela muda). Sem script shell no playbook: só módulos e templates em `ser
 Roda sozinho na tag `server/prod/v*`, pelo botão do workflow `Deploy/Server` (testa antes) ou
 local com `mise run deploy`.
 
-Secrets do GitHub: `DEPLOY_KEY`, `SERVER_IP`, `SSH_PRIVATE_KEY`, `SSH_PASSPHRASE`, `DOMAIN`,
-`DATABASE_URL`, `ENCRYPTION_KEY`, `ANILIST_CLIENT_ID`, `ALLOWED_ANILIST_USER_ID`.
+No GitHub:
+
+- **Repositório** (secret): `DEPLOY_KEY`, usada pelos workflows de release para o commit de versão.
+- **Environment `production`** (usado pelo deploy):
+  - secrets: `DATABASE_URL`, `ENCRYPTION_KEY`, `SSH_PRIVATE_KEY`, `SSH_PASSPHRASE`;
+  - variables: `SERVER_IP`, `DOMAIN`, `ANILIST_CLIENT_ID`, `ALLOWED_ANILIST_USER_ID`.
+
+Os valores ficam no `server/.env` local (fora do git); as chaves SSH, nos arquivos delas.
