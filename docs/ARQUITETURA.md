@@ -184,6 +184,7 @@ Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só clar
 - Os content scripts não falam com o server: mandam mensagem ao background, que tem a sessão.
 - Um aviso pequeno (shadow DOM) mostra "Detectado", "Marcado" ou "Não achei". O botão **Vincular manualmente** abre a tela de busca para corrigir o mapeamento.
 - Sites personalizados usam `optional_host_permissions`: a permissão do domínio é pedida ao salvar, e o background registra o script com `scripting.registerContentScripts`.
+- O número do capítulo/episódio do site personalizado sai da URL (grupo `progress`) ou, no modo avançado, da página: título (`document.title`) ou um elemento (seletor CSS), com uma regex opcional (`progress_source`, `progress_selector`, `progress_pattern`). Em SPA, número igual ao da página anterior só vale depois de se repetir, porque a URL troca antes do HTML. A tela sugere onde o número parece estar ("Cap. 30" no título, no `h1` ou no seletor de capítulos), mas só marca com a regra confirmada.
 - Nada de código copiado do MALSync (GPL-3.0): as regras foram reescritas aqui, em MPL-2.0.
 
 ## 5. Deploy
