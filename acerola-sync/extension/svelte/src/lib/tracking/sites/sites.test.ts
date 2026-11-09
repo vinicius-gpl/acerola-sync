@@ -194,6 +194,65 @@ describe('custom', () => {
 		const adapter = createCustomAdapter({ ...site, urlPattern: '(' });
 		expect(adapter.pageKey(new URL('https://leitor.exemplo.com/obra/x/capitulo-1'))).toBeNull();
 	});
+
+	describe('número fora da URL (Kuro Mangás)', () => {
+		const kuro = {
+			...site,
+			id: '9',
+			matchPattern: 'https://kuromangas.com/*',
+			urlPattern: '/read/(?<id>\\d+)/\\d+',
+			titleSelector: 'header p.truncate',
+			progressSource: 'title' as const,
+			progressPattern: 'Cap\\.\\s*(?<progress>\\d+(?:\\.\\d+)?)'
+		};
+		const chapter = (number: number) =>
+			page(
+				`<title>Cap. ${number} — O Santuário - Masmorra da Torre - Kuro</title><header><p class="truncate">Masmorra da Torre</p></header>`
+			);
+
+		it('lê o número do título da página e a obra da URL', async () => {
+			const adapter = createCustomAdapter(kuro);
+			const url = new URL('https://kuromangas.com/read/2507/463111');
+			expect(adapter.pageKey(url)).toBe('2507/read/2507/463111');
+			expect(await adapter.detect(url, chapter(30))).toMatchObject({
+				identifier: '2507',
+				title: 'Masmorra da Torre',
+				progress: 30
+			});
+		});
+
+		it('lê de um elemento quando a fonte é o seletor', async () => {
+			const adapter = createCustomAdapter({
+				...kuro,
+				progressSource: 'selector',
+				progressSelector: 'header span',
+				progressPattern: null
+			});
+			const doc = page('<title>Kuro</title><header><span>Cap. 12</span></header>');
+			expect(
+				await adapter.detect(new URL('https://kuromangas.com/read/2507/1'), doc)
+			).toMatchObject({ progress: 12 });
+		});
+
+		it('sem o número na página ainda, devolve null para o runner tentar de novo', async () => {
+			const adapter = createCustomAdapter(kuro);
+			const url = new URL('https://kuromangas.com/read/2507/463111');
+			expect(await adapter.detect(url, page('<title>Kuro</title>'))).toBeNull();
+		});
+
+		it('SPA: número igual ao da página anterior só vale depois de repetir', async () => {
+			const adapter = createCustomAdapter(kuro);
+			await adapter.detect(new URL('https://kuromangas.com/read/2507/1'), chapter(30));
+			const next = new URL('https://kuromangas.com/read/2507/2');
+			expect(await adapter.detect(next, chapter(30))).toBeNull();
+			expect(await adapter.detect(next, chapter(31))).toMatchObject({ progress: 31 });
+
+			const third = new URL('https://kuromangas.com/read/2507/3');
+			expect(await adapter.detect(third, chapter(31))).toBeNull();
+			expect(await adapter.detect(third, chapter(31))).toBeNull();
+			expect(await adapter.detect(third, chapter(31))).toMatchObject({ progress: 31 });
+		});
+	});
 });
 
 describe('páginas de obra', () => {

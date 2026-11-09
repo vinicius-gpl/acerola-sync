@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CustomSite, CustomSiteInput, MediaType } from '$lib/api/types';
+	import type { CustomSite, CustomSiteInput, MediaType, ProgressSource } from '$lib/api/types';
 	import AcerolaChipTabs from '$lib/components/acerola-chip-tabs/acerola-chip-tabs.svelte';
 	import AcerolaSheetDialog from '$lib/components/acerola-sheet-dialog/acerola-sheet-dialog.svelte';
 	import AcerolaSection from '$lib/components/acerola-section/acerola-section.svelte';
@@ -12,10 +12,15 @@
 	import { app } from '$lib/state/app.svelte';
 	import { originPattern } from '$lib/tracking/match-pattern';
 	import { BUILT_IN_SITES } from '$lib/tracking/registry';
-	import { createCustomAdapter } from '$lib/tracking/sites/custom';
+	import { testSiteOnTab, type SiteTestResult } from '$lib/services/site-test.service';
+	import type { ProgressSuggestion } from '$lib/tracking/progress-source';
+	import { createCustomAdapter, readsProgressFromPage } from '$lib/tracking/sites/custom';
+	import { cn } from '$lib/utils/cn.utils';
 	import { mediaTypeLabel } from '$lib/utils/labels.utils';
 	import { staggerIn } from '$lib/utils/motion.utils';
 	import ExpandIcon from '@lucide/svelte/icons/expand';
+	import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical';
+	import SlidersHorizontalIcon from '@lucide/svelte/icons/sliders-horizontal';
 	import LogOutIcon from '@lucide/svelte/icons/log-out';
 	import MinusIcon from '@lucide/svelte/icons/minus';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -41,19 +46,32 @@
 		urlPattern: '',
 		titleSelector: '',
 		enabled: true,
-		searchUrl: ''
+		searchUrl: '',
+		progressSource: 'url',
+		progressSelector: '',
+		progressPattern: ''
 	});
 	let draft = $state<CustomSiteInput>(emptyDraft());
 	/** Site sendo editado; `null` = cadastro novo. */
 	let editing = $state<CustomSite | null>(null);
 	let sampleUrl = $state('');
+	/** Modo avançado: o dialog cresce (só na página cheia) e mostra a fonte do número. */
+	let advanced = $state(false);
+	let testing = $state(false);
+	let testResult = $state<SiteTestResult | null>(null);
+	const fromPage = $derived(readsProgressFromPage(draft));
 
 	/** Prévia do que a regex tira da URL de exemplo, antes de salvar. */
 	const preview = $derived.by(() => {
 		if (!sampleUrl.trim() || !draft.urlPattern.trim()) return null;
 		try {
-			const key = createCustomAdapter({ ...draft, id: 'preview' }).pageKey(new URL(sampleUrl));
+			const url = new URL(sampleUrl);
+			const key = createCustomAdapter({ ...draft, id: 'preview' }).pageKey(url);
 			if (!key) return { ok: false, text: m['sync.settings.custom.preview_none']() };
+			if (fromPage) {
+				const id = new RegExp(draft.urlPattern).exec(url.href)?.groups?.id ?? '';
+				return { ok: true, text: m['sync.settings.custom.preview_page']({ id }) };
+			}
 			const [id, progress] = key.split('/');
 			return { ok: true, text: m['sync.settings.custom.preview']({ id, progress }) };
 		} catch {
@@ -61,7 +79,10 @@
 		}
 	});
 	const canSave = $derived(
-		!!draft.name.trim() && !!draft.matchPattern.trim() && !!draft.urlPattern.trim()
+		!!draft.name.trim() &&
+			!!draft.matchPattern.trim() &&
+			!!draft.urlPattern.trim() &&
+			(draft.progressSource !== 'selector' || !!draft.progressSelector?.trim())
 	);
 
 	/** Sites ligados sem a permissão do domínio: o script não roda lá até liberar. */
@@ -105,7 +126,58 @@
 		disabledSites = (await storage.getItem<string[]>(STORAGE_KEYS.disabledSites)) ?? [];
 		mangaDelay = (await storage.getItem<number>(STORAGE_KEYS.mangaDelaySeconds)) ?? 10;
 		await loadCustomSites();
+		if (page && new URLSearchParams(location.search).has('site')) await resumeFromPopup();
 	});
+
+	type PendingSiteDraft = { draft: CustomSiteInput; editingId: string | null };
+
+	/** Popup pediu o modo avançado: reabre aqui o mesmo rascunho, já com o dialog grande. */
+	async function resumeFromPopup() {
+		const pending = await storage.getItem<PendingSiteDraft>(STORAGE_KEYS.pendingSiteDraft);
+		await storage.removeItem(STORAGE_KEYS.pendingSiteDraft);
+		const site = customSites.find((site) => site.id === pending?.editingId) ?? null;
+		if (site) openEdit(site);
+		else openNew();
+		if (pending) draft = { ...emptyDraft(), ...pending.draft };
+		advanced = true;
+	}
+
+	/** No popup não cabe: leva o rascunho para a página cheia, que abre no modo avançado. */
+	async function openAdvanced() {
+		if (page) {
+			advanced = !advanced;
+			return;
+		}
+		const pending: PendingSiteDraft = {
+			draft: $state.snapshot(draft),
+			editingId: editing?.id ?? null
+		};
+		await storage.setItem(STORAGE_KEYS.pendingSiteDraft, pending);
+		await app.openFullPage(`?site=${editing?.id ?? 'new'}`);
+	}
+
+	async function testOnTab() {
+		// Pedido no clique, antes de qualquer await: sem a permissão não dá para ler a aba.
+		const granted = requestOrigin(draft.matchPattern);
+		testing = true;
+		testResult = null;
+		try {
+			if (!(await granted)) {
+				toast.error(m['sync.settings.custom.permission_denied']());
+				return;
+			}
+			testResult = await testSiteOnTab($state.snapshot(draft));
+		} finally {
+			testing = false;
+		}
+	}
+
+	function useSuggestion(suggestion: ProgressSuggestion) {
+		draft.progressSource = suggestion.source;
+		draft.progressSelector = suggestion.selector ?? '';
+		draft.progressPattern = suggestion.pattern;
+		void testOnTab();
+	}
 
 	async function toggleSite(id: string, enabled: boolean) {
 		disabledSites = enabled ? disabledSites.filter((site) => site !== id) : [...disabledSites, id];
@@ -132,14 +204,30 @@
 		editing = null;
 		draft = emptyDraft();
 		sampleUrl = '';
+		advanced = false;
+		testResult = null;
 		dialog = { open: true };
 	}
 
 	function openEdit(site: CustomSite) {
 		editing = site;
 		const { id: _id, ...input } = site;
-		draft = { ...input, titleSelector: site.titleSelector ?? '', searchUrl: site.searchUrl ?? '' };
+		draft = {
+			...input,
+			titleSelector: site.titleSelector ?? '',
+			searchUrl: site.searchUrl ?? '',
+			progressSource: site.progressSource ?? 'url',
+			progressSelector: site.progressSelector ?? '',
+			progressPattern: site.progressPattern ?? ''
+		};
 		sampleUrl = '';
+		testResult = null;
+		// Site com o número na página só se edita no modo avançado (no popup, na página cheia).
+		advanced = readsProgressFromPage(site);
+		if (advanced && !page) {
+			void openAdvanced();
+			return;
+		}
 		dialog = { open: true };
 	}
 
@@ -157,7 +245,9 @@
 			const input = {
 				...$state.snapshot(draft),
 				titleSelector: draft.titleSelector?.trim() || null,
-				searchUrl: draft.searchUrl?.trim() || null
+				searchUrl: draft.searchUrl?.trim() || null,
+				progressSelector: draft.progressSelector?.trim() || null,
+				progressPattern: draft.progressPattern?.trim() || null
 			};
 			if (current) await app.api.updateCustomSite(current.id, input);
 			else await app.api.createCustomSite(input);
@@ -386,71 +476,205 @@
 		title: editing
 			? m['sync.settings.custom.edit_title']()
 			: m['sync.settings.custom.dialog_title'](),
-		description: m['sync.settings.custom.help'](),
+		description: fromPage
+			? m['sync.settings.custom.help_page']()
+			: m['sync.settings.custom.help'](),
 		closeLabel: m['sync.tracking.close']()
 	}}
+	ui={{ class: advanced && page ? 'max-w-4xl' : undefined }}
 >
-	<div class="flex flex-col gap-2.5">
-		<div class="flex gap-2">
+	<div class="grid gap-x-6 gap-y-2.5 {advanced && page ? 'md:grid-cols-2' : ''}">
+		<div class="flex flex-col gap-2.5">
+			<div class="flex gap-2">
+				<input
+					class="{field} flex-1"
+					placeholder={m['sync.settings.custom.name']()}
+					bind:value={draft.name}
+				/>
+				<AcerolaChipTabs
+					data={{
+						items: [
+							{ id: 'MANGA', label: mediaTypeLabel('MANGA') },
+							{ id: 'ANIME', label: mediaTypeLabel('ANIME') }
+						],
+						active: draft.mediaType
+					}}
+					events={{ onSelect: (id) => (draft.mediaType = id as MediaType) }}
+					ui={{ size: 'sm', class: 'flex-none self-center' }}
+				/>
+			</div>
 			<input
-				class="{field} flex-1"
-				placeholder={m['sync.settings.custom.name']()}
-				bind:value={draft.name}
+				class="{field} font-mono text-xs"
+				placeholder="https://leitor.exemplo.com/*"
+				bind:value={draft.matchPattern}
 			/>
-			<AcerolaChipTabs
-				data={{
-					items: [
-						{ id: 'MANGA', label: mediaTypeLabel('MANGA') },
-						{ id: 'ANIME', label: mediaTypeLabel('ANIME') }
-					],
-					active: draft.mediaType
-				}}
-				events={{ onSelect: (id) => (draft.mediaType = id as MediaType) }}
-				ui={{ size: 'sm', class: 'flex-none self-center' }}
+			<input
+				class="{field} font-mono text-xs"
+				placeholder={fromPage
+					? '/read/(?<id>\\d+)/\\d+'
+					: '/obra/(?<id>[^/]+)/cap-(?<progress>\\d+)'}
+				bind:value={draft.urlPattern}
 			/>
+			<input
+				class="{field} font-mono text-xs"
+				placeholder={m['sync.settings.custom.title_selector']()}
+				bind:value={draft.titleSelector}
+			/>
+			<input
+				class="{field} font-mono text-xs"
+				placeholder={`${m['sync.settings.custom.search_url']()} · https://site.com/busca?q={title}`}
+				aria-label={m['sync.settings.custom.search_url']()}
+				bind:value={draft.searchUrl}
+			/>
+			<input
+				class="{field} font-mono text-xs"
+				placeholder={m['sync.settings.custom.sample_url']()}
+				bind:value={sampleUrl}
+			/>
+			{#if preview}
+				<p
+					class="rounded-inner px-4 py-2.5 text-xs font-bold {preview.ok
+						? 'bg-success-soft text-success'
+						: 'bg-warning-soft text-warning'}"
+				>
+					{preview.text}
+				</p>
+			{/if}
 		</div>
-		<input
-			class="{field} font-mono text-xs"
-			placeholder="https://leitor.exemplo.com/*"
-			bind:value={draft.matchPattern}
-		/>
-		<input
-			class="{field} font-mono text-xs"
-			placeholder={'/obra/(?<id>[^/]+)/cap-(?<progress>\\d+)'}
-			bind:value={draft.urlPattern}
-		/>
-		<input
-			class="{field} font-mono text-xs"
-			placeholder={m['sync.settings.custom.title_selector']()}
-			bind:value={draft.titleSelector}
-		/>
-		<input
-			class="{field} font-mono text-xs"
-			placeholder={`${m['sync.settings.custom.search_url']()} · https://site.com/busca?q={title}`}
-			aria-label={m['sync.settings.custom.search_url']()}
-			bind:value={draft.searchUrl}
-		/>
-		<input
-			class="{field} font-mono text-xs"
-			placeholder={m['sync.settings.custom.sample_url']()}
-			bind:value={sampleUrl}
-		/>
-		{#if preview}
-			<p
-				class="rounded-inner px-4 py-2.5 text-xs font-bold {preview.ok
-					? 'bg-success-soft text-success'
-					: 'bg-warning-soft text-warning'}"
-			>
-				{preview.text}
-			</p>
+
+		{#if advanced && page}
+			<!-- Modo avançado: de onde sai o número e o teste numa aba aberta do site. -->
+			<section class="flex flex-col gap-2.5 rounded-tile bg-surface p-4" data-advanced>
+				<h3 class="text-sm font-black">{m['sync.settings.custom.progress_title']()}</h3>
+				<AcerolaChipTabs
+					data={{
+						items: [
+							{ id: 'url', label: m['sync.settings.custom.source_url']() },
+							{ id: 'title', label: m['sync.settings.custom.source_title']() },
+							{ id: 'selector', label: m['sync.settings.custom.source_selector']() }
+						],
+						active: draft.progressSource ?? 'url'
+					}}
+					events={{
+						onSelect: (id) => {
+							draft.progressSource = id as ProgressSource;
+							testResult = null;
+						}
+					}}
+					ui={{ size: 'sm', class: 'self-start bg-background' }}
+				/>
+				{#if draft.progressSource === 'selector'}
+					<input
+						class={cn(field, 'bg-background font-mono text-xs')}
+						placeholder={m['sync.settings.custom.progress_selector']()}
+						bind:value={draft.progressSelector}
+					/>
+				{/if}
+				{#if fromPage}
+					<input
+						class={cn(field, 'bg-background font-mono text-xs')}
+						placeholder={m['sync.settings.custom.progress_pattern']()}
+						aria-label={m['sync.settings.custom.progress_pattern']()}
+						bind:value={draft.progressPattern}
+					/>
+					<p class="px-1 text-xs text-muted-foreground">
+						{m['sync.settings.custom.progress_pattern_hint']()}
+					</p>
+				{/if}
+
+				<button
+					type="button"
+					class="mt-auto flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-background text-xs font-black disabled:cursor-not-allowed disabled:opacity-50"
+					disabled={testing || !draft.matchPattern.trim() || !draft.urlPattern.trim()}
+					onclick={testOnTab}
+					data-test-tab
+				>
+					<FlaskConicalIcon size={14} />
+					{m['sync.settings.custom.test_tab']()}
+				</button>
+
+				{#if testResult}
+					{#if testResult.status === 'no-tab'}
+						<p class="rounded-inner bg-warning-soft px-4 py-2.5 text-xs font-bold text-warning">
+							{m['sync.settings.custom.test_no_tab']()}
+						</p>
+					{:else if testResult.status === 'error'}
+						<p
+							class="rounded-inner bg-destructive-soft px-4 py-2.5 text-xs font-bold text-destructive"
+						>
+							{m['sync.settings.custom.test_failed']({ message: testResult.message })}
+						</p>
+					{:else}
+						<div
+							class="flex flex-col gap-1 rounded-inner px-4 py-2.5 text-xs font-bold {testResult.id &&
+							testResult.progress
+								? 'bg-success-soft text-success'
+								: 'bg-warning-soft text-warning'}"
+							data-test-result
+						>
+							<span class="truncate font-mono text-[11px] font-medium opacity-80">
+								{testResult.url}
+							</span>
+							{#if !testResult.id}
+								<span>{m['sync.settings.custom.test_no_id']()}</span>
+							{:else if !testResult.progress}
+								<span>{m['sync.settings.custom.test_no_progress']()}</span>
+							{:else}
+								<span>
+									{m['sync.settings.custom.test_result']({
+										id: testResult.id,
+										progress: testResult.progress
+									})}
+								</span>
+							{/if}
+						</div>
+						{#if testResult.suggestion}
+							{@const suggestion = testResult.suggestion}
+							<div
+								class="flex items-center gap-3 rounded-inner bg-info-soft px-4 py-2.5 text-xs font-bold text-info"
+								data-suggestion
+							>
+								<span class="min-w-0 flex-1">
+									{m['sync.settings.custom.suggestion']({
+										text: suggestion.text,
+										progress: suggestion.progress
+									})}
+								</span>
+								<button
+									type="button"
+									class="h-8 flex-none cursor-pointer rounded-full bg-foreground px-4 text-xs font-black text-background"
+									onclick={() => useSuggestion(suggestion)}
+								>
+									{m['sync.settings.custom.suggestion_use']()}
+								</button>
+							</div>
+						{/if}
+					{/if}
+				{/if}
+			</section>
 		{/if}
-		<button
-			type="button"
-			class="mt-1 h-11 cursor-pointer rounded-full bg-primary text-sm font-black text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-			disabled={!canSave}
-			onclick={saveSite}
-		>
-			{m['sync.settings.custom.save']()}
-		</button>
+
+		<div class="flex flex-col gap-2 {advanced && page ? 'md:col-span-2' : ''}">
+			<button
+				type="button"
+				class="mt-1 h-11 cursor-pointer rounded-full bg-primary text-sm font-black text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+				disabled={!canSave}
+				onclick={saveSite}
+			>
+				{m['sync.settings.custom.save']()}
+			</button>
+			<button
+				type="button"
+				class="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full text-xs font-bold text-muted-foreground hover:bg-surface hover:text-foreground"
+				onclick={openAdvanced}
+				title={m['sync.settings.custom.advanced_hint']()}
+				data-advanced-toggle
+			>
+				<SlidersHorizontalIcon size={14} />
+				{advanced && page
+					? m['sync.settings.custom.basic']()
+					: m['sync.settings.custom.advanced']()}
+			</button>
+		</div>
 	</div>
 </AcerolaSheetDialog>
