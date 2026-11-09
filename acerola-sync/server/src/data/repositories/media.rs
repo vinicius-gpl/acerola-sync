@@ -148,14 +148,17 @@ pub async fn releasing_ids_for_user(pool: &PgPool, user_id: i64) -> Result<Vec<i
 }
 
 pub async fn find(executor: impl PgExecutor<'_>, id: i64) -> Result<Option<Media>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM media WHERE id = $1")
+    Ok(sqlx::query_as(concat!("SELECT ", media_columns!(""), " FROM media WHERE id = $1"))
         .bind(id)
         .fetch_optional(executor)
         .await?)
 }
 
 pub async fn find_many(pool: &PgPool, ids: &[i64]) -> Result<Vec<Media>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM media WHERE id = ANY($1)").bind(ids).fetch_all(pool).await?)
+    Ok(sqlx::query_as(concat!("SELECT ", media_columns!(""), " FROM media WHERE id = ANY($1)"))
+        .bind(ids)
+        .fetch_all(pool)
+        .await?)
 }
 
 /// Resultado da busca local com a nota de similaridade (0–1) do pg_trgm.
@@ -170,14 +173,16 @@ pub struct ScoredMedia {
 pub async fn search(
     pool: &PgPool, query: &str, media_type: Option<&str>, limit: i64,
 ) -> Result<Vec<ScoredMedia>, DbError> {
-    Ok(sqlx::query_as(
-        "SELECT media.*, word_similarity($1, search_text) AS similarity
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        media_columns!("media."),
+        ", word_similarity($1, search_text) AS similarity
          FROM media
          WHERE ($2::text IS NULL OR media_type = $2)
            AND (search_text ILIKE '%' || $1 || '%' OR $1 <% search_text)
          ORDER BY similarity DESC, title_user_preferred
-         LIMIT $3",
-    )
+         LIMIT $3"
+    ))
     .bind(query.to_lowercase())
     .bind(media_type)
     .bind(limit)

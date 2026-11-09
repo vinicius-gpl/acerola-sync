@@ -8,9 +8,11 @@ use crate::{
 pub async fn find_mapping(
     pool: &PgPool, user_id: i64, site: &str, identifier: &str,
 ) -> Result<Option<SiteMapping>, DbError> {
-    Ok(sqlx::query_as(
-        "SELECT * FROM site_mappings WHERE user_id = $1 AND site = $2 AND identifier = $3",
-    )
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        site_mapping_columns!(""),
+        " FROM site_mappings WHERE user_id = $1 AND site = $2 AND identifier = $3"
+    ))
     .bind(user_id)
     .bind(site)
     .bind(identifier)
@@ -24,7 +26,7 @@ pub async fn save_mapping(
     source: &str,
 ) -> Result<SiteMapping, DbError> {
     Ok(sqlx::query_as(
-        "INSERT INTO site_mappings (user_id, site, identifier, media_id, title, source)
+        concat!("INSERT INTO site_mappings (user_id, site, identifier, media_id, title, source)
          VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (user_id, site, identifier) DO UPDATE SET
              media_id = CASE WHEN site_mappings.source = 'MANUAL' AND EXCLUDED.source = 'AUTO'
@@ -32,7 +34,7 @@ pub async fn save_mapping(
              source = CASE WHEN site_mappings.source = 'MANUAL' THEN 'MANUAL' ELSE EXCLUDED.source END,
              title = EXCLUDED.title,
              updated_at = now()
-         RETURNING *",
+         RETURNING ", site_mapping_columns!("")),
     )
     .bind(user_id)
     .bind(site)
@@ -94,10 +96,14 @@ pub async fn recent_history(
 }
 
 pub async fn list_custom_sites(pool: &PgPool, user_id: i64) -> Result<Vec<CustomSite>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM custom_sites WHERE user_id = $1 ORDER BY name")
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?)
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        custom_site_columns!(""),
+        " FROM custom_sites WHERE user_id = $1 ORDER BY name"
+    ))
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub struct CustomSiteInput<'a> {
@@ -117,9 +123,9 @@ pub async fn insert_custom_site(
     pool: &PgPool, user_id: i64, input: &CustomSiteInput<'_>,
 ) -> Result<CustomSite, DbError> {
     Ok(sqlx::query_as(
-        "INSERT INTO custom_sites (user_id, name, media_type, match_pattern, url_pattern, title_selector, enabled, search_url,
+        concat!("INSERT INTO custom_sites (user_id, name, media_type, match_pattern, url_pattern, title_selector, enabled, search_url,
                                    progress_source, progress_selector, progress_pattern)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING ", custom_site_columns!("")),
     )
     .bind(user_id)
     .bind(input.name)
@@ -140,11 +146,11 @@ pub async fn update_custom_site(
     pool: &PgPool, user_id: i64, id: i64, input: &CustomSiteInput<'_>,
 ) -> Result<CustomSite, DbError> {
     Ok(sqlx::query_as(
-        "UPDATE custom_sites SET name = $3, media_type = $4, match_pattern = $5, url_pattern = $6,
+        concat!("UPDATE custom_sites SET name = $3, media_type = $4, match_pattern = $5, url_pattern = $6,
                                  title_selector = $7, enabled = $8, search_url = $9,
                                  progress_source = $10, progress_selector = $11, progress_pattern = $12,
                                  updated_at = now()
-         WHERE user_id = $1 AND id = $2 RETURNING *",
+         WHERE user_id = $1 AND id = $2 RETURNING ", custom_site_columns!("")),
     )
     .bind(user_id)
     .bind(id)
@@ -167,7 +173,7 @@ pub async fn last_visits(
     pool: &PgPool, user_id: i64, media_id: i64,
 ) -> Result<Vec<LastVisit>, DbError> {
     Ok(sqlx::query_as(
-        "SELECT * FROM (
+        "SELECT source, url, progress, created_at FROM (
              SELECT DISTINCT ON (source) source, url, progress, created_at
              FROM history
              WHERE user_id = $1 AND media_id = $2 AND url IS NOT NULL
@@ -281,6 +287,29 @@ mod tests {
 
         delete_custom_site(&db.pool, 1, created.id).await.unwrap();
         assert!(list_custom_sites(&db.pool, 1).await.unwrap().is_empty());
+        db.drop().await;
+    }
+
+    #[tokio::test]
+    async fn teste_consulta_preparada_sobrevive_a_coluna_nova() {
+        let Some(db) = TestDatabase::create().await else { return };
+        seed(&db.pool).await;
+        let pool = db.single_connection_pool().await;
+
+        // Com `*`, a coluna nova muda o resultado da consulta já preparada e o Postgres recusa.
+        let star = "SELECT * FROM custom_sites WHERE user_id = $1";
+        sqlx::query(star).bind(1_i64).fetch_all(&pool).await.unwrap();
+        list_custom_sites(&pool, 1).await.unwrap();
+        sqlx::query("ALTER TABLE custom_sites ADD COLUMN coluna_nova_teste INT")
+            .execute(&pool)
+            .await
+            .unwrap();
+        let error = sqlx::query(star).bind(1_i64).fetch_all(&pool).await.unwrap_err();
+        assert!(error.to_string().contains("cached plan must not change result type"));
+
+        // Com colunas explícitas, a mesma consulta preparada continua valendo.
+        list_custom_sites(&pool, 1).await.unwrap();
+        pool.close().await;
         db.drop().await;
     }
 }

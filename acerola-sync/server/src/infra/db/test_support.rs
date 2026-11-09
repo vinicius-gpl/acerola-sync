@@ -45,6 +45,17 @@ impl TestDatabase {
         Some(Self { pool, admin_url, name })
     }
 
+    /// Pool de uma conexão só no mesmo banco: o cache de consultas preparadas fica num lugar,
+    /// como numa conexão reaproveitada pelo pooler em produção.
+    pub async fn single_connection_pool(&self) -> PgPool {
+        let (base, _) = self.admin_url.rsplit_once('/').expect("URL com nome de banco");
+        PgPoolOptions::new()
+            .max_connections(1)
+            .connect(&format!("{base}/{}", self.name))
+            .await
+            .expect("conexão com o banco de teste")
+    }
+
     pub async fn drop(self) {
         self.pool.close().await;
         let mut admin = PgConnection::connect(&self.admin_url).await.unwrap();
