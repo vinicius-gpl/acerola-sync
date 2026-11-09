@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub async fn upsert(executor: impl PgExecutor<'_>, entry: &Entry) -> Result<Entry, DbError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "INSERT INTO entries (
              user_id, media_id, anilist_entry_id, status, progress, progress_volumes, score,
              repeat, private, notes, started_at, completed_at, anilist_updated_at, updated_at,
@@ -29,8 +29,9 @@ pub async fn upsert(executor: impl PgExecutor<'_>, entry: &Entry) -> Result<Entr
              dirty = EXCLUDED.dirty,
              push_attempts = EXCLUDED.push_attempts,
              last_push_error = EXCLUDED.last_push_error
-         RETURNING *",
-    )
+         RETURNING ",
+        entry_columns!("")
+    ))
     .bind(entry.user_id)
     .bind(entry.media_id)
     .bind(entry.anilist_entry_id)
@@ -55,22 +56,30 @@ pub async fn upsert(executor: impl PgExecutor<'_>, entry: &Entry) -> Result<Entr
 pub async fn find(
     executor: impl PgExecutor<'_>, user_id: i64, media_id: i64,
 ) -> Result<Option<Entry>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM entries WHERE user_id = $1 AND media_id = $2")
-        .bind(user_id)
-        .bind(media_id)
-        .fetch_optional(executor)
-        .await?)
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        entry_columns!(""),
+        " FROM entries WHERE user_id = $1 AND media_id = $2"
+    ))
+    .bind(user_id)
+    .bind(media_id)
+    .fetch_optional(executor)
+    .await?)
 }
 
 /// Várias entradas de uma vez (busca): uma query só, em vez de uma por resultado.
 pub async fn find_many(
     pool: &PgPool, user_id: i64, media_ids: &[i64],
 ) -> Result<Vec<Entry>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM entries WHERE user_id = $1 AND media_id = ANY($2)")
-        .bind(user_id)
-        .bind(media_ids)
-        .fetch_all(pool)
-        .await?)
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        entry_columns!(""),
+        " FROM entries WHERE user_id = $1 AND media_id = ANY($2)"
+    ))
+    .bind(user_id)
+    .bind(media_ids)
+    .fetch_all(pool)
+    .await?)
 }
 
 /// Quantas entradas há em cada (tipo, status), respeitando os filtros da lista (o status
@@ -119,10 +128,14 @@ pub async fn facets(
 }
 
 pub async fn find_dirty(pool: &PgPool, user_id: i64) -> Result<Vec<Entry>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM entries WHERE user_id = $1 AND dirty ORDER BY updated_at")
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?)
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        entry_columns!(""),
+        " FROM entries WHERE user_id = $1 AND dirty ORDER BY updated_at"
+    ))
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn mark_push_failed(
@@ -280,11 +293,12 @@ pub async fn list_with_media(
     pool: &PgPool, user_id: i64, filters: &EntryFilters, sort: EntrySort, page: PageRequest,
 ) -> Result<Vec<EntryWithMedia>, DbError> {
     let sql = format!(
-        "SELECT entries.* FROM entries JOIN media ON media.id = entries.media_id
+        "SELECT {columns} FROM entries JOIN media ON media.id = entries.media_id
          WHERE entries.user_id = $1 AND {FILTER_SQL}
          ORDER BY {}, entries.media_id
          LIMIT $9 OFFSET $10",
-        sort.order_by()
+        sort.order_by(),
+        columns = entry_columns!("entries.")
     );
     // Só constantes (`FILTER_SQL` e a ordem de um enum fechado); os valores vão por bind.
     let entries: Vec<Entry> =
