@@ -7,18 +7,25 @@ use crate::{
 };
 
 pub async fn settings(pool: &PgPool, user_id: i64) -> Result<SyncSettings, DbError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "INSERT INTO sync_settings (user_id) VALUES ($1)
          ON CONFLICT (user_id) DO UPDATE SET user_id = EXCLUDED.user_id
-         RETURNING *",
-    )
+         RETURNING ",
+        sync_settings_columns!("")
+    ))
     .bind(user_id)
     .fetch_one(pool)
     .await?)
 }
 
 pub async fn all_enabled(pool: &PgPool) -> Result<Vec<SyncSettings>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM sync_settings WHERE schedule_enabled").fetch_all(pool).await?)
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        sync_settings_columns!(""),
+        " FROM sync_settings WHERE schedule_enabled"
+    ))
+    .fetch_all(pool)
+    .await?)
 }
 
 pub async fn save_schedule(
@@ -26,14 +33,14 @@ pub async fn save_schedule(
     last_scheduled_slot: Option<DateTime<Utc>>,
 ) -> Result<SyncSettings, DbError> {
     Ok(sqlx::query_as(
-        "INSERT INTO sync_settings (user_id, schedule_enabled, schedule_times, last_scheduled_slot, updated_at)
+        concat!("INSERT INTO sync_settings (user_id, schedule_enabled, schedule_times, last_scheduled_slot, updated_at)
          VALUES ($1, $2, $3, $4, now())
          ON CONFLICT (user_id) DO UPDATE SET
              schedule_enabled = EXCLUDED.schedule_enabled,
              schedule_times = EXCLUDED.schedule_times,
              last_scheduled_slot = EXCLUDED.last_scheduled_slot,
              updated_at = now()
-         RETURNING *",
+         RETURNING ", sync_settings_columns!("")),
     )
     .bind(user_id)
     .bind(enabled)
@@ -47,14 +54,15 @@ pub async fn save_schedule(
 pub async fn save_full_sync_interval(
     pool: &PgPool, user_id: i64, hours: i32,
 ) -> Result<SyncSettings, DbError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "INSERT INTO sync_settings (user_id, full_sync_every_hours, updated_at)
          VALUES ($1, $2, now())
          ON CONFLICT (user_id) DO UPDATE SET
              full_sync_every_hours = EXCLUDED.full_sync_every_hours,
              updated_at = now()
-         RETURNING *",
-    )
+         RETURNING ",
+        sync_settings_columns!("")
+    ))
     .bind(user_id)
     .bind(hours)
     .fetch_one(pool)
@@ -75,10 +83,11 @@ pub async fn mark_slot_done(
 pub async fn start_run(
     pool: &PgPool, user_id: i64, trigger: &str, mode: &str,
 ) -> Result<SyncRun, DbError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "INSERT INTO sync_runs (user_id, trigger, status, mode)
-         VALUES ($1, $2, 'RUNNING', $3) RETURNING *",
-    )
+         VALUES ($1, $2, 'RUNNING', $3) RETURNING ",
+        sync_run_columns!("")
+    ))
     .bind(user_id)
     .bind(trigger)
     .bind(mode)
@@ -96,13 +105,14 @@ pub struct RunTotals {
 pub async fn finish_run(
     pool: &PgPool, run_id: i64, totals: &RunTotals, error: Option<&str>,
 ) -> Result<SyncRun, DbError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "UPDATE sync_runs SET
              status = CASE WHEN $5::text IS NULL THEN 'SUCCESS' ELSE 'FAILED' END,
              finished_at = now(), entries_pulled = $2, entries_pushed = $3,
              entries_removed = $4, error = $5, anilist_requests = $6
-         WHERE id = $1 RETURNING *",
-    )
+         WHERE id = $1 RETURNING ",
+        sync_run_columns!("")
+    ))
     .bind(run_id)
     .bind(totals.pulled)
     .bind(totals.pushed)
@@ -135,9 +145,10 @@ pub async fn mark_pulled(
 pub async fn insert_log(
     pool: &PgPool, run_id: i64, level: &str, message: &str,
 ) -> Result<SyncLog, DbError> {
-    Ok(sqlx::query_as(
-        "INSERT INTO sync_logs (run_id, level, message) VALUES ($1, $2, $3) RETURNING *",
-    )
+    Ok(sqlx::query_as(concat!(
+        "INSERT INTO sync_logs (run_id, level, message) VALUES ($1, $2, $3) RETURNING ",
+        sync_log_columns!("")
+    ))
     .bind(run_id)
     .bind(level)
     .bind(message)
@@ -149,12 +160,14 @@ pub async fn insert_log(
 pub async fn logs_after(
     pool: &PgPool, user_id: i64, run_id: i64, after_id: i64,
 ) -> Result<Vec<SyncLog>, DbError> {
-    Ok(sqlx::query_as(
-        "SELECT sync_logs.* FROM sync_logs JOIN sync_runs ON sync_runs.id = sync_logs.run_id
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        sync_log_columns!("sync_logs."),
+        " FROM sync_logs JOIN sync_runs ON sync_runs.id = sync_logs.run_id
          WHERE sync_runs.user_id = $1 AND sync_logs.run_id = $2 AND sync_logs.id > $3
          ORDER BY sync_logs.id
-         LIMIT 500",
-    )
+         LIMIT 500"
+    ))
     .bind(user_id)
     .bind(run_id)
     .bind(after_id)
@@ -176,17 +189,23 @@ pub async fn fail_stale_runs(pool: &PgPool) -> Result<(), DbError> {
 pub async fn find_run(
     pool: &PgPool, user_id: i64, run_id: i64,
 ) -> Result<Option<SyncRun>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM sync_runs WHERE user_id = $1 AND id = $2")
-        .bind(user_id)
-        .bind(run_id)
-        .fetch_optional(pool)
-        .await?)
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        sync_run_columns!(""),
+        " FROM sync_runs WHERE user_id = $1 AND id = $2"
+    ))
+    .bind(user_id)
+    .bind(run_id)
+    .fetch_optional(pool)
+    .await?)
 }
 
 pub async fn recent_runs(pool: &PgPool, user_id: i64, limit: i64) -> Result<Vec<SyncRun>, DbError> {
-    Ok(sqlx::query_as(
-        "SELECT * FROM sync_runs WHERE user_id = $1 ORDER BY started_at DESC LIMIT $2",
-    )
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        sync_run_columns!(""),
+        " FROM sync_runs WHERE user_id = $1 ORDER BY started_at DESC LIMIT $2"
+    ))
     .bind(user_id)
     .bind(limit)
     .fetch_all(pool)

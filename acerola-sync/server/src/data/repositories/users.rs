@@ -9,19 +9,21 @@ pub async fn count(pool: &PgPool) -> Result<i64, DbError> {
 }
 
 pub async fn find(executor: impl PgExecutor<'_>, id: i64) -> Result<Option<User>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM users WHERE id = $1")
+    Ok(sqlx::query_as(concat!("SELECT ", user_columns!(""), " FROM users WHERE id = $1"))
         .bind(id)
         .fetch_optional(executor)
         .await?)
 }
 
 pub async fn find_all(pool: &PgPool) -> Result<Vec<User>, DbError> {
-    Ok(sqlx::query_as("SELECT * FROM users ORDER BY id").fetch_all(pool).await?)
+    Ok(sqlx::query_as(concat!("SELECT ", user_columns!(""), " FROM users ORDER BY id"))
+        .fetch_all(pool)
+        .await?)
 }
 
 pub async fn upsert(executor: impl PgExecutor<'_>, user: &User) -> Result<User, DbError> {
     Ok(sqlx::query_as(
-        "INSERT INTO users (id, name, avatar_url, site_url, anilist_token_cipher, anilist_token_nonce)
+        concat!("INSERT INTO users (id, name, avatar_url, site_url, anilist_token_cipher, anilist_token_nonce)
          VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (id) DO UPDATE SET
              name = EXCLUDED.name,
@@ -30,7 +32,7 @@ pub async fn upsert(executor: impl PgExecutor<'_>, user: &User) -> Result<User, 
              anilist_token_cipher = EXCLUDED.anilist_token_cipher,
              anilist_token_nonce = EXCLUDED.anilist_token_nonce,
              updated_at = $7
-         RETURNING *",
+         RETURNING ", user_columns!("")),
     )
     .bind(user.id)
     .bind(&user.name)
@@ -57,14 +59,16 @@ pub async fn create_session(
 
 /// Dono da sessão ativa com esse hash; também marca o último uso.
 pub async fn find_by_session(pool: &PgPool, token_hash: &[u8]) -> Result<Option<User>, DbError> {
-    Ok(sqlx::query_as(
+    Ok(sqlx::query_as(concat!(
         "WITH touched AS (
              UPDATE sessions SET last_used_at = now()
              WHERE token_hash = $1 AND revoked_at IS NULL
              RETURNING user_id
          )
-         SELECT users.* FROM users JOIN touched ON touched.user_id = users.id",
-    )
+         SELECT ",
+        user_columns!("users."),
+        " FROM users JOIN touched ON touched.user_id = users.id"
+    ))
     .bind(token_hash)
     .fetch_optional(pool)
     .await?)
