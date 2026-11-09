@@ -57,4 +57,9 @@ pub struct CustomSite {
     /// Busca do site com `{title}` no lugar do título.
     pub search_url: Option<String>,
     pub updated_at: DateTime<Utc>,
+    /// De onde sai o número: `url`, `title` (título da página) ou `selector` (elemento).
+    pub progress_source: String,
+    pub progress_selector: Option<String>,
+    /// Regex que tira o número do texto lido (grupo `progress`, o primeiro grupo ou o todo).
+    pub progress_pattern: Option<String>,
 }
