@@ -148,7 +148,9 @@ export const app = {
 		const link = linkFromUrl();
 		const fromUrl = Number(new URLSearchParams(location.search).get('media'));
 		const mediaId = fromUrl > 0 ? fromUrl : mode === 'popup' ? await takePendingMedia() : null;
+		const params = new URLSearchParams(location.search);
 		if (link) route = { name: 'link', request: link };
+		else if (params.has('site')) route = { name: 'settings' };
 		else if (mediaId && Number.isInteger(mediaId)) route = { name: 'media', mediaId };
 		else if (isTopRoute(lastPage)) route = { name: lastPage };
 
@@ -175,9 +177,9 @@ export const app = {
 		route = stack.pop() ?? { name: 'list' };
 	},
 
-	/** Abre a interface numa aba inteira e fecha o popup. */
-	async openFullPage() {
-		await browser.tabs.create({ url: browser.runtime.getURL('/app.html') });
+	/** Abre a interface numa aba inteira e fecha o popup. `search` vai junto (ex.: `?site=new`). */
+	async openFullPage(search = '') {
+		await browser.tabs.create({ url: browser.runtime.getURL(`/app.html${search}`) });
 		if (mode === 'popup') window.close();
 	},
 

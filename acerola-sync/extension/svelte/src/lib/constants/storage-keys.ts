@@ -15,6 +15,8 @@ export const STORAGE_KEYS = {
 	customSites: 'local:customSites',
 	/** Obra que o aviso do site pediu para abrir no popup (`{ mediaId, at }`); vale por 30s. */
 	pendingMedia: 'local:pendingMedia',
+	/** Rascunho do site personalizado levado do popup para o modo avançado na página cheia. */
+	pendingSiteDraft: 'local:pendingSiteDraft',
 	/** Onde o botão fixo fica em cada site (`{ [host]: FabPosition }`); igual nos dois PCs. */
 	fabPositions: 'sync:fabPositions'
 } as const;

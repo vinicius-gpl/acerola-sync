@@ -238,6 +238,9 @@ export type HistoryItem = {
 	mediaType: MediaType;
 };
 
+/** De onde sai o número do capítulo/episódio: URL, título da página ou um elemento. */
+export type ProgressSource = 'url' | 'title' | 'selector';
+
 export type CustomSite = {
 	id: string;
 	name: string;
@@ -248,6 +251,12 @@ export type CustomSite = {
 	enabled: boolean;
 	/** Busca do site com `{title}` no lugar do título (botão "abrir no site" da obra). */
 	searchUrl?: string | null;
+	/** Ausente em sites antigos: `url`. */
+	progressSource?: ProgressSource;
+	/** Elemento com o número (fonte `selector`). */
+	progressSelector?: string | null;
+	/** Regex que tira o número do texto lido (grupo `progress`, o primeiro grupo ou o todo). */
+	progressPattern?: string | null;
 };
 
 export type CustomSiteInput = Omit<CustomSite, 'id'>;
