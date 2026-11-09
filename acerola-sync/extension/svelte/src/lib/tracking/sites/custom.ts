@@ -1,5 +1,9 @@
 import type { CustomSite } from '$lib/api/types';
+import { progressFromSnapshot, snapshotPage } from '../progress-source';
 import { humanizeSlug, parseProgress, type SiteAdapter } from '../types';
+
+/** Leituras iguais seguidas que confirmam um número repetido depois de trocar de página. */
+const STALE_CONFIRMATIONS = 3;
 
 export function customSiteId(site: Pick<CustomSite, 'id'>): string {
 	return `custom:${site.id}`;
@@ -13,11 +17,37 @@ function exec(site: CustomSite, url: URL) {
 	}
 }
 
+/** O número sai da URL (padrão) ou da página (título ou elemento). */
+export function readsProgressFromPage(site: Pick<CustomSite, 'progressSource'>): boolean {
+	return (site.progressSource ?? 'url') !== 'url';
+}
+
 /**
- * Site personalizado: tudo sai da URL, por uma regex com os grupos `id` e `progress` (e
- * `title`, opcional). Ex.: `/obra/(?<id>[^/]+)/capitulo-(?<progress>\d+)`.
+ * Site personalizado: a obra sai da URL, por uma regex com o grupo `id` (e `title`, opcional).
+ * O número vem do grupo `progress` da mesma regex ou, quando a URL não tem (Kuro Mangás:
+ * `/read/2507/463111`), do título da página ou de um elemento, ver `progress-source.ts`.
  */
 export function createCustomAdapter(site: CustomSite): SiteAdapter {
+	const fromPage = readsProgressFromPage(site);
+	// Em SPA a URL troca antes do HTML: logo depois de ir para o próximo capítulo, a página ainda
+	// mostra o número do anterior. Número igual ao da página anterior só vale depois de repetir.
+	let accepted: { href: string; progress: number } | null = null;
+	let repeated = { href: '', count: 0 };
+
+	function pageProgress(url: URL, doc: Document): number | null {
+		const progress = progressFromSnapshot(site, snapshotPage(site.progressSelector ?? null, doc));
+		if (!progress) return null;
+		if (accepted && accepted.href !== url.href && accepted.progress === progress) {
+			repeated =
+				repeated.href === url.href
+					? { ...repeated, count: repeated.count + 1 }
+					: { href: url.href, count: 1 };
+			if (repeated.count < STALE_CONFIRMATIONS) return null;
+		}
+		accepted = { href: url.href, progress };
+		return progress;
+	}
+
 	return {
 		id: customSiteId(site),
 		name: site.name,
@@ -29,12 +59,14 @@ export function createCustomAdapter(site: CustomSite): SiteAdapter {
 		trigger: site.mediaType === 'ANIME' ? 'video' : 'delay',
 		pageKey(url) {
 			const groups = exec(site, url);
-			return groups?.id && groups.progress ? `${groups.id}/${groups.progress}` : null;
+			if (!groups?.id) return null;
+			if (fromPage) return `${groups.id}${url.pathname}${url.search}`;
+			return groups.progress ? `${groups.id}/${groups.progress}` : null;
 		},
 		async detect(url, doc) {
 			const groups = exec(site, url);
 			if (!groups?.id) return null;
-			const progress = parseProgress(groups.progress);
+			const progress = fromPage ? pageProgress(url, doc) : parseProgress(groups.progress);
 			if (!progress) return null;
 
 			const fromSelector = site.titleSelector

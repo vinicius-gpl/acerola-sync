@@ -38,6 +38,17 @@ pub struct CustomSiteRequest {
     /// Busca do site, com `{title}` no lugar do título.
     #[serde(default)]
     pub search_url: Option<String>,
+    /// De onde sai o número: `url` (padrão), `title` ou `selector`.
+    #[serde(default = "default_progress_source")]
+    pub progress_source: String,
+    #[serde(default)]
+    pub progress_selector: Option<String>,
+    #[serde(default)]
+    pub progress_pattern: Option<String>,
+}
+
+fn default_progress_source() -> String {
+    "url".into()
 }
 
 fn default_enabled() -> bool {

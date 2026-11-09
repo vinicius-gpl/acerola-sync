@@ -60,7 +60,8 @@ async function signIn(context: BrowserContext) {
 	);
 }
 
-async function mockServer(page: Page) {
+/** Na página ou no contexto inteiro (abas novas, como a página cheia aberta pelo popup). */
+async function mockServer(page: Pick<Page, 'route'> | BrowserContext) {
 	await page.route(`${SERVER}/**`, async (route) => {
 		const url = new URL(route.request().url());
 		if (url.pathname === '/entries/counts') {
@@ -367,4 +368,75 @@ test('fichas dentro do formulário de site cabem inteiras, sem corte nem fade', 
 		return Math.max(Math.abs(pill.left - tab.left), Math.abs(pill.right - tab.right));
 	});
 	expect(fit).toBeLessThanOrEqual(0.1);
+});
+
+test('modo avançado do site: popup leva para a página cheia e o diálogo cresce em 2 colunas', async ({
+	context,
+	page,
+	extensionId
+}) => {
+	await signIn(context);
+	await page.addInitScript(() => localStorage.setItem('PARAGLIDE_LOCALE', 'pt-br'));
+	await mockServer(context);
+	await page.goto(`chrome-extension://${extensionId}/popup.html`);
+	await expect(page.getByText('Sousou no Frieren').first()).toBeVisible();
+	await page.getByRole('navigation').last().getByRole('button').last().click();
+	await page.getByRole('button', { name: /^(Adicionar|Add)$/ }).click();
+	await page
+		.getByRole('dialog')
+		.getByPlaceholder(/Nome|Name/)
+		.fill('Kuro');
+
+	const opened = context.waitForEvent('page');
+	await page.getByRole('button', { name: /Modo avançado|Advanced mode/ }).click();
+	const full = await opened;
+	expect(full.url()).toContain('/app.html?site=new');
+	await full.setViewportSize({ width: 1440, height: 900 });
+
+	const dialog = full.getByRole('dialog');
+	await expect(dialog.locator('[data-advanced]')).toBeVisible();
+	// O rascunho veio junto do popup.
+	await expect(dialog.getByPlaceholder(/Nome|Name/)).toHaveValue('Kuro');
+	await dialog.getByRole('tab', { name: /Título da página|Page title/ }).click();
+	await full.waitForTimeout(400);
+
+	const box = (await dialog.boundingBox())!;
+	expect(box.width).toBeGreaterThan(800);
+	const overflow = await dialog.evaluate((node) => node.scrollWidth - node.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(1);
+	// Formulário à esquerda, número à direita, lado a lado.
+	const form = (await dialog.getByPlaceholder(/Nome|Name/).boundingBox())!;
+	const advanced = (await dialog.locator('[data-advanced]').boundingBox())!;
+	expect(advanced.x).toBeGreaterThan(form.x + form.width);
+	expect(Math.abs(advanced.y - form.y)).toBeLessThan(40);
+	await expectAligned(dialog.locator('[data-advanced]').getByRole('tablist'));
+	await dialog.screenshot({ path: `${SHOTS}/08-site-avancado.png` });
+
+	// Teste numa aba aberta de verdade: um capítulo com o número só no título da página. O
+	// domínio é um dos já permitidos no manifesto, então a permissão não abre pergunta.
+	await context.route('https://sakuramangas.org/**', (route) =>
+		route.fulfill({
+			contentType: 'text/html',
+			body: '<title>Cap. 30 — O Santuário - Kuro</title><h1>Masmorra da Torre</h1>'
+		})
+	);
+	const chapter = await context.newPage();
+	await chapter.goto('https://sakuramangas.org/read/2507/463111');
+	await full.bringToFront();
+	await dialog.getByPlaceholder('https://leitor.exemplo.com/*').fill('https://sakuramangas.org/*');
+	await dialog.getByPlaceholder(/\/read\//).fill('/read/(?<id>\\d+)/\\d+');
+
+	// Fonte na URL: não acha o número, mas sugere o título da página.
+	await dialog.getByRole('tab', { name: /^URL$/ }).click();
+	await dialog.getByRole('button', { name: /Testar numa aba|Test on an open tab/ }).click();
+	const suggestion = dialog.locator('[data-suggestion]');
+	await expect(suggestion).toContainText('Cap. 30');
+	await suggestion.getByRole('button').click();
+	await expect(dialog.locator('[data-test-result]')).toContainText(
+		/Obra: 2507 · número: 30|Media: 2507 · number: 30/
+	);
+	await expect(dialog.getByRole('tab', { selected: true, name: /Título da página/ })).toBeVisible();
+	await expectAligned(dialog.locator('[data-advanced]').getByRole('tablist'));
+	await full.waitForTimeout(400);
+	await dialog.screenshot({ path: `${SHOTS}/08b-site-avancado-teste.png` });
 });
