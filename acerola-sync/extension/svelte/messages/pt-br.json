@@ -1123,7 +1123,27 @@
 				"edit_title": "Editar site",
 				"updated": "Site atualizado.",
 				"grant": "Sem permissão · Liberar",
-				"granted": "Site liberado. Recarregue a aba dele."
+				"granted": "Site liberado. Recarregue a aba dele.",
+				"advanced": "Modo avançado",
+				"advanced_hint": "O número não está na URL? Leia do título ou de um elemento da página.",
+				"basic": "Modo simples",
+				"help_page": "A regex da URL precisa do grupo (?<id>…); o número sai da página.",
+				"progress_title": "Número do capítulo/episódio",
+				"source_url": "URL",
+				"source_title": "Título da página",
+				"source_selector": "Elemento",
+				"progress_selector": "Seletor do elemento (ex.: header span)",
+				"progress_pattern": "Regex do número (opcional)",
+				"progress_pattern_hint": "Vazio: procura “Cap. 30”, “Capítulo 30”, “Episódio 4”…",
+				"test_tab": "Testar numa aba aberta",
+				"test_no_tab": "Abra um capítulo do site numa aba e teste de novo.",
+				"test_failed": "Não deu para ler a aba: {message}",
+				"test_result": "Obra: {id} · número: {progress}",
+				"test_no_id": "A regex da URL não achou a obra nessa aba.",
+				"test_no_progress": "Não achei o número com essa configuração.",
+				"suggestion": "Achei “{text}”: número {progress}.",
+				"suggestion_use": "Usar",
+				"preview_page": "Obra: {id} · número: lido da página"
 			}
 		},
 		"login": {
