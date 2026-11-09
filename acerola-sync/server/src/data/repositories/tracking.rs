@@ -108,14 +108,18 @@ pub struct CustomSiteInput<'a> {
     pub title_selector: Option<&'a str>,
     pub enabled: bool,
     pub search_url: Option<&'a str>,
+    pub progress_source: &'a str,
+    pub progress_selector: Option<&'a str>,
+    pub progress_pattern: Option<&'a str>,
 }
 
 pub async fn insert_custom_site(
     pool: &PgPool, user_id: i64, input: &CustomSiteInput<'_>,
 ) -> Result<CustomSite, DbError> {
     Ok(sqlx::query_as(
-        "INSERT INTO custom_sites (user_id, name, media_type, match_pattern, url_pattern, title_selector, enabled, search_url)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+        "INSERT INTO custom_sites (user_id, name, media_type, match_pattern, url_pattern, title_selector, enabled, search_url,
+                                   progress_source, progress_selector, progress_pattern)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
     )
     .bind(user_id)
     .bind(input.name)
@@ -125,6 +129,9 @@ pub async fn insert_custom_site(
     .bind(input.title_selector)
     .bind(input.enabled)
     .bind(input.search_url)
+    .bind(input.progress_source)
+    .bind(input.progress_selector)
+    .bind(input.progress_pattern)
     .fetch_one(pool)
     .await?)
 }
@@ -135,6 +142,7 @@ pub async fn update_custom_site(
     Ok(sqlx::query_as(
         "UPDATE custom_sites SET name = $3, media_type = $4, match_pattern = $5, url_pattern = $6,
                                  title_selector = $7, enabled = $8, search_url = $9,
+                                 progress_source = $10, progress_selector = $11, progress_pattern = $12,
                                  updated_at = now()
          WHERE user_id = $1 AND id = $2 RETURNING *",
     )
@@ -147,6 +155,9 @@ pub async fn update_custom_site(
     .bind(input.title_selector)
     .bind(input.enabled)
     .bind(input.search_url)
+    .bind(input.progress_source)
+    .bind(input.progress_selector)
+    .bind(input.progress_pattern)
     .fetch_one(pool)
     .await?)
 }
@@ -250,12 +261,23 @@ mod tests {
             title_selector: None,
             enabled: true,
             search_url: Some("https://leitor.exemplo.com/busca?q={title}"),
+            progress_source: "url",
+            progress_selector: None,
+            progress_pattern: None,
         };
         let created = insert_custom_site(&db.pool, 1, &input).await.unwrap();
         assert_eq!(created.search_url.as_deref(), input.search_url);
-        let disabled = CustomSiteInput { enabled: false, ..input };
+        assert_eq!(created.progress_source, "url");
+        let disabled = CustomSiteInput {
+            enabled: false,
+            progress_source: "title",
+            progress_pattern: Some(r"Cap\.\s*(?<progress>\d+)"),
+            ..input
+        };
         let updated = update_custom_site(&db.pool, 1, created.id, &disabled).await.unwrap();
         assert!(!updated.enabled);
+        assert_eq!(updated.progress_source, "title");
+        assert_eq!(updated.progress_pattern.as_deref(), disabled.progress_pattern);
 
         delete_custom_site(&db.pool, 1, created.id).await.unwrap();
         assert!(list_custom_sites(&db.pool, 1).await.unwrap().is_empty());
