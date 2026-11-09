@@ -88,12 +88,33 @@ pub fn validate_custom_site(request: &CustomSiteRequest) -> Result<(), AppError>
     let regex = Regex::new(&request.url_pattern)
         .map_err(|error| AppError::BadRequest(format!("Invalid urlPattern: {error}")))?;
     let names: Vec<&str> = regex.capture_names().flatten().collect();
-    for required in ["id", "progress"] {
-        if !names.contains(&required) {
+    // Com o número fora da URL, a regex da URL só precisa achar a obra.
+    let from_url = request.progress_source == "url";
+    let required: &[&str] = if from_url { &["id", "progress"] } else { &["id"] };
+    for required in required {
+        if !names.contains(required) {
             return Err(AppError::BadRequest(format!(
                 "urlPattern needs a named group (?<{required}>...)."
             )));
         }
+    }
+    match request.progress_source.as_str() {
+        "url" | "title" => {},
+        "selector" if trimmed(&request.progress_selector).is_some() => {},
+        "selector" => {
+            return Err(AppError::BadRequest(
+                "progressSelector is required when progressSource is selector.".into(),
+            ));
+        },
+        _ => {
+            return Err(AppError::BadRequest(
+                "progressSource must be url, title or selector.".into(),
+            ));
+        },
+    }
+    if let Some(pattern) = trimmed(&request.progress_pattern).filter(|_| !from_url) {
+        Regex::new(pattern)
+            .map_err(|error| AppError::BadRequest(format!("Invalid progressPattern: {error}")))?;
     }
     if let Some(url) = request.search_url.as_deref().map(str::trim).filter(|url| !url.is_empty()) {
         if !(url.starts_with("https://") || url.starts_with("http://")) || !url.contains("{title}")
@@ -106,7 +127,12 @@ pub fn validate_custom_site(request: &CustomSiteRequest) -> Result<(), AppError>
     Ok(())
 }
 
+fn trimmed(value: &Option<String>) -> Option<&str> {
+    value.as_deref().map(str::trim).filter(|value| !value.is_empty())
+}
+
 fn input(request: &CustomSiteRequest) -> CustomSiteInput<'_> {
+    let from_url = request.progress_source == "url";
     CustomSiteInput {
         name: request.name.trim(),
         media_type: &request.media_type,
@@ -119,6 +145,11 @@ fn input(request: &CustomSiteRequest) -> CustomSiteInput<'_> {
             .filter(|selector| !selector.is_empty()),
         enabled: request.enabled,
         search_url: request.search_url.as_deref().map(str::trim).filter(|url| !url.is_empty()),
+        progress_source: &request.progress_source,
+        // Fonte na URL: seletor e regex do número não valem, não ficam guardados.
+        progress_selector: trimmed(&request.progress_selector)
+            .filter(|_| request.progress_source == "selector"),
+        progress_pattern: trimmed(&request.progress_pattern).filter(|_| !from_url),
     }
 }
 
@@ -178,6 +209,9 @@ mod tests {
             title_selector: None,
             enabled: true,
             search_url: None,
+            progress_source: "url".into(),
+            progress_selector: None,
+            progress_pattern: None,
         }
     }
 
@@ -206,5 +240,37 @@ mod tests {
         let mut bad = request(r"/obra/(?<id>[^/]+)/cap/(?<progress>\d+)");
         bad.match_pattern = "leitor.exemplo.com".into();
         assert!(validate_custom_site(&bad).is_err());
+    }
+
+    #[test]
+    fn test_custom_site_progress_outside_url_only_needs_id_group() {
+        let mut site = request(r"/read/(?<id>\d+)/\d+");
+        assert!(validate_custom_site(&site).is_err());
+        site.progress_source = "title".into();
+        site.progress_pattern = Some(r"Cap\.\s*(?<progress>\d+)".into());
+        assert!(validate_custom_site(&site).is_ok());
+        site.progress_pattern = Some("(".into());
+        assert!(validate_custom_site(&site).is_err());
+    }
+
+    #[test]
+    fn test_custom_site_selector_source_needs_selector() {
+        let mut site = request(r"/read/(?<id>\d+)/\d+");
+        site.progress_source = "selector".into();
+        assert!(validate_custom_site(&site).is_err());
+        site.progress_selector = Some("header span".into());
+        assert!(validate_custom_site(&site).is_ok());
+        site.progress_source = "html".into();
+        assert!(validate_custom_site(&site).is_err());
+    }
+
+    #[test]
+    fn test_custom_site_url_source_drops_progress_fields() {
+        let mut site = request(r"/obra/(?<id>[^/]+)/cap/(?<progress>\d+)");
+        site.progress_selector = Some("span".into());
+        site.progress_pattern = Some(r"\d+".into());
+        let input = input(&site);
+        assert_eq!(input.progress_source, "url");
+        assert!(input.progress_selector.is_none() && input.progress_pattern.is_none());
     }
 }

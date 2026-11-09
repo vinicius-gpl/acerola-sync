@@ -87,6 +87,11 @@ fn tracking_migrations() -> Vec<Migration> {
             "custom_site_search",
             include_str!("./migrations/tracking/010_custom_site_search.sql"),
         ),
+        migration(
+            12,
+            "custom_site_progress_source",
+            include_str!("./migrations/tracking/012_custom_site_progress_source.sql"),
+        ),
     ]
 }
 

@@ -15,8 +15,17 @@ vi.mock('wxt/browser', () => ({
 		runtime: { getURL: (path: string) => `chrome-extension://acerola${path}` }
 	}
 }));
+const setItem = vi.fn(async (..._args: unknown[]) => undefined);
 vi.mock('wxt/utils/storage', () => ({
-	storage: { getItem: vi.fn(async () => null), setItem: vi.fn(async () => undefined) }
+	storage: {
+		getItem: vi.fn(async () => null),
+		setItem: (...args: unknown[]) => setItem(...(args as [])),
+		removeItem: vi.fn(async () => undefined)
+	}
+}));
+const testSiteOnTab = vi.fn();
+vi.mock('$lib/services/site-test.service', () => ({
+	testSiteOnTab: (...args: unknown[]) => testSiteOnTab(...args)
 }));
 vi.mock('$lib/messaging', () => ({ sendMessage: vi.fn(async () => undefined) }));
 vi.mock('$lib/hooks/theme/use-theme.svelte', () => ({
@@ -41,16 +50,22 @@ const api = {
 	deleteCustomSite: vi.fn()
 };
 
+const appMock = vi.hoisted(() => ({
+	mode: 'popup' as 'popup' | 'page',
+	openFullPage: (() => undefined) as (search?: string) => unknown
+}));
 vi.mock('$lib/state/app.svelte', () => ({
 	app: {
 		get api() {
 			return api;
 		},
-		mode: 'popup',
+		get mode() {
+			return appMock.mode;
+		},
 		session: { user: { name: 'vinicius' } },
 		handleError: vi.fn(),
 		logout: vi.fn(),
-		openFullPage: vi.fn()
+		openFullPage: (search?: string) => appMock.openFullPage(search)
 	}
 }));
 
@@ -59,6 +74,8 @@ import SettingsScreen from './SettingsScreen.svelte';
 describe('SettingsScreen — sites personalizados', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		appMock.mode = 'popup';
+		appMock.openFullPage = vi.fn();
 		api.customSites.mockResolvedValue([site]);
 		api.updateCustomSite.mockResolvedValue(site);
 	});
@@ -120,5 +137,69 @@ describe('SettingsScreen — sites personalizados', () => {
 		const grant = await screen.findByRole('button', { name: /Liberar|Allow/ });
 		await user.click(grant);
 		expect(request).toHaveBeenCalledWith({ origins: ['https://animefire.one/*'] });
+	});
+
+	it('no popup, "Modo avançado" leva o rascunho para a página cheia', async () => {
+		const user = userEvent.setup();
+		render(SettingsScreen);
+		await user.click(
+			await screen.findByRole('button', { name: /Editar AnimeFire|Edit AnimeFire/ })
+		);
+		await user.click(screen.getByRole('button', { name: /Modo avançado|Advanced mode/ }));
+
+		expect(setItem).toHaveBeenCalledWith(
+			'local:pendingSiteDraft',
+			expect.objectContaining({
+				editingId: '1',
+				draft: expect.objectContaining({ name: 'AnimeFire' })
+			})
+		);
+		expect(appMock.openFullPage).toHaveBeenCalledWith('?site=1');
+	});
+
+	it('no popup, editar site com o número na página abre direto a página cheia', async () => {
+		api.customSites.mockResolvedValue([{ ...site, progressSource: 'title' }]);
+		const user = userEvent.setup();
+		render(SettingsScreen);
+		await user.click(
+			await screen.findByRole('button', { name: /Editar AnimeFire|Edit AnimeFire/ })
+		);
+		expect(appMock.openFullPage).toHaveBeenCalledWith('?site=1');
+		expect(screen.queryByRole('heading', { name: /Editar site|Edit site/ })).toBeNull();
+	});
+
+	it('na página cheia, o modo avançado lê o número do título e testa numa aba', async () => {
+		appMock.mode = 'page';
+		testSiteOnTab.mockResolvedValue({
+			status: 'ok',
+			url: 'https://animefire.one/x/12',
+			id: 'x',
+			progress: 12,
+			suggestion: null
+		});
+		const user = userEvent.setup();
+		render(SettingsScreen);
+		await user.click(
+			await screen.findByRole('button', { name: /Editar AnimeFire|Edit AnimeFire/ })
+		);
+		await user.click(screen.getByRole('button', { name: /Modo avançado|Advanced mode/ }));
+		await user.click(screen.getByRole('tab', { name: /Título da página|Page title/ }));
+		await user.type(
+			screen.getByRole('textbox', { name: /Regex do número|Number regex/ }),
+			'Ep (\\d+)'
+		);
+		await user.click(screen.getByRole('button', { name: /Testar numa aba|Test on an open tab/ }));
+		expect(
+			await screen.findByText(/Obra: x · número: 12|Media: x · number: 12/)
+		).toBeInTheDocument();
+		expect(testSiteOnTab).toHaveBeenCalledWith(
+			expect.objectContaining({ progressSource: 'title', progressPattern: 'Ep (\\d+)' })
+		);
+
+		await user.click(screen.getByRole('button', { name: /Salvar site|Save site/ }));
+		expect(api.updateCustomSite).toHaveBeenCalledWith(
+			'1',
+			expect.objectContaining({ progressSource: 'title', progressPattern: 'Ep (\\d+)' })
+		);
 	});
 });

@@ -1123,7 +1123,27 @@
 				"edit_title": "Edit site",
 				"updated": "Site updated.",
 				"grant": "No permission · Allow",
-				"granted": "Site allowed. Reload its tab."
+				"granted": "Site allowed. Reload its tab.",
+				"advanced": "Advanced mode",
+				"advanced_hint": "Number not in the URL? Read it from the page title or an element.",
+				"basic": "Simple mode",
+				"help_page": "The URL regex needs the (?<id>…) group; the number comes from the page.",
+				"progress_title": "Chapter/episode number",
+				"source_url": "URL",
+				"source_title": "Page title",
+				"source_selector": "Element",
+				"progress_selector": "Element selector (e.g. header span)",
+				"progress_pattern": "Number regex (optional)",
+				"progress_pattern_hint": "Empty: looks for “Ch. 30”, “Chapter 30”, “Episode 4”…",
+				"test_tab": "Test on an open tab",
+				"test_no_tab": "Open a chapter of the site in a tab and test again.",
+				"test_failed": "Could not read the tab: {message}",
+				"test_result": "Media: {id} · number: {progress}",
+				"test_no_id": "The URL regex did not find the media on this tab.",
+				"test_no_progress": "No number found with this setup.",
+				"suggestion": "Found “{text}”: number {progress}.",
+				"suggestion_use": "Use",
+				"preview_page": "Media: {id} · number: read from the page"
 			}
 		},
 		"login": {

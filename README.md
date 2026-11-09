@@ -34,7 +34,7 @@ Inspirado no MALSync, mas só com AniList e para uso pessoal: uma instância, um
 - **Lista espelhada**: as telas leem do Postgres do server, não do AniList. Sync incremental (só o que mudou, quase sempre 1 request), lista inteira no intervalo que você escolher, manual ou em horários agendados.
 - **Escrita dupla**: cada mudança vai para o AniList e para o espelho na mesma hora. Com o AniList fora do ar, fica pendente e é reenviada depois.
 - **Rastreio nos sites**: marca o capítulo depois de alguns segundos na página e o episódio quando o vídeo passa de 85%. Botão fixo da acerola no canto da página e aviso com a obra.
-- **Sites personalizados**: qualquer site, por uma regex da URL, com busca e seletor de título.
+- **Sites personalizados**: qualquer site, por uma regex da URL, com busca e seletor de título. Quando o número do capítulo não está na URL, o modo avançado lê do título da página ou de um elemento (seletor CSS + regex) e testa numa aba aberta antes de salvar.
 - **Filtros no server**: título, ordenação, situação, formato, ano e gênero.
 - **Ficha da obra**: informações, relacionadas, links e "onde assistir/ler" (continuar na última página marcada, streaming oficial e busca nos sites).
 
