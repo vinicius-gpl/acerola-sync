@@ -84,6 +84,41 @@ describe('ActivityScreen', () => {
 		expect(api.saveSchedule).toHaveBeenCalledWith(true, ['12:00:00']);
 	});
 
+	it('horário escolhido sem apertar "+" entra junto ao salvar', async () => {
+		api.syncStatus.mockResolvedValue({
+			settings: { scheduleEnabled: true, scheduleTimes: [], fullSyncEveryHours: 24 },
+			runs: [],
+			running: false,
+			pendingEntries: 0
+		});
+		const user = userEvent.setup();
+		render(ActivityScreen);
+
+		await user.click(await screen.findByRole('button', { name: /New time|Novo horário/ }));
+		const [hours] = await screen.findAllByRole('listbox', { hidden: true });
+		await user.click(
+			[...hours.querySelectorAll('button')].find((b) => b.textContent?.trim() === '10')!
+		);
+		await user.click(screen.getByRole('button', { name: /^Save$|^Salvar$/ }));
+		// 10:00 em Brasília = 13:00 UTC.
+		expect(api.saveSchedule).toHaveBeenCalledWith(true, ['13:00:00']);
+	});
+
+	it('agenda ligada sem nenhum horário não é salva', async () => {
+		api.syncStatus.mockResolvedValue({
+			settings: { scheduleEnabled: true, scheduleTimes: [], fullSyncEveryHours: 24 },
+			runs: [],
+			running: false,
+			pendingEntries: 0
+		});
+		const user = userEvent.setup();
+		render(ActivityScreen);
+		await screen.findByRole('button', { name: /New time|Novo horário/ });
+
+		await user.click(screen.getByRole('button', { name: /^Save$|^Salvar$/ }));
+		expect(api.saveSchedule).not.toHaveBeenCalled();
+	});
+
 	it('lista inteira automática: mostra o intervalo salvo e troca na hora', async () => {
 		api.saveFullSyncInterval.mockResolvedValue({});
 		render(ActivityScreen);

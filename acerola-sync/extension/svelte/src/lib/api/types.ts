@@ -145,7 +145,7 @@ export type SyncSettings = {
 
 export type SyncRun = {
 	id: number;
-	trigger: 'MANUAL' | 'SCHEDULED' | 'LOGIN';
+	trigger: 'MANUAL' | 'SCHEDULED' | 'LOGIN' | 'AUTO';
 	status: 'RUNNING' | 'SUCCESS' | 'FAILED';
 	startedAt: string;
 	finishedAt: string | null;

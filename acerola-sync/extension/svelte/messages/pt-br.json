@@ -1080,13 +1080,14 @@
 			"source_manual": "Manual",
 			"source_custom": "Site personalizado",
 			"full_interval": "Lista inteira automática",
-			"full_interval_hint": "O sync normal só puxa o que mudou. A lista inteira é o que acha o que você apagou no AniList.",
+			"full_interval_hint": "O server puxa o que mudou de hora em hora e a lista inteira no intervalo escolhido. A lista inteira é o que acha o que você apagou no AniList. \"Só no botão\" desliga o automático.",
 			"full_manual": "Só no botão",
 			"full_6h": "A cada 6h",
 			"full_daily": "Diária",
 			"full_3d": "A cada 3 dias",
 			"full_weekly": "Semanal",
-			"full_saved": "Intervalo salvo."
+			"full_saved": "Intervalo salvo.",
+			"schedule_needs_time": "Escolha um horário e aperte + antes de salvar a agenda ligada."
 		},
 		"settings": {
 			"eyebrow": "Conta, sites e aparência",
@@ -1220,6 +1221,10 @@
 			"hour": "Hora",
 			"minute": "Minuto",
 			"done": "Pronto"
+		},
+		"airing": {
+			"episode": "Episódio {episode} saiu",
+			"badge": "Acerola Sync · {count} com episódio novo"
 		}
 	}
 }

@@ -155,6 +155,14 @@ export const app = {
 		else if (isTopRoute(lastPage)) route = { name: lastPage };
 
 		ready = true;
+		// O background confere episódio novo quando o popup fecha (o progresso pode ter mudado).
+		if (mode === 'popup') {
+			try {
+				browser.runtime.connect({ name: 'popup' });
+			} catch {
+				// Fora da extensão (testes, Storybook): sem background para avisar.
+			}
+		}
 		if (api) {
 			void refreshCustomSites(api);
 			if (mode === 'popup') void detectHere(api);
