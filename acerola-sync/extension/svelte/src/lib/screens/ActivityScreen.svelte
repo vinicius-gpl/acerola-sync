@@ -27,6 +27,8 @@
 	/** Horários em Brasília, como o usuário digita. O server recebe em UTC. */
 	let scheduleTimes = $state<string[]>([]);
 	let newTime = $state('09:00');
+	/** Escolheu um horário no seletor e ainda não apertou "+": o Salvar leva ele junto. */
+	let newTimeTouched = $state(false);
 	let fullEvery = $state(24);
 
 	const FULL_INTERVALS = [
@@ -95,10 +97,17 @@
 			return;
 		}
 		if (!scheduleTimes.includes(newTime)) scheduleTimes = [...scheduleTimes, newTime].sort();
+		newTimeTouched = false;
 	}
 
 	async function saveSchedule() {
 		if (!app.api) return;
+		if (newTimeTouched) addTime();
+		// Agenda ligada sem horário nunca roda: era assim que ela ficava "ligada" sem sync.
+		if (scheduleEnabled && scheduleTimes.length === 0) {
+			toast.error(m['sync.activity.schedule_needs_time']());
+			return;
+		}
 		try {
 			const utc = scheduleTimes.map((time) => saoPauloToUtc(time)).filter((t): t is string => !!t);
 			await app.api.saveSchedule(scheduleEnabled, utc);
@@ -272,7 +281,12 @@
 				<div class="flex items-center gap-2">
 					<AcerolaTimePicker
 						data={{ value: newTime, label: m['sync.activity.new_time']() }}
-						events={{ onChange: (value) => (newTime = value) }}
+						events={{
+							onChange: (value) => {
+								newTime = value;
+								newTimeTouched = true;
+							}
+						}}
 					/>
 					<button
 						type="button"

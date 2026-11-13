@@ -24,6 +24,18 @@ pub fn due_slot(
     }
 }
 
+/// De quanto em quanto tempo o server sincroniza sozinho quando o automático está ligado.
+pub const AUTO_SYNC_EVERY: Duration = Duration::hours(1);
+
+/// Sync automático: ligado quando o intervalo da lista inteira não é "só no botão" (`0`), e roda
+/// uma hora depois do último sync de qualquer tipo (manual, agenda ou automático). Contar a partir
+/// do início, mesmo de um que falhou, evita tentar de novo a cada 30 s.
+pub fn auto_due(
+    full_every_hours: i32, last_started: Option<DateTime<Utc>>, now: DateTime<Utc>,
+) -> bool {
+    full_every_hours > 0 && last_started.is_none_or(|started| now - started >= AUTO_SYNC_EVERY)
+}
+
 #[cfg(test)]
 mod tests {
     use chrono::TimeZone;
@@ -61,5 +73,18 @@ mod tests {
     #[test]
     fn test_due_slot_without_times_is_never_due() {
         assert_eq!(due_slot(&[], None, at(9, 0)), None);
+    }
+
+    #[test]
+    fn test_auto_due_hourly_when_interval_is_on() {
+        assert!(auto_due(24, None, at(9, 0)));
+        assert!(!auto_due(24, Some(at(9, 0)), at(9, 59)));
+        assert!(auto_due(24, Some(at(9, 0)), at(10, 0)));
+    }
+
+    #[test]
+    fn test_auto_due_off_when_button_only() {
+        assert!(!auto_due(0, None, at(9, 0)));
+        assert!(!auto_due(0, Some(at(1, 0)), at(9, 0)));
     }
 }

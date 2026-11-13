@@ -17,6 +17,8 @@ export const STORAGE_KEYS = {
 	pendingMedia: 'local:pendingMedia',
 	/** Rascunho do site personalizado levado do popup para o modo avançado na página cheia. */
 	pendingSiteDraft: 'local:pendingSiteDraft',
+	/** Último episódio já visto por anime (`{ [mediaId]: episódio }`), para avisar só do novo. */
+	airingSeen: 'local:airingSeen',
 	/** Onde o botão fixo fica em cada site (`{ [host]: FabPosition }`); igual nos dois PCs. */
 	fabPositions: 'sync:fabPositions'
 } as const;

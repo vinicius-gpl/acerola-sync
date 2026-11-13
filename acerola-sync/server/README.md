@@ -16,6 +16,7 @@ API do **Acerola Sync** em Rust. Espelha a lista do AniList num Postgres, serve 
 
 - **Incremental**: entradas da mais recente para a mais antiga, até a primeira que não mudou desde o último pull. Quase sempre 1 request.
 - **Lista inteira**: no primeiro sync, quando pedida, ou no intervalo escolhido na tela (só no botão, 6h, diária, 3 dias, semanal). É a que acha o que foi apagado no AniList.
+- **Automático**: com o intervalo diferente de "só no botão", o server sincroniza sozinho de hora em hora (a lista inteira quando passa do intervalo). Os horários da agenda continuam valendo por cima disso.
 - **Próximo episódio**: atualizado em lotes de 50 para o que está em lançamento.
 - Limite de 30 requests por minuto e logs de cada execução (`/sync/runs/{id}/logs`).
 
