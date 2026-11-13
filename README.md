@@ -36,6 +36,7 @@ Inspirado no MALSync, mas só com AniList e para uso pessoal: uma instância, um
 - **Rastreio nos sites**: marca o capítulo depois de alguns segundos na página e o episódio quando o vídeo passa de 85%. Botão fixo da acerola no canto da página e aviso com a obra.
 - **Sites personalizados**: qualquer site, por uma regex da URL, com busca e seletor de título. Quando o número do capítulo não está na URL, o modo avançado lê do título da página ou de um elemento (seletor CSS + regex) e testa numa aba aberta antes de salvar.
 - **Filtros no server**: título, ordenação, situação, formato, ano e gênero.
+- **Aviso de episódio novo**: notificação do sistema quando sai episódio de um anime que você está vendo (clicar abre a obra) e o número de obras com episódio novo no ícone da extensão.
 - **Ficha da obra**: informações, relacionadas, links e "onde assistir/ler" (continuar na última página marcada, streaming oficial e busca nos sites).
 
 ## Pastas

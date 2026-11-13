@@ -42,6 +42,9 @@ export default defineConfig({
 			'storage',
 			'identity',
 			'scripting',
+			// alarms + notifications: confere episódio novo e avisa pelo sistema.
+			'alarms',
+			'notifications',
 			...(browser === 'firefox' ? [] : ['favicon'])
 		],
 		// Sites embutidos (content scripts) e a API do MangaDex.

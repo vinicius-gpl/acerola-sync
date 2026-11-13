@@ -2,6 +2,8 @@ import { ApiError } from '$lib/api/client';
 import type { CustomSite } from '$lib/api/types';
 import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { onMessage, type ExtensionMessage, type LinkRequest } from '$lib/messaging';
+import { m } from '$lib/paraglide/messages';
+import { checkAiring } from '$lib/services/airing.service';
 import { getAuthedApi, saveSession } from '$lib/services/session.service';
 import { matchesPattern, originPattern } from '$lib/tracking/match-pattern';
 import { browser } from 'wxt/browser';
@@ -89,6 +91,52 @@ async function openPopup(): Promise<boolean> {
 	}
 }
 
+const AIRING_ALARM = 'airing-check';
+const AIRING_EVERY_MINUTES = 15;
+const NOTIFICATION_PREFIX = 'airing:';
+
+/** Selo no ícone: quantas obras têm episódio novo além do progresso. */
+async function setBadge(count: number) {
+	await browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
+	await browser.action.setBadgeBackgroundColor({ color: '#40a02b' }); // design-allow: cor do selo do ícone (API do navegador, sem CSS); verde do tema
+	await browser.action.setTitle({
+		title: count > 0 ? m['sync.airing.badge']({ count }) : 'Acerola Sync'
+	});
+}
+
+/**
+ * Confere o que saiu dos animes em andamento: atualiza o selo e avisa pelo sistema o episódio
+ * que saiu desde a última conferência. Clicar no aviso abre a obra (onde assistir).
+ */
+async function checkAiringNow() {
+	const api = await getAuthedApi();
+	if (!api) return setBadge(0);
+	try {
+		const lists = await Promise.all(
+			(['CURRENT', 'REPEATING'] as const).map((status) =>
+				api.entries({ mediaType: 'ANIME', status, limit: 200 })
+			)
+		);
+		const seen = (await storage.getItem<Record<string, number>>(STORAGE_KEYS.airingSeen)) ?? {};
+		const result = checkAiring(lists.flat(), seen, Date.now());
+		await storage.setItem(STORAGE_KEYS.airingSeen, result.seen);
+		await setBadge(result.behind);
+		for (const episode of result.fresh) {
+			await browser.notifications.create(
+				`${NOTIFICATION_PREFIX}${episode.mediaId}:${episode.episode}`,
+				{
+					type: 'basic',
+					iconUrl: browser.runtime.getURL('/icon/128.png'),
+					title: episode.title,
+					message: m['sync.airing.episode']({ episode: episode.episode })
+				}
+			);
+		}
+	} catch (error) {
+		console.warn('[Background] Airing check failed', error);
+	}
+}
+
 async function handle(message: ExtensionMessage) {
 	switch (message.type) {
 		case 'track:resolve': {
@@ -120,6 +168,7 @@ async function handle(message: ExtensionMessage) {
 					progress: message.page.progress,
 					url: message.page.url
 				});
+				void checkAiringNow();
 				return { status: 'tracked', result };
 			} catch (error) {
 				return handleApiError(error);
@@ -157,6 +206,22 @@ export default defineBackground(() => {
 
 	browser.runtime.onInstalled.addListener(() => void syncCustomScripts());
 	browser.runtime.onStartup.addListener(() => void syncCustomScripts());
+
+	// Episódio novo: confere ao subir, a cada 15 min e quando o popup fecha (pode ter mudado o
+	// progresso lá). O alarme sobrevive ao service worker dormir.
+	void browser.alarms.create(AIRING_ALARM, { periodInMinutes: AIRING_EVERY_MINUTES });
+	browser.alarms.onAlarm.addListener((alarm) => {
+		if (alarm.name === AIRING_ALARM) void checkAiringNow();
+	});
+	browser.runtime.onConnect.addListener((port) => {
+		if (port.name === 'popup') port.onDisconnect.addListener(() => void checkAiringNow());
+	});
+	browser.notifications.onClicked.addListener((id) => {
+		if (!id.startsWith(NOTIFICATION_PREFIX)) return;
+		void browser.notifications.clear(id);
+		void openMedia(Number(id.slice(NOTIFICATION_PREFIX.length).split(':')[0]));
+	});
+	void checkAiringNow();
 	browser.permissions.onAdded.addListener(() => void syncCustomScripts());
 	storage.watch(STORAGE_KEYS.customSites, () => void syncCustomScripts());
 });

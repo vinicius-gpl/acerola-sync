@@ -1080,13 +1080,14 @@
 			"source_manual": "Manual",
 			"source_custom": "Custom site",
 			"full_interval": "Automatic full list",
-			"full_interval_hint": "Regular sync only pulls what changed. The full list is what finds entries you deleted on AniList.",
+			"full_interval_hint": "The server pulls what changed every hour and the full list at the chosen interval. The full list is what finds entries you deleted on AniList. \"Button only\" turns automatic sync off.",
 			"full_manual": "Button only",
 			"full_6h": "Every 6h",
 			"full_daily": "Daily",
 			"full_3d": "Every 3 days",
 			"full_weekly": "Weekly",
-			"full_saved": "Interval saved."
+			"full_saved": "Interval saved.",
+			"schedule_needs_time": "Pick a time and press + before saving an enabled schedule."
 		},
 		"settings": {
 			"eyebrow": "Account, sites and appearance",
@@ -1220,6 +1221,10 @@
 			"hour": "Hour",
 			"minute": "Minute",
 			"done": "Done"
+		},
+		"airing": {
+			"episode": "Episode {episode} is out",
+			"badge": "Acerola Sync · {count} with a new episode"
 		}
 	}
 }
