@@ -6,22 +6,29 @@
 	import { m } from '$lib/paraglide/messages';
 	import { app, isTopRoute, type AppMode, type TopRoute } from '$lib/state/app.svelte';
 	import { prefersReducedMotion, revealIn } from '$lib/utils/motion.utils';
+	import { STORAGE_KEYS } from '$lib/constants/storage-keys';
+	import type { NotificationItem } from '$lib/services/airing.service';
 	import ActivityIcon from '@lucide/svelte/icons/activity';
+	import BellIcon from '@lucide/svelte/icons/bell';
 	import ExpandIcon from '@lucide/svelte/icons/expand';
 	import LibraryIcon from '@lucide/svelte/icons/library';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import SettingsIcon from '@lucide/svelte/icons/settings-2';
 	import gsap from 'gsap';
 	import { onMount } from 'svelte';
+	import { storage } from 'wxt/utils/storage';
 	import ActivityScreen from './ActivityScreen.svelte';
 	import HomeScreen from './HomeScreen.svelte';
 	import LinkScreen from './LinkScreen.svelte';
 	import LoginScreen from './LoginScreen.svelte';
 	import MediaScreen from './MediaScreen.svelte';
+	import NotificationsScreen from './NotificationsScreen.svelte';
 	import SearchScreen from './SearchScreen.svelte';
 	import SettingsScreen from './SettingsScreen.svelte';
 
 	let { mode }: { mode: AppMode } = $props();
+
+	type Screen = TopRoute | 'media' | 'link' | 'notifications';
 
 	let scroller = $state<HTMLElement>();
 	// Cada tela nova abre do topo. Sem isso, abrir uma obra com a lista rolada deixava a
@@ -31,9 +38,19 @@
 		if (scroller) scroller.scrollTop = 0;
 	});
 
+	/** Avisos ainda não vistos na tela de notificações (o ponto no sino). */
+	let unread = $state(0);
+	const countUnread = (items: NotificationItem[] | null) =>
+		(unread = (items ?? []).filter((item) => !item.read).length);
+
 	onMount(() => {
 		void initTheme();
 		void app.init(mode);
+		void storage
+			.getItem<NotificationItem[]>(STORAGE_KEYS.notifications)
+			.then(countUnread)
+			.catch(() => {});
+		return storage.watch<NotificationItem[]>(STORAGE_KEYS.notifications, countUnread);
 	});
 
 	const navItems = $derived([
@@ -46,8 +63,8 @@
 	const page = $derived(mode === 'page');
 	const loggedIn = $derived(!!app.session && !!app.api);
 	// No modo página a obra abre num painel por cima da aba atual; no popup ela vira a tela.
-	const screen = $derived<TopRoute | 'media' | 'link'>(
-		page && app.route.name === 'media' ? app.topRoute : app.route.name
+	const screen = $derived<Screen>(
+		page && app.route.name === 'media' ? app.underRoute : app.route.name
 	);
 	const panelMediaId = $derived(page && app.route.name === 'media' ? app.route.mediaId : null);
 	const activeNav = $derived(isTopRoute(screen) ? screen : null);
@@ -67,7 +84,26 @@
 	}
 </script>
 
-{#snippet content(name: TopRoute | 'media' | 'link')}
+{#snippet bell()}
+	<button
+		type="button"
+		class="relative flex cursor-pointer items-center justify-center rounded-full bg-surface text-muted-foreground transition-colors hover:text-foreground {page
+			? 'size-10'
+			: 'size-8'}"
+		onclick={() => app.route.name !== 'notifications' && app.push({ name: 'notifications' })}
+		aria-label={m['sync.notifications.open']()}
+		title={m['sync.notifications.open']()}
+		data-notifications-bell
+	>
+		<BellIcon size={page ? 16 : 14} />
+		{#if unread > 0}
+			<span class="absolute top-0.5 right-0.5 size-2.5 rounded-full bg-success" data-unread-dot
+			></span>
+		{/if}
+	</button>
+{/snippet}
+
+{#snippet content(name: Screen)}
 	{#if name === 'list'}
 		<HomeScreen />
 	{:else if name === 'search'}
@@ -82,6 +118,8 @@
 		{/key}
 	{:else if name === 'link' && app.route.name === 'link'}
 		<LinkScreen request={app.route.request} />
+	{:else if name === 'notifications'}
+		<NotificationsScreen />
 	{/if}
 {/snippet}
 
@@ -99,15 +137,18 @@
 					data={{ items: navItems, active: activeNav }}
 					events={{ onSelect: select }}
 				/>
-				{#if app.session?.user.avatarUrl}
-					<img
-						src={app.session.user.avatarUrl}
-						alt={app.session.user.name}
-						class="size-10 rounded-full object-cover"
-					/>
-				{:else}
-					<span class="size-10"></span>
-				{/if}
+				<div class="flex items-center gap-2">
+					{@render bell()}
+					{#if app.session?.user.avatarUrl}
+						<img
+							src={app.session.user.avatarUrl}
+							alt={app.session.user.name}
+							class="size-10 rounded-full object-cover"
+						/>
+					{:else}
+						<span class="size-10"></span>
+					{/if}
+				</div>
 			{/if}
 		</header>
 
@@ -145,15 +186,18 @@
 		{#if loggedIn}
 			<div class="flex flex-none items-center justify-between px-4 pt-3 pb-1">
 				<AcerolaLogo class="size-7" />
-				<button
-					type="button"
-					class="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-surface px-3 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground"
-					onclick={() => app.openFullPage()}
-					title={m['sync.nav.open_page']()}
-				>
-					<ExpandIcon size={13} />
-					{m['sync.nav.open_page']()}
-				</button>
+				<div class="flex items-center gap-2">
+					{@render bell()}
+					<button
+						type="button"
+						class="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-surface px-3 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground"
+						onclick={() => app.openFullPage()}
+						title={m['sync.nav.open_page']()}
+					>
+						<ExpandIcon size={13} />
+						{m['sync.nav.open_page']()}
+					</button>
+				</div>
 			</div>
 		{/if}
 

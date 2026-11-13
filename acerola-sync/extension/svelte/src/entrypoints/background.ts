@@ -3,7 +3,12 @@ import type { CustomSite } from '$lib/api/types';
 import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { onMessage, type ExtensionMessage, type LinkRequest } from '$lib/messaging';
 import { m } from '$lib/paraglide/messages';
-import { checkAiring } from '$lib/services/airing.service';
+import {
+	addNotifications,
+	checkAiring,
+	notificationId,
+	type NotificationItem
+} from '$lib/services/airing.service';
 import { getAuthedApi, saveSession } from '$lib/services/session.service';
 import { matchesPattern, originPattern } from '$lib/tracking/match-pattern';
 import { browser } from 'wxt/browser';
@@ -121,16 +126,20 @@ async function checkAiringNow() {
 		const result = checkAiring(lists.flat(), seen, Date.now());
 		await storage.setItem(STORAGE_KEYS.airingSeen, result.seen);
 		await setBadge(result.behind);
-		for (const episode of result.fresh) {
-			await browser.notifications.create(
-				`${NOTIFICATION_PREFIX}${episode.mediaId}:${episode.episode}`,
-				{
-					type: 'basic',
-					iconUrl: browser.runtime.getURL('/icon/128.png'),
-					title: episode.title,
-					message: m['sync.airing.episode']({ episode: episode.episode })
-				}
+		if (result.fresh.length) {
+			const saved = (await storage.getItem<NotificationItem[]>(STORAGE_KEYS.notifications)) ?? [];
+			await storage.setItem(
+				STORAGE_KEYS.notifications,
+				addNotifications(saved, result.fresh, Date.now())
 			);
+		}
+		for (const episode of result.fresh) {
+			await browser.notifications.create(notificationId(episode), {
+				type: 'basic',
+				iconUrl: browser.runtime.getURL('/icon/128.png'),
+				title: episode.title,
+				message: m['sync.airing.episode']({ episode: episode.episode })
+			});
 		}
 	} catch (error) {
 		console.warn('[Background] Airing check failed', error);

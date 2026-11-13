@@ -58,3 +58,36 @@ export function checkAiring(
 	}
 	return { behind, fresh, seen: next };
 }
+
+/** Aviso que já saiu pelo sistema, guardado para a tela de notificações. */
+export type NotificationItem = NewEpisode & {
+	/** Mesmo id da notificação do sistema (`airing:{mediaId}:{episódio}`). */
+	id: string;
+	/** Quando avisou, em ISO (UTC). */
+	at: string;
+	read: boolean;
+};
+
+/** Quantos avisos a tela guarda; os mais velhos saem. */
+export const NOTIFICATIONS_KEPT = 50;
+
+export function notificationId(episode: Pick<NewEpisode, 'mediaId' | 'episode'>) {
+	return `airing:${episode.mediaId}:${episode.episode}`;
+}
+
+/** Põe os avisos novos no topo, sem repetir o mesmo episódio, e corta nos últimos 50. */
+export function addNotifications(
+	list: NotificationItem[],
+	fresh: NewEpisode[],
+	now: number
+): NotificationItem[] {
+	const at = new Date(now).toISOString();
+	const added = fresh.map((episode) => ({
+		...episode,
+		id: notificationId(episode),
+		at,
+		read: false
+	}));
+	const ids = new Set(added.map((item) => item.id));
+	return [...added, ...list.filter((item) => !ids.has(item.id))].slice(0, NOTIFICATIONS_KEPT);
+}

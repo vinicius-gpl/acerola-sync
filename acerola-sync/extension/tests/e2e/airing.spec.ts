@@ -72,4 +72,11 @@ test('número no ícone e aviso só do episódio que saiu depois da primeira olh
 		chrome.notifications.getAll().then((all) => Object.keys(all))
 	);
 	expect(after).toEqual(['airing:1:8']);
+
+	// O aviso também fica na tela de notificações: o sino ganha o ponto e a tela lista o episódio.
+	await page.goto(`chrome-extension://${extensionId}/popup.html`);
+	await expect(page.locator('[data-unread-dot]')).toBeVisible();
+	await page.locator('[data-notifications-bell]').click();
+	await expect(page.locator('[data-notification="airing:1:8"]')).toContainText('Anime 1');
+	await expect(page.locator('[data-unread-dot]')).toHaveCount(0);
 });
