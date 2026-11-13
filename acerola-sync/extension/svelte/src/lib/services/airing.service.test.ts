@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EntryWithMedia } from '$lib/api/types';
-import { checkAiring, latestAired } from './airing.service';
+import { addNotifications, checkAiring, latestAired, NOTIFICATIONS_KEPT } from './airing.service';
 
 const NOW = Date.parse('2026-11-13T12:00:00Z');
 const HOUR = 3_600_000;
@@ -65,5 +65,35 @@ describe('checkAiring', () => {
 			NOW
 		);
 		expect(result).toEqual({ behind: 0, fresh: [], seen: {} });
+	});
+});
+
+describe('addNotifications', () => {
+	const episode = (mediaId: number, ep: number) => ({
+		mediaId,
+		title: `Obra ${mediaId}`,
+		episode: ep,
+		cover: null
+	});
+
+	it('põe o novo no topo, sem ler, com o id da notificação do sistema', () => {
+		const first = addNotifications([], [episode(1, 4)], NOW);
+		const next = addNotifications(first, [episode(2, 7)], NOW + HOUR);
+		expect(next.map((item) => item.id)).toEqual(['airing:2:7', 'airing:1:4']);
+		expect(next[0]).toMatchObject({ read: false, at: new Date(NOW + HOUR).toISOString() });
+	});
+
+	it('não repete o mesmo episódio e guarda só os últimos', () => {
+		const again = addNotifications(
+			addNotifications([], [episode(1, 4)], NOW),
+			[episode(1, 4)],
+			NOW
+		);
+		expect(again).toHaveLength(1);
+
+		const many = Array.from({ length: NOTIFICATIONS_KEPT + 5 }, (_, i) => episode(i + 1, 1));
+		const kept = addNotifications([], many, NOW);
+		expect(kept).toHaveLength(NOTIFICATIONS_KEPT);
+		expect(kept[0].mediaId).toBe(1);
 	});
 });
