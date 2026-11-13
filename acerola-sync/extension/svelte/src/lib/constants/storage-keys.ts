@@ -19,6 +19,8 @@ export const STORAGE_KEYS = {
 	pendingSiteDraft: 'local:pendingSiteDraft',
 	/** Último episódio já visto por anime (`{ [mediaId]: episódio }`), para avisar só do novo. */
 	airingSeen: 'local:airingSeen',
+	/** Últimos avisos de episódio novo (`NotificationItem[]`), para a tela de notificações. */
+	notifications: 'local:notifications',
 	/** Onde o botão fixo fica em cada site (`{ [host]: FabPosition }`); igual nos dois PCs. */
 	fabPositions: 'sync:fabPositions'
 } as const;

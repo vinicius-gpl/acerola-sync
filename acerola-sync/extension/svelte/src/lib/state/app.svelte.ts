@@ -17,7 +17,10 @@ import { storage } from 'wxt/utils/storage';
 export type TopRoute = 'list' | 'search' | 'activity' | 'settings';
 
 export type Route =
-	{ name: TopRoute } | { name: 'media'; mediaId: number } | { name: 'link'; request: LinkRequest };
+	| { name: TopRoute }
+	| { name: 'media'; mediaId: number }
+	| { name: 'link'; request: LinkRequest }
+	| { name: 'notifications' };
 
 /** `popup`: janelinha do ícone. `page`: a mesma interface numa aba inteira (`app.html`). */
 export type AppMode = 'popup' | 'page';
@@ -115,6 +118,14 @@ export const app = {
 			if (isTopRoute(name)) return name;
 		}
 		return isTopRoute(route.name) ? route.name : 'list';
+	},
+	/** Tela por baixo da obra no modo página: a última que não é obra (aba do menu ou avisos). */
+	get underRoute(): TopRoute | 'notifications' {
+		for (let index = stack.length - 1; index >= 0; index--) {
+			const name = stack[index].name;
+			if (isTopRoute(name) || name === 'notifications') return name;
+		}
+		return this.topRoute;
 	},
 	get serverUrl() {
 		return serverUrl;

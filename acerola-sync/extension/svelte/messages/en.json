@@ -1225,6 +1225,16 @@
 		"airing": {
 			"episode": "Episode {episode} is out",
 			"badge": "Acerola Sync · {count} with a new episode"
+		},
+		"notifications": {
+			"eyebrow": "Episode alerts",
+			"title": "Notifications",
+			"open": "Notifications",
+			"empty": "No alerts yet",
+			"empty_hint": "When a new episode of an anime you're watching comes out, the alert shows up here.",
+			"new": "New",
+			"clear": "Clear",
+			"cleared": "Notifications cleared"
 		}
 	}
 }
