@@ -200,6 +200,30 @@ pub async fn find_run(
     .await?)
 }
 
+/// Usuários com o sync automático ligado (intervalo da lista inteira diferente de "só no botão").
+pub async fn all_auto(pool: &PgPool) -> Result<Vec<SyncSettings>, DbError> {
+    Ok(sqlx::query_as(concat!(
+        "SELECT ",
+        sync_settings_columns!(""),
+        " FROM sync_settings WHERE full_sync_every_hours > 0"
+    ))
+    .fetch_all(pool)
+    .await?)
+}
+
+/// Quando começou o último sync do usuário, de qualquer tipo e com qualquer resultado.
+pub async fn last_run_started_at(
+    pool: &PgPool, user_id: i64,
+) -> Result<Option<DateTime<Utc>>, DbError> {
+    let row: Option<(DateTime<Utc>,)> = sqlx::query_as(
+        "SELECT max(started_at) FROM sync_runs WHERE user_id = $1 HAVING count(*) > 0",
+    )
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(row.map(|(at,)| at))
+}
+
 pub async fn recent_runs(pool: &PgPool, user_id: i64, limit: i64) -> Result<Vec<SyncRun>, DbError> {
     Ok(sqlx::query_as(concat!(
         "SELECT ",
@@ -219,6 +243,23 @@ mod tests {
         data::repositories::users as user_repository,
         infra::db::test_support::{user, TestDatabase},
     };
+
+    #[tokio::test]
+    async fn teste_automatico_so_com_intervalo_e_conta_do_ultimo_sync() {
+        let Some(db) = TestDatabase::create().await else { return };
+        user_repository::upsert(&db.pool, &user(1)).await.unwrap();
+        settings(&db.pool, 1).await.unwrap();
+        assert_eq!(last_run_started_at(&db.pool, 1).await.unwrap(), None);
+        // Padrão: lista inteira a cada 24h, então o automático vale.
+        assert_eq!(all_auto(&db.pool).await.unwrap().len(), 1);
+
+        let run = start_run(&db.pool, 1, "AUTO", "INCREMENTAL").await.unwrap();
+        assert_eq!(last_run_started_at(&db.pool, 1).await.unwrap(), Some(run.started_at));
+
+        save_full_sync_interval(&db.pool, 1, 0).await.unwrap();
+        assert!(all_auto(&db.pool).await.unwrap().is_empty());
+        db.drop().await;
+    }
 
     #[tokio::test]
     async fn teste_registra_run_e_logs_em_ordem() {

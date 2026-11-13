@@ -72,6 +72,11 @@ fn sync_migrations() -> Vec<Migration> {
             "full_sync_interval",
             include_str!("./migrations/sync/011_full_sync_interval.sql"),
         ),
+        migration(
+            13,
+            "sync_trigger_auto",
+            include_str!("./migrations/sync/013_sync_trigger_auto.sql"),
+        ),
     ]
 }
 
