@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { parseProgress } from '../types';
 import { createCustomAdapter } from './custom';
-import { crunchyroll, parseCrunchyrollPage } from './crunchyroll';
+import { crunchyroll, parseCrunchyrollPage, selectedSeason } from './crunchyroll';
 import { createMangadex, parseMangadexChapter } from './mangadex';
 import { netflix, parseNetflixPlayer } from './netflix';
 import { sakuraMangas } from './sakuramangas';
@@ -135,6 +135,21 @@ describe('crunchyroll', () => {
 
 	it('espera a página carregar', () => {
 		expect(parseCrunchyrollPage(page(''), url)).toBeNull();
+	});
+
+	it('página da série usa a temporada do seletor', async () => {
+		const series = new URL(
+			'https://www.crunchyroll.com/pt-br/series/G3KHEVDJ7/the-apothecary-diaries'
+		);
+		const doc = page(
+			'<h1>The Apothecary Diaries</h1><div class="seasons-select"><div role="button"><h4>Season 3</h4></div></div>'
+		);
+		expect(await crunchyroll.overview!(series, doc)).toMatchObject({
+			identifier: 'G3KHEVDJ7:3',
+			title: 'The Apothecary Diaries Season 3'
+		});
+		expect(selectedSeason(page('<div class="season-picker"><h4>S2: Frieren</h4></div>'))).toBe(2);
+		expect(selectedSeason(page('<h1>Série de uma temporada</h1>'))).toBe(1);
 	});
 });
 

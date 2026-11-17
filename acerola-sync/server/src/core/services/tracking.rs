@@ -17,6 +17,10 @@ use crate::{
 
 /// Nota mínima do pg_trgm para aceitar um título do espelho sem perguntar ao AniList.
 const LOCAL_MATCH_THRESHOLD: f32 = 0.75;
+/// O que conta como temporada na numeração corrida (filme, especial e OVA ficam de fora).
+const SEASON_FORMATS: [&str; 3] = ["TV", "TV_SHORT", "ONA"];
+/// Quantas temporadas para trás procurar o começo da numeração.
+const MAX_PREQUELS: usize = 10;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -175,14 +179,86 @@ pub struct TrackResult {
     pub saved: Option<SavedEntry>,
 }
 
+/// Episódio dentro da temporada quando o site numera corrido (a Crunchyroll chama o 6º da 3ª
+/// temporada de "E54"). `prequel_totals` vai da temporada anterior para trás.
+pub fn season_progress(progress: i32, total: i32, prequel_totals: &[i32]) -> Option<i32> {
+    let mut offset = 0;
+    for episodes in prequel_totals {
+        offset += episodes;
+        let inside = progress - offset;
+        if (1..=total).contains(&inside) {
+            return Some(inside);
+        }
+        if inside < 1 {
+            return None;
+        }
+    }
+    None
+}
+
+fn season_prequel(media: &Media) -> Option<i64> {
+    media
+        .relations
+        .iter()
+        .find(|relation| {
+            relation.relation_type == "PREQUEL"
+                && relation.media_type == "ANIME"
+                && relation.format.as_deref().is_some_and(|format| SEASON_FORMATS.contains(&format))
+        })
+        .map(|relation| relation.id)
+}
+
+/// Converte o número corrido do site para o da temporada, somando os episódios das temporadas
+/// anteriores (o detalhe de cada uma vem do AniList uma vez só). Só roda quando o número passa
+/// do total; sem como converter, devolve o número como veio.
+async fn progress_in_season(state: &AppState, user: &User, media: &Media, progress: i32) -> i32 {
+    let Some(total) = media.episodes.filter(|total| *total > 0) else {
+        return progress;
+    };
+    if media.media_type != "ANIME" || progress <= total {
+        return progress;
+    }
+
+    let mut current = media.clone();
+    if current.details_synced_at.is_none() {
+        match entry_service::ensure_details(state, user, media.id).await {
+            Ok(detailed) => current = detailed,
+            Err(error) => {
+                tracing::warn!("[Tracking] No relations for {}: {}", media.id, error);
+                return progress;
+            },
+        }
+    }
+
+    let mut totals = Vec::new();
+    for _ in 0..MAX_PREQUELS {
+        let Some(prequel_id) = season_prequel(&current) else { break };
+        let prequel = match entry_service::ensure_details(state, user, prequel_id).await {
+            Ok(prequel) => prequel,
+            Err(error) => {
+                tracing::warn!("[Tracking] Prequel {} unavailable: {}", prequel_id, error);
+                break;
+            },
+        };
+        let Some(episodes) = prequel.episodes.filter(|episodes| *episodes > 0) else { break };
+        totals.push(episodes);
+        if let Some(inside) = season_progress(progress, total, &totals) {
+            return inside;
+        }
+        current = prequel;
+    }
+    progress
+}
+
 pub async fn track(
     state: &AppState, user: &User, input: &TrackInput,
 ) -> Result<TrackResult, AppError> {
     let media = entry_service::ensure_media(state, user, input.media_id).await?;
     let current = entry_repository::find(&state.database_pool, user.id, media.id).await?;
     let base = current.clone().unwrap_or_else(|| Entry::blank(user.id, media.id));
+    let progress = progress_in_season(state, user, &media, input.progress).await;
 
-    match plan_tracked_progress(&base, media.total_units(), input.progress, today_in_brasilia()) {
+    match plan_tracked_progress(&base, media.total_units(), progress, today_in_brasilia()) {
         Ok(next) => {
             let saved = entry_service::save(
                 state,
@@ -274,5 +350,17 @@ mod tests {
             plan_tracked_progress(&listed("CURRENT", 0), Some(12), 13, day()).err(),
             Some(SkipReason::InvalidProgress)
         );
+    }
+
+    #[test]
+    fn test_numeracao_corrida_vira_episodio_da_temporada() {
+        // Kusuriya: 24 + 24 episódios antes da 3ª temporada; "E54" é o 6º dela.
+        assert_eq!(season_progress(54, 12, &[24, 24]), Some(6));
+        assert_eq!(season_progress(30, 24, &[24]), Some(6));
+        // Ainda não somou temporadas suficientes, ou passou de todas.
+        assert_eq!(season_progress(54, 12, &[24]), None);
+        assert_eq!(season_progress(90, 12, &[24, 24]), None);
+        // Número que cai antes da temporada não é dela.
+        assert_eq!(season_progress(20, 12, &[24, 24]), None);
     }
 }

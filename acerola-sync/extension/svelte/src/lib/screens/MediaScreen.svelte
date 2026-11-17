@@ -25,7 +25,7 @@
 		seasonLabel,
 		statusLabel
 	} from '$lib/utils/labels.utils';
-	import { totalUnits } from '$lib/utils/media.utils';
+	import { airedCount, totalUnits } from '$lib/utils/media.utils';
 	import { revealIn, spinWhile, staggerIn } from '$lib/utils/motion.utils';
 	import { countdown } from '$lib/utils/time.utils';
 	import { watchLinks } from '$lib/utils/watch-links.utils';
@@ -56,6 +56,7 @@
 	let titleOpen = $state(false);
 
 	const total = $derived(media ? totalUnits(media) : null);
+	const aired = $derived(media ? airedCount(media) : null);
 	const changed = $derived(
 		!entry || entry.status !== status || entry.progress !== progress || entry.score !== score
 	);
@@ -363,7 +364,9 @@
 					value: progress,
 					max: total,
 					caption: total
-						? m['sync.media.of_total']({ total })
+						? aired
+							? m['sync.media.of_total_aired']({ total, aired })
+							: m['sync.media.of_total']({ total })
 						: media.mediaType === 'ANIME'
 							? m['sync.media.episodes_label']()
 							: m['sync.media.chapters_label']()

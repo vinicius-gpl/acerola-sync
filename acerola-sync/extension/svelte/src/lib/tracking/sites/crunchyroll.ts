@@ -83,6 +83,22 @@ function seriesPageId(url: URL): string | null {
 	return index >= 0 && parts[index + 1] ? parts[index + 1] : null;
 }
 
+/**
+ * Temporada escolhida no seletor da página da série ("Season 3", "S3: …", "Temporada 3").
+ * Sem seletor (série de uma temporada só), é a primeira.
+ */
+export function selectedSeason(doc: Document): number {
+	const candidates = doc.querySelectorAll(
+		'[class*="seasons-select" i] h4, [class*="season" i] [role="button"], [class*="season" i] h4'
+	);
+	for (const element of candidates) {
+		const match = /(?:^|\s)(?:S|Season|Temporada)\s*(\d+)/i.exec(element.textContent ?? '');
+		const season = parseProgress(match?.[1]);
+		if (season) return season;
+	}
+	return 1;
+}
+
 export const crunchyroll: SiteAdapter = {
 	id: 'crunchyroll',
 	name: 'Crunchyroll',
@@ -98,11 +114,12 @@ export const crunchyroll: SiteAdapter = {
 		const id = seriesPageId(url);
 		const title = doc.querySelector('h1')?.textContent?.trim();
 		if (!id || !title) return null;
-		// A página da série abre na primeira temporada.
+		// A temporada é a do seletor (a página abre na última que você viu, não na primeira).
+		const season = selectedSeason(doc);
 		return {
 			site: this.id,
-			identifier: `${id}:1`,
-			title,
+			identifier: `${id}:${season}`,
+			title: titleWithSeason(title, season),
 			progress: null,
 			mediaType: this.mediaType,
 			url: url.href

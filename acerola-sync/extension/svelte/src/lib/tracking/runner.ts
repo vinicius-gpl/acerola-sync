@@ -83,11 +83,13 @@ async function track(page: DetectedPage, resolved: Resolved) {
 
 	const { result } = response;
 	if (!result.applied) return;
+	// O server pode converter a numeração corrida do site (E54) no episódio da temporada (6).
+	const saved = { ...page, progress: result.saved?.progress ?? page.progress };
 	showToast({
 		title: resolved.media.titleUserPreferred,
 		message: result.saved?.pending
-			? m['sync.tracking.saved_pending']({ unit: unitLabel(page) })
-			: m['sync.tracking.saved']({ unit: unitLabel(page) }),
+			? m['sync.tracking.saved_pending']({ unit: unitLabel(saved) })
+			: m['sync.tracking.saved']({ unit: unitLabel(saved) }),
 		tone: result.saved?.pending ? 'warning' : 'success',
 		cover: resolved.media.coverUrl
 	});

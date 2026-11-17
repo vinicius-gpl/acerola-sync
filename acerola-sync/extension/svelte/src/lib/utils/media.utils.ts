@@ -1,4 +1,5 @@
 import type { Entry, EntryWithMedia, Media } from '$lib/api/types';
+import { latestAired } from '$lib/services/airing.service';
 
 /** Total de episódios (anime) ou capítulos (mangá), quando o AniList sabe. */
 export function totalUnits(media: Media): number | null {
@@ -11,17 +12,33 @@ export function progressLabel(entry: Pick<Entry, 'progress'>, media: Media): str
 	return total ? `${entry.progress}/${total}` : String(entry.progress);
 }
 
+/**
+ * Episódios já lançados de um anime em lançamento (`null` fora disso). Conta o próximo como
+ * lançado quando a hora dele já passou e o espelho ainda não atualizou.
+ */
+export function airedCount(media: Media, now = Date.now()): number | null {
+	return latestAired(media, now);
+}
+
 /** Episódios já lançados e ainda não vistos (só faz sentido para anime em lançamento). */
-export function behindCount(entry: Pick<Entry, 'progress'>, media: Media): number {
-	if (!media.nextAiringEpisode) return 0;
-	return Math.max(0, media.nextAiringEpisode - 1 - entry.progress);
+export function behindCount(
+	entry: Pick<Entry, 'progress'>,
+	media: Media,
+	now = Date.now()
+): number {
+	const aired = airedCount(media, now);
+	return aired ? Math.max(0, aired - entry.progress) : 0;
 }
 
 /** Não deixa passar do último episódio lançado nem do total, como o AniMouto. */
-export function canIncrement(entry: Pick<Entry, 'progress'>, media: Media): boolean {
+export function canIncrement(
+	entry: Pick<Entry, 'progress'>,
+	media: Media,
+	now = Date.now()
+): boolean {
 	const total = totalUnits(media);
 	if (total && entry.progress >= total) return false;
-	if (media.nextAiringEpisode && entry.progress + 1 > media.nextAiringEpisode - 1) return false;
+	if (media.nextAiringEpisode && entry.progress + 1 > (airedCount(media, now) ?? 0)) return false;
 	return true;
 }
 

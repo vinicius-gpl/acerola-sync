@@ -1,6 +1,6 @@
 import type { EntryWithMedia, Media } from '$lib/api/types';
 import { describe, expect, it } from 'vitest';
-import { behindCount, canIncrement, progressLabel, splitList } from './media.utils';
+import { airedCount, behindCount, canIncrement, progressLabel, splitList } from './media.utils';
 
 function media(overrides: Partial<Media> = {}): Media {
 	return {
@@ -40,6 +40,17 @@ describe('media.utils', () => {
 		expect(canIncrement({ progress: 4 }, media({ nextAiringEpisode: 6 }))).toBe(true);
 		expect(canIncrement({ progress: 12 }, media())).toBe(false);
 		expect(canIncrement({ progress: 99 }, media({ episodes: null }))).toBe(true);
+	});
+
+	it('conta como lançado o próximo episódio cuja hora já passou', () => {
+		const now = Date.parse('2026-11-17T12:00:00Z');
+		const past = media({ nextAiringEpisode: 8, nextAiringAt: '2026-11-17T11:00:00Z' });
+		const future = media({ nextAiringEpisode: 8, nextAiringAt: '2026-11-20T14:00:00Z' });
+		expect(airedCount(future, now)).toBe(7);
+		expect(airedCount(past, now)).toBe(8);
+		expect(airedCount(media(), now)).toBeNull();
+		expect(behindCount({ progress: 5 }, past, now)).toBe(3);
+		expect(canIncrement({ progress: 7 }, past, now)).toBe(true);
 	});
 
 	it('separa lançando, anime e mangá', () => {

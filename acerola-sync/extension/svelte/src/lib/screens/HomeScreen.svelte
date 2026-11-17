@@ -20,7 +20,7 @@
 	import { app } from '$lib/state/app.svelte';
 	import { dayPeriod } from '$lib/utils/greeting.utils';
 	import { statusLabel } from '$lib/utils/labels.utils';
-	import { totalUnits } from '$lib/utils/media.utils';
+	import { airedCount, totalUnits } from '$lib/utils/media.utils';
 	import { revealIn, staggerIn } from '$lib/utils/motion.utils';
 	import { slidingIndicator } from '$lib/utils/sliding-indicator.utils';
 	import { BUILT_IN_SITES } from '$lib/tracking/registry';
@@ -222,9 +222,12 @@
 
 	function caption(entry: EntryWithMedia) {
 		const total = totalUnits(entry.media);
-		return entry.media.mediaType === 'ANIME'
-			? m['sync.home.caption_episode']({ progress: entry.progress, total: total ?? '?' })
-			: m['sync.home.caption_chapter']({ progress: entry.progress, total: total ?? '?' });
+		const base =
+			entry.media.mediaType === 'ANIME'
+				? m['sync.home.caption_episode']({ progress: entry.progress, total: total ?? '?' })
+				: m['sync.home.caption_chapter']({ progress: entry.progress, total: total ?? '?' });
+		const aired = airedCount(entry.media);
+		return aired ? m['sync.home.caption_aired']({ caption: base, aired }) : base;
 	}
 
 	function subtitle(entry: EntryWithMedia) {
