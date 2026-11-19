@@ -59,7 +59,10 @@ describe('testSiteOnTab', () => {
 		executeScript.mockResolvedValue([{ result: snapshot }]);
 		expect(await testSiteOnTab(kuro)).toMatchObject({ status: 'ok', progress: 30 });
 		expect(query).toHaveBeenCalledWith({ url: 'https://kuromangas.com/*' });
-		expect(executeScript.mock.calls[0][0]).toMatchObject({ target: { tabId: 2 }, args: [null] });
+		expect(executeScript.mock.calls[0][0]).toMatchObject({
+			target: { tabId: 2 },
+			args: [null]
+		});
 	});
 
 	it('sem aba do site aberta avisa', async () => {
@@ -69,6 +72,9 @@ describe('testSiteOnTab', () => {
 
 	it('erro do navegador vira mensagem', async () => {
 		query.mockRejectedValue(new Error('Invalid url pattern'));
-		expect(await testSiteOnTab(kuro)).toEqual({ status: 'error', message: 'Invalid url pattern' });
+		expect(await testSiteOnTab(kuro)).toEqual({
+			status: 'error',
+			message: 'Invalid url pattern'
+		});
 	});
 });

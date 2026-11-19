@@ -31,8 +31,8 @@ pub async fn run() {
 
     tracing::info!("[Bios] Listening on port {}", env.server_port);
 
-    // `with_graceful_shutdown` só pra fechar as conexões abertas antes do processo terminar —
-    // ver `bios::shutdown_signal`.
+    // `with_graceful_shutdown` only to close open connections before the process ends; see
+    // `bios::shutdown_signal`.
     axum::serve(listener, app)
         .with_graceful_shutdown(bios::shutdown_signal())
         .await

@@ -2,7 +2,7 @@ import { DISPLAY_TIME_ZONE } from './time.utils';
 
 export type DayPeriod = 'morning' | 'afternoon' | 'night';
 
-/** Período do dia no horário de Brasília, para a saudação do topo. */
+/** Time of day in Brasília time, for the greeting at the top. */
 export function dayPeriod(now = new Date()): DayPeriod {
 	const hour = Number(
 		new Intl.DateTimeFormat('en-US', {
@@ -16,7 +16,7 @@ export function dayPeriod(now = new Date()): DayPeriod {
 	return 'night';
 }
 
-/** `5 min`, `2 h`, `3 d`: curto e igual nos dois idiomas, para o último sync. */
+/** `5 min`, `2 h`, `3 d`: short and the same in both languages, for the last sync. */
 export function relativeAge(iso: string | null | undefined, now = Date.now()): string | null {
 	if (!iso) return null;
 	const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000));

@@ -15,11 +15,11 @@ use crate::{
     infra::error::AppError,
 };
 
-/// Nota mínima do pg_trgm para aceitar um título do espelho sem perguntar ao AniList.
+/// Minimum pg_trgm score to accept a mirror title without asking AniList.
 const LOCAL_MATCH_THRESHOLD: f32 = 0.75;
-/// O que conta como temporada na numeração corrida (filme, especial e OVA ficam de fora).
+/// What counts as a season in absolute numbering (movie, special and OVA are left out).
 const SEASON_FORMATS: [&str; 3] = ["TV", "TV_SHORT", "ONA"];
-/// Quantas temporadas para trás procurar o começo da numeração.
+/// How many seasons back to look for the start of the numbering.
 const MAX_PREQUELS: usize = 10;
 
 #[derive(Debug, Deserialize)]
@@ -29,7 +29,7 @@ pub struct ResolveInput {
     pub identifier: String,
     pub title: String,
     pub media_type: String,
-    /// ID do AniList quando o próprio site informa (o MangaDex informa).
+    /// AniList ID when the site itself gives it (MangaDex does).
     pub anilist_id: Option<i64>,
 }
 
@@ -41,8 +41,8 @@ pub struct Resolved {
     pub entry: Option<Entry>,
 }
 
-/// Descobre qual obra do AniList é a página do site: mapeamento salvo → ID informado pelo
-/// site → título no espelho → busca no AniList (1 request). O resultado fica salvo.
+/// Finds which AniList media the site page is: saved mapping → ID given by the site → title in
+/// the mirror → AniList search (1 request). The result is saved.
 pub async fn resolve(
     state: &AppState, user: &User, input: &ResolveInput,
 ) -> Result<Option<Resolved>, AppError> {
@@ -106,7 +106,7 @@ async fn find_media(
     Ok(Some(media))
 }
 
-/// Correção manual: "essa página é a obra X". Nunca é sobrescrita pela busca automática.
+/// Manual correction: "this page is media X". Never overwritten by the automatic search.
 pub async fn correct_mapping(
     state: &AppState, user: &User, site: &str, identifier: &str, media_id: i64, title: &str,
 ) -> Result<SiteMapping, AppError> {
@@ -131,11 +131,11 @@ pub enum SkipReason {
     AlreadyCompleted,
 }
 
-/// Regras do rastreio automático (as mesmas ideias do MALSync):
-/// - nunca diminui o progresso;
-/// - não mexe no que já está concluído (rever é coisa manual);
-/// - planejado, pausado ou largado vira "assistindo/lendo";
-/// - chegar no total conclui.
+/// Automatic tracking rules (the same ideas as MALSync):
+/// - never decreases the progress;
+/// - does not touch what is already completed (rewatching is manual);
+/// - planned, paused or dropped becomes "watching/reading";
+/// - reaching the total completes it.
 pub fn plan_tracked_progress(
     current: &Entry, total: Option<i32>, progress: i32, today: chrono::NaiveDate,
 ) -> Result<Entry, SkipReason> {
@@ -179,8 +179,8 @@ pub struct TrackResult {
     pub saved: Option<SavedEntry>,
 }
 
-/// Episódio dentro da temporada quando o site numera corrido (a Crunchyroll chama o 6º da 3ª
-/// temporada de "E54"). `prequel_totals` vai da temporada anterior para trás.
+/// Episode within the season when the site uses absolute numbering (Crunchyroll calls the 6th
+/// of the 3rd season "E54"). `prequel_totals` goes from the previous season backwards.
 pub fn season_progress(progress: i32, total: i32, prequel_totals: &[i32]) -> Option<i32> {
     let mut offset = 0;
     for episodes in prequel_totals {
@@ -208,9 +208,9 @@ fn season_prequel(media: &Media) -> Option<i64> {
         .map(|relation| relation.id)
 }
 
-/// Converte o número corrido do site para o da temporada, somando os episódios das temporadas
-/// anteriores (o detalhe de cada uma vem do AniList uma vez só). Só roda quando o número passa
-/// do total; sem como converter, devolve o número como veio.
+/// Converts the site's absolute number into the season's, adding the episodes of the previous
+/// seasons (each one's detail comes from AniList only once). Only runs when the number exceeds
+/// the total; with no way to convert, returns the number as it came.
 async fn progress_in_season(state: &AppState, user: &User, media: &Media, progress: i32) -> i32 {
     let Some(total) = media.episodes.filter(|total| *total > 0) else {
         return progress;
@@ -354,13 +354,13 @@ mod tests {
 
     #[test]
     fn test_numeracao_corrida_vira_episodio_da_temporada() {
-        // Kusuriya: 24 + 24 episódios antes da 3ª temporada; "E54" é o 6º dela.
+        // Kusuriya: 24 + 24 episodes before the 3rd season; "E54" is its 6th.
         assert_eq!(season_progress(54, 12, &[24, 24]), Some(6));
         assert_eq!(season_progress(30, 24, &[24]), Some(6));
-        // Ainda não somou temporadas suficientes, ou passou de todas.
+        // Has not added up enough seasons yet, or went past all of them.
         assert_eq!(season_progress(54, 12, &[24]), None);
         assert_eq!(season_progress(90, 12, &[24, 24]), None);
-        // Número que cai antes da temporada não é dela.
+        // A number that falls before the season does not belong to it.
         assert_eq!(season_progress(20, 12, &[24, 24]), None);
     }
 }

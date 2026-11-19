@@ -17,7 +17,7 @@ import { storage } from 'wxt/utils/storage';
 
 const CUSTOM_SCRIPT_PREFIX = 'acerola-custom-';
 
-/** Sessão revogada ou expirada: limpa para o popup voltar à tela de login. */
+/** Session revoked or expired: clear it so the popup goes back to the login screen. */
 async function handleApiError(error: unknown) {
 	if (error instanceof ApiError && error.isUnauthorized) {
 		await saveSession(null);
@@ -40,9 +40,9 @@ async function enabledCustomSites(): Promise<CustomSite[]> {
 }
 
 /**
- * Registra o content script genérico (`custom.content.ts`) nos sites personalizados que já
- * têm permissão. Sem permissão o Chrome recusa o registro, então esses ficam de fora até o
- * usuário conceder na tela de configurações.
+ * Registers the generic content script (`custom.content.ts`) on custom sites that already have
+ * permission. Without permission Chrome refuses the registration, so those stay out until the
+ * user grants it on the settings screen.
  */
 async function syncCustomScripts() {
 	if (!browser.scripting?.registerContentScripts) return;
@@ -74,9 +74,9 @@ function openLinkPage(request: LinkRequest) {
 }
 
 /**
- * "Abrir no Acerola" do aviso no site: abre a obra no popup da extensão. O popup lê a obra
- * pendente ao abrir. Se o navegador não deixar abrir o popup daqui (Firefox, Chrome antigo),
- * cai na página cheia.
+ * "Open in Acerola" from the on-site notice: opens the media in the extension popup. The popup
+ * reads the pending media when it opens. If the browser does not allow opening the popup from
+ * here (Firefox, older Chrome), it falls back to the full page.
  */
 async function openMedia(mediaId: number) {
 	await storage.setItem(STORAGE_KEYS.pendingMedia, { mediaId, at: Date.now() });
@@ -86,7 +86,7 @@ async function openMedia(mediaId: number) {
 	}
 }
 
-/** Abre o popup da extensão. `false` quando o navegador não deixa (Firefox, Chrome antigo). */
+/** Opens the extension popup. `false` when the browser does not allow it (Firefox, older Chrome). */
 async function openPopup(): Promise<boolean> {
 	try {
 		await (browser.action as { openPopup?: () => Promise<void> }).openPopup!();
@@ -100,18 +100,19 @@ const AIRING_ALARM = 'airing-check';
 const AIRING_EVERY_MINUTES = 15;
 const NOTIFICATION_PREFIX = 'airing:';
 
-/** Selo no ícone: quantas obras têm episódio novo além do progresso. */
+/** Icon badge: how many media have a new episode beyond the progress. */
 async function setBadge(count: number) {
 	await browser.action.setBadgeText({ text: count > 0 ? String(count) : '' });
-	await browser.action.setBadgeBackgroundColor({ color: '#40a02b' }); // design-allow: cor do selo do ícone (API do navegador, sem CSS); verde do tema
+	await browser.action.setBadgeBackgroundColor({ color: '#40a02b' }); // design-allow: icon badge color (browser API, no CSS); theme green
 	await browser.action.setTitle({
 		title: count > 0 ? m['sync.airing.badge']({ count }) : 'Acerola Sync'
 	});
 }
 
 /**
- * Confere o que saiu dos animes em andamento: atualiza o selo e avisa pelo sistema o episódio
- * que saiu desde a última conferência. Clicar no aviso abre a obra (onde assistir).
+ * Checks what aired for the anime in progress: updates the badge and sends a system
+ * notification for each episode aired since the last check. Clicking it opens the media
+ * (where to watch).
  */
 async function checkAiringNow() {
 	const api = await getAuthedApi();
@@ -127,7 +128,8 @@ async function checkAiringNow() {
 		await storage.setItem(STORAGE_KEYS.airingSeen, result.seen);
 		await setBadge(result.behind);
 		if (result.fresh.length) {
-			const saved = (await storage.getItem<NotificationItem[]>(STORAGE_KEYS.notifications)) ?? [];
+			const saved =
+				(await storage.getItem<NotificationItem[]>(STORAGE_KEYS.notifications)) ?? [];
 			await storage.setItem(
 				STORAGE_KEYS.notifications,
 				addNotifications(saved, result.fresh, Date.now())
@@ -216,8 +218,8 @@ export default defineBackground(() => {
 	browser.runtime.onInstalled.addListener(() => void syncCustomScripts());
 	browser.runtime.onStartup.addListener(() => void syncCustomScripts());
 
-	// Episódio novo: confere ao subir, a cada 15 min e quando o popup fecha (pode ter mudado o
-	// progresso lá). O alarme sobrevive ao service worker dormir.
+	// New episode: check on startup, every 15 min and when the popup closes (the progress may
+	// have changed there). The alarm survives the service worker going to sleep.
 	void browser.alarms.create(AIRING_ALARM, { periodInMinutes: AIRING_EVERY_MINUTES });
 	browser.alarms.onAlarm.addListener((alarm) => {
 		if (alarm.name === AIRING_ALARM) void checkAiringNow();

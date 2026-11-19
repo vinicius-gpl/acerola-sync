@@ -33,7 +33,7 @@ export default {
 		fileName: 'mutants.out/mutation-report.html'
 	},
 	thresholds: {
-		// Mesmos limites do acerola-reader.
+		// Same thresholds as acerola-reader.
 		high: 70,
 		low: 50,
 		break: 45

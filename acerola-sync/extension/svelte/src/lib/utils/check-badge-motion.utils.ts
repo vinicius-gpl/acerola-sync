@@ -1,10 +1,10 @@
 import gsap from 'gsap';
 import type { Action } from 'svelte/action';
 
-/// Anima a entrada do selo de check dos cards de relay (e qualquer outro "badge de ativo")
-/// sempre que ele monta — como fica dentro de um `{#if}`, cada vez que a fonte liga o nó é
-/// recriado do zero, então a animação toca de novo a cada toggle sem precisar de `{#key}`.
-/// Mesmo padrão de ação gsap pontual (sem `destroy`) de `toastIconEnter`.
+/// Animates the entrance of the relay cards' check badge (and any other "active badge")
+/// whenever it mounts: since it lives inside an `{#if}`, each time the source turns on the node
+/// is recreated from scratch, so the animation plays again on every toggle without `{#key}`.
+/// Same one-shot gsap action pattern (no `destroy`) as `toastIconEnter`.
 export const checkBadgePop: Action<HTMLElement> = (node) => {
 	gsap.fromTo(
 		node,

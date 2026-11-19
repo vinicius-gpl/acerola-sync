@@ -28,17 +28,17 @@ pub struct HistoryQuery {
 pub struct CustomSiteRequest {
     pub name: String,
     pub media_type: String,
-    /// Match pattern da extensão (`https://site.com/*`).
+    /// Extension match pattern (`https://site.com/*`).
     pub match_pattern: String,
-    /// Regex com os grupos `id` e `progress` (e `title`, opcional).
+    /// Regex with the `id` and `progress` groups (and an optional `title`).
     pub url_pattern: String,
     pub title_selector: Option<String>,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
-    /// Busca do site, com `{title}` no lugar do título.
+    /// Site search, with `{title}` in place of the title.
     #[serde(default)]
     pub search_url: Option<String>,
-    /// De onde sai o número: `url` (padrão), `title` ou `selector`.
+    /// Where the number comes from: `url` (default), `title` or `selector`.
     #[serde(default = "default_progress_source")]
     pub progress_source: String,
     #[serde(default)]

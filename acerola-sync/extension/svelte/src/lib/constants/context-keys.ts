@@ -1,10 +1,10 @@
 export const CONTEXT_KEYS = {
 	activeComic: Symbol('active-comic'),
-	/// Compartilha a MESMA instância de `useNetworkSync()` entre `+layout.svelte` (nunca
-	/// desmonta) e `routes/network/+page.svelte` — sem isso, cada um tinha sua própria
-	/// instância com seus próprios listeners, e `syncComic()` (que só resolve via um listener
-	/// da instância que o chamou) virava uma promise cancelada à força sempre que o usuário
-	/// navegava pra outra tela com um sync ainda em andamento, mesmo o sync de verdade
-	/// continuando (e terminando bem) no backend.
+	/// Shares the SAME `useNetworkSync()` instance between `+layout.svelte` (never unmounts)
+	/// and `routes/network/+page.svelte`: without it, each had its own instance with its own
+	/// listeners, and `syncComic()` (which only resolves through a listener of the instance
+	/// that called it) became a forcibly cancelled promise whenever the user navigated to
+	/// another screen with a sync still running, even though the real sync kept going (and
+	/// finished fine) in the backend.
 	networkSync: Symbol('network-sync')
 } as const;

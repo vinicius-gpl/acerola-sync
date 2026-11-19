@@ -20,7 +20,7 @@ pub async fn find_mapping(
     .await?)
 }
 
-/// Grava o mapeamento. Um automático nunca sobrescreve uma correção manual.
+/// Stores the mapping. An automatic one never overwrites a manual correction.
 pub async fn save_mapping(
     pool: &PgPool, user_id: i64, site: &str, identifier: &str, media_id: i64, title: &str,
     source: &str,
@@ -168,7 +168,7 @@ pub async fn update_custom_site(
     .await?)
 }
 
-/// A página mais recente de cada site (com URL) em que a obra foi marcada.
+/// The most recent page of each site (with URL) where the media was marked.
 pub async fn last_visits(
     pool: &PgPool, user_id: i64, media_id: i64,
 ) -> Result<Vec<LastVisit>, DbError> {
@@ -296,7 +296,7 @@ mod tests {
         seed(&db.pool).await;
         let pool = db.single_connection_pool().await;
 
-        // Com `*`, a coluna nova muda o resultado da consulta já preparada e o Postgres recusa.
+        // With `*`, the new column changes the result of the already prepared query and Postgres refuses.
         let star = "SELECT * FROM custom_sites WHERE user_id = $1";
         sqlx::query(star).bind(1_i64).fetch_all(&pool).await.unwrap();
         list_custom_sites(&pool, 1).await.unwrap();
@@ -307,7 +307,7 @@ mod tests {
         let error = sqlx::query(star).bind(1_i64).fetch_all(&pool).await.unwrap_err();
         assert!(error.to_string().contains("cached plan must not change result type"));
 
-        // Com colunas explícitas, a mesma consulta preparada continua valendo.
+        // With explicit columns, the same prepared query keeps working.
         list_custom_sites(&pool, 1).await.unwrap();
         pool.close().await;
         db.drop().await;

@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 #
-# Uma imagem só, com o binário do server. A extensão não entra aqui: ela é empacotada pelo
-# WXT e publicada nas lojas, não servida pelo container.
+# A single image, with the server binary. The extension is not here: it is packaged by WXT
+# and published in the stores, not served by the container.
 #
-# Contexto do build: a pasta do server (ver .config/docker/compose.yml). Em produção fica
-# atrás do Caddy do servidor, que resolve domínio e TLS (.config/ansible).
+# Build context: the server folder (see .config/docker/compose.yml). In production it sits
+# behind the server's Caddy, which handles domain and TLS (.config/ansible).
 
 FROM rust:1.98-bookworm AS build
 WORKDIR /repo/server

@@ -13,7 +13,10 @@ describe('AcerolaChipTabs', () => {
 	it('mostra as contagens e a aba ativa', () => {
 		render(AcerolaChipTabs, { props: { data: { items, active: 'COMPLETED' } } });
 
-		expect(screen.getByRole('tab', { name: /Completo/ })).toHaveAttribute('aria-selected', 'true');
+		expect(screen.getByRole('tab', { name: /Completo/ })).toHaveAttribute(
+			'aria-selected',
+			'true'
+		);
 		expect(screen.getByRole('tab', { name: /Assistindo/ })).toHaveAttribute(
 			'aria-selected',
 			'false'
@@ -63,7 +66,7 @@ describe('AcerolaChipTabs', () => {
 		list.scrollLeft = 200;
 		list.dispatchEvent(new Event('scroll'));
 		await vi.waitFor(() => expect(list).toHaveAttribute('data-fade', 'start'));
-		// A troca de classe do fade não pode apagar o `relative` do indicador deslizante.
+		// Changing the fade class must not wipe the sliding indicator's `relative`.
 		expect(list).toHaveClass('relative');
 	});
 });

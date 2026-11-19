@@ -16,6 +16,6 @@ pub struct SearchQuery {
 pub struct MediaDetailPayload {
     pub media: Media,
     pub entry: Option<Entry>,
-    /// Última página de cada site em que a obra foi marcada.
+    /// Last page of each site where the media was marked.
     pub visits: Vec<LastVisit>,
 }

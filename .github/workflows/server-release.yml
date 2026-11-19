@@ -1,13 +1,18 @@
 name: "Release/Server"
 
-# Tag `server/<canal>/v<versão>` (canal: alpha, beta ou prod). Só sobe a versão no
-# `server/Cargo.toml` (e no Cargo.lock) e devolve o commit para a `main` e a `develop`.
-# Não gera Release nem imagem: o deploy é pelo Ansible (`acerola-sync/server/.config/ansible`).
+# Tag `server/vX.Y.Z`. Only bumps `server/Cargo.toml` (and Cargo.lock) and pushes the commit back
+# to `main` and `develop`. No Release or image: deploy runs through Ansible
+# (`acerola-sync/server/.config/ansible`, see server-deploy.yml).
 
 on:
   push:
     tags:
-      - 'server/**/v*'
+      - 'server/v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+concurrency:
+  group: server-release
+  cancel-in-progress: false
 
 jobs:
   bump:
@@ -18,8 +23,6 @@ jobs:
     defaults:
       run:
         working-directory: acerola-sync
-    env:
-      HUSKY: 0
 
     steps:
       - name: Checkout
@@ -28,16 +31,23 @@ jobs:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
           fetch-depth: 0
 
+      - name: Check tag is on main
+        working-directory: ${{ github.workspace }}
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+            || { echo "::error::Tag $GITHUB_REF_NAME is not on main"; exit 1; }
+
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 25.9.0
 
       - name: Extract version
-        run: node scripts/release/bump.mjs --tag "$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+        run: node ../scripts/release/bump.mjs --tag "$GITHUB_REF_NAME" >> "$GITHUB_ENV"
 
       - name: Bump version
-        run: node scripts/release/bump.mjs server "$VERSION"
+        run: node ../scripts/release/bump.mjs server "$VERSION"
 
       - name: Commit version bump
         working-directory: ${{ github.workspace }}

@@ -21,5 +21,7 @@
 </Story>
 
 <Story name="Vazio" asChild>
-	<div class="w-[420px]"><AcerolaLogConsole data={{ logs: [], empty: 'Nenhum sync ainda' }} /></div>
+	<div class="w-[420px]">
+		<AcerolaLogConsole data={{ logs: [], empty: 'Nenhum sync ainda' }} />
+	</div>
 </Story>

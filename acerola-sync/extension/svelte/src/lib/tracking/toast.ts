@@ -4,16 +4,16 @@ import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { m } from '$lib/paraglide/messages';
 import { storage } from 'wxt/utils/storage';
 
-// Aviso no canto da página do site, com o mesmo desenho dos cartões do app: raio de cartão,
-// sem borda, cor do estado no fundo (`*-soft`) e no texto. Embaixo dos avisos fica o botão
-// fixo do Acerola (como o lápis do MALSync). É DOM puro num shadow root: o CSS do site não
-// vaza para dentro e o nosso não vaza para fora. As cores vêm do próprio `catppuccin.css` do
-// tema (injetado no shadow root), nunca escritas aqui.
+// Notice in the corner of the site page, with the same look as the app cards: card radius, no
+// border, state color in the background (`*-soft`) and in the text. Below the notices sits the
+// Acerola floating button (like MALSync's pencil). It is plain DOM in a shadow root: the site's
+// CSS does not leak in and ours does not leak out. Colors come from the theme's own
+// `catppuccin.css` (injected into the shadow root), never written here.
 //
-// Ctrl + arrastar o botão move o canto inteiro (botão e avisos) e a posição fica salva por site
-// (`storage.sync`, igual nos dois PCs). Ela é guardada como distância até o canto mais perto, então
-// sobrevive a redimensionar a janela; os avisos abrem do lado do botão que cabe na tela.
-// Ctrl + duplo clique devolve ao canto inferior direito.
+// Ctrl + drag on the button moves the whole corner (button and notices) and the position is saved
+// per site (`storage.sync`, same on both PCs). It is stored as the distance to the nearest corner,
+// so it survives window resizes; notices open on the side of the button that fits on screen.
+// Ctrl + double click puts it back in the bottom right corner.
 
 export type ToastTone = 'info' | 'success' | 'warning' | 'error';
 
@@ -25,9 +25,9 @@ export type ToastOptions = {
 	tone?: ToastTone;
 	cover?: string | null;
 	actions?: ToastAction[];
-	/** Tempo na tela; `null` fica até fechar. */
+	/** Time on screen; `null` stays until closed. */
 	durationMs?: number | null;
-	/** Um aviso com o mesmo id troca o anterior em vez de empilhar. */
+	/** A notice with the same id replaces the previous one instead of stacking. */
 	id?: string;
 };
 
@@ -50,7 +50,7 @@ const TONE_VARS: Record<ToastTone, { bg: string; fg: string }> = {
 const STYLE = `
 	${paletteCss}
 	.dock { display: flex; flex-direction: column; align-items: flex-end; gap: 12px;
-		font-family: 'DM Sans Variable', system-ui, sans-serif; --from-y: 12px; --origin: bottom right; }
+		--font-sans: 'DM Sans Variable', system-ui, sans-serif; font-family: var(--font-sans); --from-y: 12px; --origin: bottom right; }
 	.stack { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; transition: opacity 180ms; }
 	.dock[data-x='left'], .dock[data-x='left'] .stack { align-items: flex-start; }
 	.dock[data-x='left'] { --origin: bottom left; }
@@ -125,7 +125,7 @@ async function savePosition(position: FabPosition | null) {
 	await storage.setItem(STORAGE_KEYS.fabPositions, all);
 }
 
-/** Prende o canto do dock (onde fica o botão) à distância salva, sem sair da janela. */
+/** Pins the dock corner (where the button is) to the saved distance, without leaving the window. */
 function applyPosition(position: FabPosition) {
 	if (!host || !dock) return;
 	const maxX = Math.max(EDGE_GAP, window.innerWidth - FAB_SIZE - EDGE_GAP);
@@ -140,7 +140,7 @@ function applyPosition(position: FabPosition) {
 	dock.dataset.y = position.y;
 }
 
-/** Posição a partir de onde o botão está: distância até o canto mais perto. */
+/** Position from where the button is: distance to the nearest corner. */
 export function positionFromRect(
 	rect: { left: number; top: number; width: number; height: number },
 	viewport: { width: number; height: number }
@@ -158,7 +158,7 @@ export function positionFromRect(
 let position: FabPosition = DEFAULT_FAB_POSITION;
 let draggedAt = 0;
 
-/** Ctrl + arrastar move o canto; o clique que termina o arrasto não abre nada. */
+/** Ctrl + drag moves the corner; the click that ends the drag opens nothing. */
 function makeDraggable(fab: HTMLButtonElement) {
 	fab.addEventListener('pointerdown', (event) => {
 		if (!event.ctrlKey || event.button !== 0) return;
@@ -173,7 +173,12 @@ function makeDraggable(fab: HTMLButtonElement) {
 			moved = true;
 			dock!.classList.add('dragging');
 			position = positionFromRect(
-				{ left: e.clientX - offsetX, top: e.clientY - offsetY, width: FAB_SIZE, height: FAB_SIZE },
+				{
+					left: e.clientX - offsetX,
+					top: e.clientY - offsetY,
+					width: FAB_SIZE,
+					height: FAB_SIZE
+				},
 				{ width: window.innerWidth, height: window.innerHeight }
 			);
 			applyPosition(position);
@@ -275,7 +280,7 @@ export async function showToast(options: ToastOptions): Promise<HTMLElement> {
 
 	const close = document.createElement('button');
 	close.className = 'close';
-	// X desenhado (traço grosso, centrado na caixa): o "×" da fonte ficava fino e torto.
+	// A drawn X (thick stroke, centered in the box): the font's "×" looked thin and crooked.
 	close.innerHTML = CLOSE_ICON;
 	close.setAttribute('aria-label', m['sync.tracking.close']());
 	close.addEventListener('click', () => closeToast(toast));
@@ -295,7 +300,7 @@ export async function showToast(options: ToastOptions): Promise<HTMLElement> {
 	return toast;
 }
 
-/** Fecha o aviso com esse id, se estiver na tela. Devolve se havia um. */
+/** Closes the notice with this id, if it is on screen. Returns whether there was one. */
 export function dismissToast(id: string): boolean {
 	const toast = dock?.querySelector<HTMLElement>(`.toast[data-id="${CSS.escape(id)}"]`);
 	if (!toast) return false;
@@ -304,8 +309,8 @@ export function dismissToast(id: string): boolean {
 }
 
 /**
- * Botão fixo do Acerola no canto da página. `null` esconde (página sem obra); com um handler,
- * mostra e troca o clique.
+ * Acerola floating button in the page corner. `null` hides it (page with no media); with a
+ * handler, shows it and swaps the click.
  */
 export async function setFab(
 	options: { icon: string; label: string; onClick: () => void } | null
@@ -327,10 +332,10 @@ export async function setFab(
 		makeDraggable(fab);
 	}
 	fab.querySelector('img')!.src = options.icon;
-	fab.title = `${options.label}\n${m['sync.tracking.fab_move']()}`;
+	fab.title = `${options.label}\n${m['sync.tracking.fab.move']()}`;
 	fab.setAttribute('aria-label', options.label);
 	const onClick = options.onClick;
-	// Ctrl + clique é do arrasto (e o clique logo depois de soltar também).
+	// Ctrl + click belongs to the drag (and so does the click right after releasing).
 	fab.onclick = (event) => {
 		if (event.ctrlKey || Date.now() - draggedAt < 300) return;
 		onClick();

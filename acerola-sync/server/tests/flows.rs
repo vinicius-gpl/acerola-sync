@@ -1,5 +1,5 @@
-//! Fluxos completos contra um Postgres de verdade e um AniList simulado (wiremock).
-//! Rodam com `TEST_DATABASE_URL=postgres://user:pass@host:port/postgres cargo nextest run`.
+//! Full flows against a real Postgres and a simulated AniList (wiremock).
+//! Run with `TEST_DATABASE_URL=postgres://user:pass@host:port/postgres cargo nextest run`.
 
 mod support;
 
@@ -62,12 +62,12 @@ async fn test_login_mirrors_the_whole_list() -> Result<()> {
     assert_eq!(anime[0]["progress"], 3);
     assert_eq!(anime[0]["media"]["titleUserPreferred"], "Sousou no Frieren");
 
-    // A busca sai do espelho, sem request novo ao AniList.
+    // The search comes from the mirror, with no new AniList request.
     let (_, hits) = call(&app, Method::GET, "/media/search?q=frieren", Some(&token), None).await;
     assert_eq!(hits[0]["media"]["id"], 100);
     assert_eq!(hits[0]["source"], "LOCAL");
 
-    // O token do AniList nunca fica em texto puro no banco.
+    // The AniList token is never stored as plain text in the database.
     let (cipher,): (Vec<u8>,) =
         sqlx::query_as("SELECT anilist_token_cipher FROM users").fetch_one(&db.pool).await?;
     assert!(!String::from_utf8_lossy(&cipher).contains("anilist-token"));
@@ -151,7 +151,7 @@ async fn test_edit_while_anilist_is_down_stays_pending_until_next_sync() -> Resu
     let token = login(&app).await;
     wait_sync_idle(&app, &token).await;
 
-    // AniList fora do ar: a edição vale aqui e fica pendente.
+    // AniList down: the edit counts here and stays pending.
     anilist.reset().await;
     mock_graphql(&anilist, "SaveMediaListEntry", ResponseTemplate::new(503)).await;
     let (status, saved) =
@@ -164,7 +164,7 @@ async fn test_edit_while_anilist_is_down_stays_pending_until_next_sync() -> Resu
     let (_, status_body) = call(&app, Method::GET, "/sync/status", Some(&token), None).await;
     assert_eq!(status_body["pendingEntries"], 1);
 
-    // AniList voltou, mas ainda com o valor antigo: o sync envia o pendente antes de puxar.
+    // AniList is back, but still with the old value: the sync sends the pending change before pulling.
     anilist.reset().await;
     mock_graphql(
         &anilist,
@@ -273,7 +273,7 @@ async fn test_tracking_resolves_by_title_and_never_goes_back() -> Result<()> {
     assert_eq!(resolved["media"]["id"], 300);
     assert_eq!(resolved["mapping"]["source"], "AUTO");
 
-    // Capítulo antigo: ignora.
+    // Old chapter: ignored.
     let (_, skipped) = call(
         &app,
         Method::POST,
@@ -285,7 +285,7 @@ async fn test_tracking_resolves_by_title_and_never_goes_back() -> Result<()> {
     assert_eq!(skipped["applied"], false);
     assert_eq!(skipped["skipReason"], "ALREADY_AHEAD");
 
-    // Capítulo novo: envia ao AniList e grava no espelho.
+    // New chapter: sends to AniList and stores in the mirror.
     mock_graphql(
         &anilist,
         "SaveMediaListEntry",
@@ -306,7 +306,7 @@ async fn test_tracking_resolves_by_title_and_never_goes_back() -> Result<()> {
     assert_eq!(applied["saved"]["progress"], 11);
     assert_eq!(applied["saved"]["pending"], false);
 
-    // Correção manual vence a automática.
+    // A manual correction beats the automatic one.
     mock_graphql(
         &anilist,
         "Media(id",
@@ -434,7 +434,7 @@ async fn test_second_sync_is_incremental_and_logged() -> Result<()> {
     let token = login(&app).await;
     wait_sync_idle(&app, &token).await;
 
-    // Depois do completo do login, o próximo é incremental: 1 página + 1 de lançamentos.
+    // After the login's full sync, the next one is incremental: 1 page + 1 for airing.
     let mut changed = entry(1, "CURRENT", 4, media(100, "ANIME", "Dandadan", Some(12)));
     changed["updatedAt"] = json!(chrono::Utc::now().timestamp());
     changed["media"]["status"] = json!("RELEASING");
@@ -493,7 +493,7 @@ async fn test_sync_one_pulls_details_and_entry_and_filters_the_list() -> Result<
     let token = login(&app).await;
     wait_sync_idle(&app, &token).await;
 
-    // Filtros no server: gênero e busca, na lista e na contagem.
+    // Filters on the server: genre and search, in the list and in the count.
     let (_, drama) =
         call(&app, Method::GET, "/entries?genre=Drama&q=FRIER", Some(&token), None).await;
     assert_eq!(drama.as_array().unwrap().len(), 1, "{drama}");
@@ -504,7 +504,7 @@ async fn test_sync_one_pulls_details_and_entry_and_filters_the_list() -> Result<
         call(&app, Method::GET, "/entries/facets?mediaType=ANIME", Some(&token), None).await;
     assert_eq!(facets["genres"], json!(["Adventure", "Drama"]));
 
-    // O AniList tem a ficha completa e o progresso mais novo.
+    // AniList has the full record and the newest progress.
     let mut detail = frieren;
     detail["source"] = json!("MANGA");
     detail["studios"] = json!({ "nodes": [{ "name": "Madhouse" }] });
@@ -540,7 +540,7 @@ async fn test_sync_one_pulls_details_and_entry_and_filters_the_list() -> Result<
     assert_eq!(synced["media"]["relations"][0]["title"], "Frieren (mangá)");
     assert_eq!(synced["visits"], json!([]));
 
-    // Fora da lista no AniList: some daqui também.
+    // Out of the list on AniList: disappears from here too.
     let mut gone = detail_without_entry(&synced);
     gone["id"] = json!(101);
     anilist.reset().await;

@@ -38,7 +38,7 @@
 		second: '2-digit'
 	});
 
-	// Linha nova entra deslizando e a lista desce junto, como um terminal.
+	// A new line slides in and the list follows it down, like a terminal.
 	$effect(() => {
 		const count = data.logs.length;
 		if (count === shown) return;

@@ -40,11 +40,11 @@ pub async fn setup_database(env: &Env) -> Result<PgPool, DbError> {
     Ok(database_pool)
 }
 
-/// Sem cache de statements preparados. Atrás de um pooler (pgbouncer em modo transação), o
-/// statement preparado fica na conexão do pooler e sobrevive ao restart do server: depois de
-/// uma migration que muda colunas, o Postgres recusa o plano antigo com "cached plan must not
-/// change result type" e toda rota afetada devolve 500. O custo de reparsear é desprezível
-/// para o volume de um usuário.
+/// No prepared statement cache. Behind a pooler (pgbouncer in transaction mode), the prepared
+/// statement stays on the pooler connection and survives a server restart: after a migration
+/// that changes columns, Postgres rejects the old plan with "cached plan must not change result
+/// type" and every affected route returns 500. The reparse cost is negligible for a single
+/// user's volume.
 pub fn statement_options(options: PgConnectOptions) -> PgConnectOptions {
     options.statement_cache_capacity(0)
 }
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn teste_conexao_sem_cache_de_statements() {
         let options = PgConnectOptions::from_str("postgres://u:p@localhost/db").unwrap();
-        // Reconfigurar não pode falhar e deve manter host/banco.
+        // Reconfiguring must not fail and must keep host/database.
         let options = statement_options(options);
         assert_eq!(options.get_host(), "localhost");
         assert_eq!(options.get_database(), Some("db"));

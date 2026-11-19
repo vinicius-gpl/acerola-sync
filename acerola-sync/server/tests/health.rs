@@ -6,7 +6,7 @@ use tower::ServiceExt;
 
 #[tokio::test]
 async fn test_health_check_returns_ok() -> Result<()> {
-    // O /health responde sem depender do banco
+    // /health answers without depending on the database
     let app = support::build_test_app();
 
     let response = app.oneshot(Request::get("/health").body(Body::empty())?).await?;

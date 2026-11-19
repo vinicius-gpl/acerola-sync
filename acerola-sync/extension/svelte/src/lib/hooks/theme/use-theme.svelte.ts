@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { storage } from 'wxt/utils/storage';
 
-// Mesma paleta única do acerola-reader: só existe troca de modo (claro/escuro), não de tema.
+// Same single palette as acerola-reader: only the mode switches (light/dark), not the theme.
 export type ThemeMode = 'light' | 'dark';
 export type ThemeModeOption = ThemeMode | 'system';
 
@@ -25,7 +25,7 @@ function applyTheme(option: ThemeModeOption) {
 	root.classList.toggle('dark', resolved === 'dark');
 }
 
-/** Lê o modo salvo e aplica. Chamado uma vez por página (popup e página cheia). */
+/** Reads the saved mode and applies it. Called once per page (popup and full page). */
 export async function initTheme() {
 	if (typeof window === 'undefined') return;
 

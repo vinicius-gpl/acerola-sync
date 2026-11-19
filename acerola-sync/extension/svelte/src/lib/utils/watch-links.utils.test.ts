@@ -34,7 +34,12 @@ describe('watchLinks', () => {
 		const links = watchLinks(
 			anime,
 			[
-				{ source: 'custom:9', url: 'https://player.exemplo.com/v/fr/7', progress: 7, createdAt: '' }
+				{
+					source: 'custom:9',
+					url: 'https://player.exemplo.com/v/fr/7',
+					progress: 7,
+					createdAt: ''
+				}
 			],
 			[customSite()]
 		);
@@ -69,7 +74,14 @@ describe('watchLinks', () => {
 				titleRomaji: null,
 				externalLinks: []
 			},
-			[{ source: 'outro', url: 'https://www.leitor.com/csm/231', progress: 231, createdAt: '' }]
+			[
+				{
+					source: 'outro',
+					url: 'https://www.leitor.com/csm/231',
+					progress: 231,
+					createdAt: ''
+				}
+			]
 		);
 		expect(links.map((link) => link.name)).toEqual(['leitor.com', 'MangaDex']);
 	});

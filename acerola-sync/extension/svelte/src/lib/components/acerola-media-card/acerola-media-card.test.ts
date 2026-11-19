@@ -9,7 +9,11 @@ describe('AcerolaMediaCard', () => {
 		const onOpen = vi.fn();
 		render(AcerolaMediaCard, {
 			props: {
-				data: { media: makeMedia(), entry: makeEntry({ progress: 3 }), subtitle: 'TV · 2024' },
+				data: {
+					media: makeMedia(),
+					entry: makeEntry({ progress: 3 }),
+					subtitle: 'TV · 2024'
+				},
 				events: { onOpen }
 			}
 		});

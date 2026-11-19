@@ -2,7 +2,7 @@ import type { CustomSite } from '$lib/api/types';
 import { progressFromSnapshot, snapshotPage } from '../progress-source';
 import { humanizeSlug, parseProgress, type SiteAdapter } from '../types';
 
-/** Leituras iguais seguidas que confirmam um número repetido depois de trocar de página. */
+/** Identical consecutive reads that confirm a repeated number after changing pages. */
 const STALE_CONFIRMATIONS = 3;
 
 export function customSiteId(site: Pick<CustomSite, 'id'>): string {
@@ -17,25 +17,29 @@ function exec(site: CustomSite, url: URL) {
 	}
 }
 
-/** O número sai da URL (padrão) ou da página (título ou elemento). */
+/** The number comes from the URL (default) or from the page (title or element). */
 export function readsProgressFromPage(site: Pick<CustomSite, 'progressSource'>): boolean {
 	return (site.progressSource ?? 'url') !== 'url';
 }
 
 /**
- * Site personalizado: a obra sai da URL, por uma regex com o grupo `id` (e `title`, opcional).
- * O número vem do grupo `progress` da mesma regex ou, quando a URL não tem (Kuro Mangás:
- * `/read/2507/463111`), do título da página ou de um elemento, ver `progress-source.ts`.
+ * Custom site: the media comes from the URL, through a regex with an `id` group (and an
+ * optional `title`). The number comes from the same regex's `progress` group or, when the URL
+ * has none (Kuro Mangás: `/read/2507/463111`), from the page title or an element; see
+ * `progress-source.ts`.
  */
 export function createCustomAdapter(site: CustomSite): SiteAdapter {
 	const fromPage = readsProgressFromPage(site);
-	// Em SPA a URL troca antes do HTML: logo depois de ir para o próximo capítulo, a página ainda
-	// mostra o número do anterior. Número igual ao da página anterior só vale depois de repetir.
+	// In an SPA the URL changes before the HTML: right after going to the next chapter, the page
+	// still shows the previous number. A number equal to the previous page's only counts after it repeats.
 	let accepted: { href: string; progress: number } | null = null;
 	let repeated = { href: '', count: 0 };
 
 	function pageProgress(url: URL, doc: Document): number | null {
-		const progress = progressFromSnapshot(site, snapshotPage(site.progressSelector ?? null, doc));
+		const progress = progressFromSnapshot(
+			site,
+			snapshotPage(site.progressSelector ?? null, doc)
+		);
 		if (!progress) return null;
 		if (accepted && accepted.href !== url.href && accepted.progress === progress) {
 			repeated =

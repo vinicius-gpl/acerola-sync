@@ -20,7 +20,7 @@ use crate::{
     infra::error::AppError,
 };
 
-/// Começa o sync e responde na hora (202); o andamento sai em `/sync/runs/{id}/logs`.
+/// Starts the sync and answers right away (202); progress comes from `/sync/runs/{id}/logs`.
 pub async fn run(
     State(state): State<AppState>, auth: AuthUser, Query(query): Query<SyncQuery>,
 ) -> Result<(StatusCode, Json<SyncRun>), AppError> {
@@ -52,7 +52,7 @@ pub async fn status(
     }))
 }
 
-/// `PUT /sync/full-interval`: de quanto em quanto tempo o automático puxa a lista inteira.
+/// `PUT /sync/full-interval`: how often the automatic sync pulls the whole list.
 pub async fn save_full_sync_interval(
     State(state): State<AppState>, auth: AuthUser, Json(request): Json<FullSyncIntervalRequest>,
 ) -> Result<Json<SyncSettings>, AppError> {
@@ -78,7 +78,7 @@ pub async fn save_schedule(
         return Err(AppError::BadRequest("At most 24 scheduled times.".into()));
     }
 
-    // O horário que já passou hoje conta como atendido: salvar não dispara um sync na hora.
+    // A time already past today counts as done: saving does not trigger a sync right away.
     let last_slot = schedule::latest_slot(&times, Utc::now());
     Ok(Json(
         sync_repository::save_schedule(

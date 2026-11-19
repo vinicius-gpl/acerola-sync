@@ -1,26 +1,26 @@
-/** Chaves do `chrome.storage.local` (via storage do WXT) — o equivalente ao `store-plugin.ts` do acerola-reader. */
+/** `chrome.storage.local` keys (through WXT storage): the equivalent of acerola-reader's `store-plugin.ts`. */
 export const STORAGE_KEYS = {
 	mode: 'local:mode',
-	/** Endereço do server (ex.: `https://sync.acerola.app`). */
+	/** Server address (e.g. `https://sync.acerola.app`). */
 	serverUrl: 'local:serverUrl',
-	/** Token de sessão do server + perfil. Nunca vai para o `storage.sync`. */
+	/** Server session token + profile. Never goes to `storage.sync`. */
 	session: 'local:session',
-	/** Última tela aberta, para reabrir onde parou. */
+	/** Last screen opened, to reopen where it left off. */
 	lastPage: 'local:lastPage',
-	/** Sites embutidos desligados pelo usuário. */
+	/** Built-in sites the user turned off. */
 	disabledSites: 'local:disabledSites',
-	/** Segundos numa página de capítulo antes de marcar como lido. */
+	/** Seconds on a chapter page before marking it as read. */
 	mangaDelaySeconds: 'local:mangaDelaySeconds',
-	/** Cópia dos sites personalizados do server, para o background registrar os scripts. */
+	/** Copy of the server's custom sites, so the background can register the scripts. */
 	customSites: 'local:customSites',
-	/** Obra que o aviso do site pediu para abrir no popup (`{ mediaId, at }`); vale por 30s. */
+	/** Media the on-site notice asked to open in the popup (`{ mediaId, at }`); valid for 30s. */
 	pendingMedia: 'local:pendingMedia',
-	/** Rascunho do site personalizado levado do popup para o modo avançado na página cheia. */
+	/** Custom site draft carried from the popup to advanced mode on the full page. */
 	pendingSiteDraft: 'local:pendingSiteDraft',
-	/** Último episódio já visto por anime (`{ [mediaId]: episódio }`), para avisar só do novo. */
+	/** Last episode already seen per anime (`{ [mediaId]: episode }`), to notify only new ones. */
 	airingSeen: 'local:airingSeen',
-	/** Últimos avisos de episódio novo (`NotificationItem[]`), para a tela de notificações. */
+	/** Latest new-episode notices (`NotificationItem[]`), for the notifications screen. */
 	notifications: 'local:notifications',
-	/** Onde o botão fixo fica em cada site (`{ [host]: FabPosition }`); igual nos dois PCs. */
+	/** Where the floating button sits on each site (`{ [host]: FabPosition }`); same on both PCs. */
 	fabPositions: 'sync:fabPositions'
 } as const;

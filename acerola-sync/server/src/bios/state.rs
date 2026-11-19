@@ -8,8 +8,8 @@ use crate::{
     infra::{anilist::AnilistClient, crypto, error::CryptoError},
 };
 
-/// Estado compartilhado entre as rotas e os workers (o equivalente ao `app_handle.manage` do
-/// Tauri).
+/// State shared between the routes and the workers (the equivalent of Tauri's
+/// `app_handle.manage`).
 #[derive(Clone)]
 pub struct AppState {
     pub database_pool: PgPool,
@@ -17,7 +17,7 @@ pub struct AppState {
     pub encryption_key: [u8; 32],
     pub anilist_client_id: String,
     pub allowed_anilist_user_id: Option<i64>,
-    /// Um sync por vez: o manual e o agendado nunca rodam juntos.
+    /// One sync at a time: the manual and the scheduled one never run together.
     pub sync_lock: Arc<Mutex<()>>,
 }
 

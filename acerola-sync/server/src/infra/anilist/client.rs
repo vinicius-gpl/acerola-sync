@@ -16,11 +16,11 @@ use crate::infra::error::AnilistError;
 
 pub const DEFAULT_API_URL: &str = "https://graphql.anilist.co";
 
-/// Espaço mínimo entre duas chamadas: 30 por minuto, um terço do limite normal do AniList
-/// (90/min) e igual ao limite de quando ele está degradado.
+/// Minimum gap between two calls: 30 per minute, a third of AniList's normal limit (90/min) and
+/// equal to its limit when degraded.
 const MIN_SPACING: Duration = Duration::from_secs(2);
 
-/// Fila única do processo: cada chamada espera a vez, e um 429 empurra a vez de todo mundo.
+/// Single process-wide queue: each call waits its turn, and a 429 pushes everyone's turn back.
 #[derive(Debug)]
 struct RateGate {
     next_allowed: Mutex<Instant>,
@@ -48,7 +48,7 @@ pub struct AnilistClient {
     http: reqwest::Client,
     api_url: String,
     gate: Arc<RateGate>,
-    /// Quantos requests este processo já fez. O sync guarda a diferença em `sync_runs`.
+    /// How many requests this process has made. The sync stores the difference in `sync_runs`.
     requests: Arc<AtomicU64>,
 }
 
@@ -57,7 +57,7 @@ impl AnilistClient {
         Self::with_spacing(api_url, MIN_SPACING)
     }
 
-    /// Os testes usam um espaçamento zero para não esperar 2 s entre chamadas.
+    /// Tests use zero spacing so they do not wait 2 s between calls.
     pub fn with_spacing(api_url: impl Into<String>, spacing: Duration) -> Self {
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -122,7 +122,7 @@ impl AnilistClient {
         };
 
         let errors = parsed.errors.unwrap_or_default();
-        // O AniList responde 400 com "Invalid token" quando o token expirou ou foi revogado.
+        // AniList answers 400 with "Invalid token" when the token expired or was revoked.
         if errors.iter().any(|error| error.status == Some(401) || error.message == "Invalid token")
         {
             return Err(AnilistError::Unauthorized);
@@ -147,7 +147,7 @@ impl AnilistClient {
         Ok(data.viewer)
     }
 
-    /// A lista inteira do usuário de um tipo (`ANIME`/`MANGA`), juntando todos os pedaços.
+    /// The user's whole list of one type (`ANIME`/`MANGA`), joining all the chunks.
     pub async fn media_list(
         &self, token: &str, user_id: i64, media_type: &str,
     ) -> Result<Vec<MediaListEntry>, AnilistError> {
@@ -179,13 +179,13 @@ impl AnilistClient {
             chunk += 1;
         }
 
-        // Uma obra pode aparecer em mais de uma lista personalizada.
+        // A media may appear in more than one custom list.
         entries.sort_by_key(|entry| entry.media.id);
         entries.dedup_by_key(|entry| entry.media.id);
         Ok(entries)
     }
 
-    /// Uma página das entradas mais recentes (anime e mangá juntos). `page` começa em 1.
+    /// One page of the most recent entries (anime and manga together). `page` starts at 1.
     pub async fn recently_updated(
         &self, token: &str, user_id: i64, page: u32,
     ) -> Result<(Vec<MediaListEntry>, bool), AnilistError> {
@@ -200,7 +200,7 @@ impl AnilistClient {
         Ok((entries, data.page.page_info.has_next_page))
     }
 
-    /// Próximo episódio das obras em lançamento, até 50 por chamada.
+    /// Next episode of airing media, up to 50 per call.
     pub async fn airing(&self, token: &str, ids: &[i64]) -> Result<Vec<AiringInfo>, AnilistError> {
         let data: AiringData = self
             .request(
@@ -240,7 +240,7 @@ impl AnilistClient {
         Ok(data.page.media.into_iter().flatten().collect())
     }
 
-    /// A obra completa e a entrada do usuário nela (`media_list_entry`), num request só.
+    /// The full media and the user's entry on it (`media_list_entry`), in a single request.
     pub async fn media_with_entry(&self, token: &str, id: i64) -> Result<Media, AnilistError> {
         let data: MediaByIdData =
             self.request(Some(token), &queries::media_with_entry(), json!({ "id": id })).await?;

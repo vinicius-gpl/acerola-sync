@@ -20,7 +20,9 @@ describe('AcerolaConfirmDialog', () => {
 
 	it('aberto mostra título, descrição e as duas ações, sem borda', async () => {
 		const onAction = vi.fn();
-		render(AcerolaConfirmDialog, { props: { state: { open: true }, data, events: { onAction } } });
+		render(AcerolaConfirmDialog, {
+			props: { state: { open: true }, data, events: { onAction } }
+		});
 
 		const dialog = await screen.findByRole('alertdialog');
 		expect(dialog).toHaveClass('rounded-sheet', 'bg-card');

@@ -5,7 +5,10 @@ import AcerolaStatTile from './acerola-stat-tile.svelte';
 describe('AcerolaStatTile', () => {
 	it('mostra rótulo, número e dica', () => {
 		render(AcerolaStatTile, {
-			props: { data: { label: 'Assistindo', value: 12, hint: 'animes' }, ui: { tone: 'primary' } }
+			props: {
+				data: { label: 'Assistindo', value: 12, hint: 'animes' },
+				ui: { tone: 'primary' }
+			}
 		});
 		expect(screen.getByText('Assistindo')).toBeInTheDocument();
 		expect(screen.getByText('animes')).toBeInTheDocument();

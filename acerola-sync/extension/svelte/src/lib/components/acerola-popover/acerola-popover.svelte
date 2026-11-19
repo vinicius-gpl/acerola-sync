@@ -13,7 +13,8 @@
 			align?: 'start' | 'center' | 'end';
 			side?: 'top' | 'right' | 'bottom' | 'left';
 			sideOffset?: number;
-			collisionPadding?: number | { top?: number; right?: number; bottom?: number; left?: number };
+			collisionPadding?:
+				number | { top?: number; right?: number; bottom?: number; left?: number };
 		};
 	};
 

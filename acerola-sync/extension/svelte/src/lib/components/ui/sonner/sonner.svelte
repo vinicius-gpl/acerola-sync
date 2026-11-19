@@ -20,8 +20,7 @@
 		classes: {
 			// Mesmo desenho dos cartões do app: raio de cartão, sem borda, cor do estado no fundo
 			// (`*-soft`) e no texto. As cores vêm das variáveis do sonner, abaixo.
-			toast:
-				'group toast rounded-card! border-0! px-4 py-3.5 text-sm font-semibold shadow-float! backdrop-blur-2xl',
+			toast: 'group toast rounded-card! border-0! px-4 py-3.5 text-sm font-semibold shadow-float! backdrop-blur-2xl',
 			title: 'font-black text-sm tracking-tight',
 			description: 'text-xs opacity-80 leading-relaxed mt-0.5',
 			actionButton:

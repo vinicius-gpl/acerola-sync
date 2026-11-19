@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test';
 
-// A extensão é carregada já buildada (`npm run test:e2e` faz o build antes). Extensão MV3 só
-// roda em Chromium com contexto persistente — ver `tests/e2e/fixtures.ts`.
+// The extension is loaded already built (`npm run test:e2e` builds first). An MV3 extension only
+// runs in Chromium with a persistent context; see `tests/e2e/fixtures.ts`.
 export default defineConfig({
 	testDir: './tests/e2e',
 	timeout: 10_000,

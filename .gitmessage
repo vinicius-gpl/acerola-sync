@@ -20,11 +20,12 @@
 #   chore     manutenção que não cabe acima
 #   merge     fechamento de uma branch (todo merge precisa de -m)
 #
-# LOCAL
+# LOCAL (lista em acerola.config.json, commit.scopes)
 #   backend    acerola-sync/server/
 #   extension  acerola-sync/extension/
 #   db         acerola-sync/server/src/infra/db/
-#   docker     acerola-sync/docker/
+#   docker     acerola-sync/server/.config/docker/
+#   kit        scripts/, lefthook.yml e configuração da raiz
 #   ci         .github/
 #   docs       .md na raiz e docs/
 #   deps       atualização de dependência

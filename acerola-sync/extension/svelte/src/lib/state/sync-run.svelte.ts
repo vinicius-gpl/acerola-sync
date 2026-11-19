@@ -4,8 +4,8 @@ import type { SyncLog, SyncRun } from '$lib/api/types';
 const POLL_MS = 800;
 
 /**
- * Acompanha um sync: dispara (`start`) ou abre um que já existe (`watch`) e busca só as linhas
- * novas de log a cada 800 ms até ele sair de `RUNNING`.
+ * Follows a sync: starts one (`start`) or opens an existing one (`watch`) and fetches only the
+ * new log lines every 800 ms until it leaves `RUNNING`.
  */
 export function createSyncRunWatcher(getApi: () => Api | null, onFinish?: (run: SyncRun) => void) {
 	let run = $state<SyncRun | null>(null);

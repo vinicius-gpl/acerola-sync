@@ -1,9 +1,9 @@
-//! Banco de teste para os `mod tests` dos repositórios e serviços (o equivalente ao
-//! `setup_test_db` do acerola-reader, mas em Postgres).
+//! Test database for the repositories' and services' `mod tests` (the equivalent of
+//! acerola-reader's `setup_test_db`, but on Postgres).
 //!
-//! Cada teste cria um banco novo a partir de `TEST_DATABASE_URL` (um Postgres onde o usuário
-//! pode criar bancos), roda as migrations e apaga o banco no fim. Sem a variável, o teste
-//! avisa e passa sem rodar — assim `cargo test` continua funcionando sem Postgres.
+//! Each test creates a new database from `TEST_DATABASE_URL` (a Postgres where the user can
+//! create databases), runs the migrations and drops the database at the end. Without the
+//! variable, the test warns and passes without running, so `cargo test` keeps working without Postgres.
 
 use chrono::Utc;
 use sqlx::{postgres::PgPoolOptions, Connection, PgConnection, PgPool};
@@ -45,8 +45,8 @@ impl TestDatabase {
         Some(Self { pool, admin_url, name })
     }
 
-    /// Pool de uma conexão só no mesmo banco: o cache de consultas preparadas fica num lugar,
-    /// como numa conexão reaproveitada pelo pooler em produção.
+    /// Single-connection pool on the same database: the prepared query cache lives in one place,
+    /// like a connection reused by the pooler in production.
     pub async fn single_connection_pool(&self) -> PgPool {
         let (base, _) = self.admin_url.rsplit_once('/').expect("URL com nome de banco");
         PgPoolOptions::new()

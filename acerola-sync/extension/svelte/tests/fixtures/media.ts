@@ -1,6 +1,6 @@
 import type { Entry, EntryWithMedia, Media, SyncLog } from '$lib/api/types';
 
-// Dados de exemplo para testes e stories. Capas ficam nulas de propósito: nada de rede.
+// Sample data for tests and stories. Covers are null on purpose: no network.
 
 export function makeMedia(overrides: Partial<Media> = {}): Media {
 	return {

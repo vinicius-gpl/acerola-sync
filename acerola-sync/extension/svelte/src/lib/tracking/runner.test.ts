@@ -46,7 +46,7 @@ describe('runner — botão fixo', () => {
 	});
 
 	it('em site personalizado aparece em qualquer página e abre a extensão', async () => {
-		// Página que não é episódio: mesmo assim o botão aparece.
+		// A page that is not an episode: the button still shows.
 		startTracking(createCustomAdapter(site));
 		await vi.waitFor(() => expect(setFab).toHaveBeenCalled());
 

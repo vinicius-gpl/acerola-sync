@@ -7,13 +7,15 @@ vi.mock('gsap', () => {
 	return {
 		default: {
 			fromTo: vi.fn(() => tween),
-			to: vi.fn((target: { value?: number }, vars: { value?: number; onUpdate?: () => void }) => {
-				if (vars.value !== undefined) {
-					target.value = vars.value;
-					vars.onUpdate?.();
+			to: vi.fn(
+				(target: { value?: number }, vars: { value?: number; onUpdate?: () => void }) => {
+					if (vars.value !== undefined) {
+						target.value = vars.value;
+						vars.onUpdate?.();
+					}
+					return tween;
 				}
-				return tween;
-			})
+			)
 		}
 	};
 });

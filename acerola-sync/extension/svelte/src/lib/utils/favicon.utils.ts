@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 
-/** Endereço de origem de uma URL ou match pattern (`https://*.site.com/*` → `https://site.com`). */
+/** Origin of a URL or match pattern (`https://*.site.com/*` → `https://site.com`). */
 export function siteOrigin(urlOrPattern: string): string | null {
 	const cleaned = urlOrPattern
 		.trim()
@@ -15,9 +15,9 @@ export function siteOrigin(urlOrPattern: string): string | null {
 }
 
 /**
- * Favicon do site. No Chrome vem do cache do próprio navegador (`/_favicon/`, permissão
- * `favicon`) — sem request para o site nem para terceiros. No Firefox, que não tem essa API,
- * cai no `/favicon.ico` do site.
+ * Site favicon. On Chrome it comes from the browser's own cache (`/_favicon/`, `favicon`
+ * permission), with no request to the site or third parties. On Firefox, which lacks this API,
+ * it falls back to the site's `/favicon.ico`.
  */
 export function faviconUrl(urlOrPattern: string, size = 64): string | null {
 	const origin = siteOrigin(urlOrPattern);
@@ -25,7 +25,7 @@ export function faviconUrl(urlOrPattern: string, size = 64): string | null {
 
 	if (import.meta.env.FIREFOX) return `${origin}/favicon.ico`;
 	const params = new URLSearchParams({ pageUrl: origin, size: String(size) });
-	// `/_favicon/` não é um arquivo da extensão, então não entra nos caminhos tipados do WXT.
+	// `/_favicon/` is not an extension file, so it is not among WXT's typed paths.
 	const getURL = browser.runtime.getURL as (path: string) => string;
 	return getURL(`/_favicon/?${params}`);
 }

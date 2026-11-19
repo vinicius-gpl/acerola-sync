@@ -1,0 +1,9 @@
+# Dono padrão: qualquer arquivo sem regra mais específica abaixo cai aqui.
+*                          @vinicius-gpl
+
+# Uma linha por pasta de app (mesmas fronteiras dos locais de commit)
+/acerola-sync/extension/   @vinicius-gpl
+/acerola-sync/server/      @vinicius-gpl
+
+# CI/CD e configuração do repositório
+/.github/                  @vinicius-gpl

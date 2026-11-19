@@ -2,7 +2,7 @@
 	export type AcerolaSiteIconProps = {
 		data: {
 			name: string;
-			/** URL ou match pattern do site; o favicon sai daqui. */
+			/** Site URL or match pattern; the favicon comes from it. */
 			url?: string | null;
 		};
 		ui?: {
@@ -21,7 +21,7 @@
 	const src = $derived(data.url ? faviconUrl(data.url) : null);
 </script>
 
-<!-- Ícone do site num quadrado de cartão. Sem favicon (ou se ele falhar), mostra a inicial. -->
+<!-- Site icon in a card square. Without a favicon (or if it fails), shows the initial. -->
 <span
 	class={cn(
 		'flex size-11 flex-none items-center justify-center overflow-hidden rounded-inner bg-surface text-lg font-black',

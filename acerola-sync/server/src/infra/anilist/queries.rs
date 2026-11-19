@@ -1,11 +1,11 @@
-//! Queries e mutations usadas pelo server.
+//! Queries and mutations used by the server.
 //!
-//! O AniList limita por complexidade e por quantidade de requests, então cada query pede só o
-//! que a tela usa:
-//! - `LIST_MEDIA_FIELDS`: o mínimo para lista, filtros, busca e tracking (sem sinopse, sem
+//! AniList limits by complexity and by number of requests, so each query asks only for what
+//! the screen uses:
+//! - `LIST_MEDIA_FIELDS`: the minimum for list, filters, search and tracking (no synopsis, no
 //!   banner).
-//! - `DETAIL_MEDIA_FIELDS`: o resto, pedido uma vez só quando a obra é aberta.
-//! - `AIRING_FIELDS`: só o próximo episódio, para atualizar o que está em lançamento.
+//! - `DETAIL_MEDIA_FIELDS`: the rest, requested only once when the media is opened.
+//! - `AIRING_FIELDS`: only the next episode, to update what is airing.
 
 const LIST_MEDIA_FIELDS: &str = r#"
     id idMal type format status episodes chapters volumes duration seasonYear averageScore
@@ -37,14 +37,14 @@ const ENTRY_FIELDS: &str = r#"
     completedAt { year month day }
 "#;
 
-/// Tamanho da página do sync incremental (o máximo do AniList).
+/// Incremental sync page size (AniList's maximum).
 pub const PAGE_SIZE: u32 = 50;
 
 pub fn viewer() -> String {
     "query { Viewer { id name siteUrl avatar { large } } }".to_string()
 }
 
-/// A lista inteira de um tipo, em pedaços de 500 entradas (`chunk` começa em 1).
+/// The whole list of one type, in chunks of 500 entries (`chunk` starts at 1).
 pub fn media_list_collection() -> String {
     format!(
         "query ($userId: Int, $type: MediaType, $chunk: Int) {{
@@ -56,8 +56,8 @@ pub fn media_list_collection() -> String {
     )
 }
 
-/// Entradas (anime e mangá juntos) da mais recente para a mais antiga. O sync incremental
-/// para na primeira que não mudou desde o último pull — normalmente 1 request.
+/// Entries (anime and manga together) from newest to oldest. The incremental sync stops at the
+/// first one that has not changed since the last pull: usually 1 request.
 pub fn recently_updated_entries() -> String {
     format!(
         "query ($userId: Int, $page: Int, $perPage: Int) {{
@@ -71,7 +71,7 @@ pub fn recently_updated_entries() -> String {
     )
 }
 
-/// Só o próximo episódio das obras em lançamento, 50 por request.
+/// Only the next episode of airing media, 50 per request.
 pub fn airing_by_ids() -> String {
     "query ($ids: [Int], $perPage: Int) {
         Page(page: 1, perPage: $perPage) {
@@ -114,7 +114,7 @@ pub fn media_by_id() -> String {
     format!("query ($id: Int) {{ Media(id: $id) {{ {DETAIL_MEDIA_FIELDS} }} }}")
 }
 
-/// A obra inteira e a entrada do usuário nela, num request só (botão "sincronizar" da obra).
+/// The whole media and the user's entry on it, in a single request (the media's "sync" button).
 pub fn media_with_entry() -> String {
     format!(
         "query ($id: Int) {{ Media(id: $id) {{ {DETAIL_MEDIA_FIELDS} mediaListEntry {{ {ENTRY_FIELDS} }} }} }}"

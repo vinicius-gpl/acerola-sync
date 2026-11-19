@@ -5,14 +5,14 @@
 		data: {
 			media: Media;
 			entry?: Entry | null;
-			/** Linha de baixo do título (ex.: status, formato e ano). */
+			/** Line below the title (e.g. status, format and year). */
 			subtitle?: string | null;
-			/** Selo do canto (ex.: tempo até o próximo episódio). */
+			/** Corner badge (e.g. time until the next episode). */
 			badge?: string | null;
 		};
 		events?: {
 			onOpen?: () => void;
-			/** Sem `onIncrement`, o card não mostra o botão de +1. */
+			/** Without `onIncrement`, the card does not show the +1 button. */
 			onIncrement?: () => void;
 		};
 		ui?: {
@@ -48,11 +48,11 @@
 	const percent = $derived(data.entry ? progressPercent(data.entry, data.media) : undefined);
 	const unit = $derived(
 		data.media.mediaType === 'ANIME'
-			? m['sync.card.episode_short']()
-			: m['sync.card.chapter_short']()
+			? m['sync.card.episode.short']()
+			: m['sync.card.chapter.short']()
 	);
 
-	// O número "pula" quando o progresso muda (depois do +1 salvar).
+	// The number "jumps" when the progress changes (after the +1 saves).
 	let lastProgress = untrack(() => data.entry?.progress);
 	$effect(() => {
 		const progress = data.entry?.progress;

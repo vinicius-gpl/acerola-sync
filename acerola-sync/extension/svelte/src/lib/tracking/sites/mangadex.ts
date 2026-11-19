@@ -35,7 +35,7 @@ function pickTitle(title: LocalizedString = {}, originalLanguage = 'ja'): string
 	);
 }
 
-/** O MangaDex já diz o ID do AniList em `links.al`: nesse caso não precisa buscar título. */
+/** MangaDex already gives the AniList ID in `links.al`: then there is no need to search by title. */
 export function parseMangadexChapter(
 	response: MangadexChapterResponse,
 	url: string
@@ -43,7 +43,7 @@ export function parseMangadexChapter(
 	const manga = response.data.relationships.find((relation) => relation.type === 'manga');
 	if (!manga) return null;
 
-	// Oneshot não tem número de capítulo.
+	// A oneshot has no chapter number.
 	const progress = parseProgress(response.data.attributes.chapter) ?? 1;
 	const anilistId = Number(manga.attributes?.links?.al);
 
@@ -58,7 +58,7 @@ export function parseMangadexChapter(
 	};
 }
 
-// Capítulo: https://mangadex.org/chapter/<uuid>[/<pagina>]
+// Chapter: https://mangadex.org/chapter/<uuid>[/<page>]
 function chapterId(url: URL): string | null {
 	const [section, id] = pathParts(url);
 	return section === 'chapter' && id ? id : null;
@@ -75,7 +75,7 @@ type MangadexMangaResponse = {
 	};
 };
 
-/** Página da obra: o mesmo título e o mesmo `links.al` do capítulo. */
+/** Media page: the same title and the same `links.al` as the chapter. */
 export function parseMangadexManga(response: MangadexMangaResponse, url: string): CurrentPage {
 	const attributes = response.data.attributes;
 	const anilistId = Number(attributes.links?.al);
@@ -90,7 +90,7 @@ export function parseMangadexManga(response: MangadexMangaResponse, url: string)
 	};
 }
 
-// Obra: https://mangadex.org/title/<uuid>[/<slug>]
+// Media: https://mangadex.org/title/<uuid>[/<slug>]
 function titleId(url: URL): string | null {
 	const [section, id] = pathParts(url);
 	return section === 'title' && id && id !== 'random' ? id : null;
@@ -108,7 +108,9 @@ export function createMangadex(fetcher: typeof fetch = (...args) => fetch(...arg
 		async detect(url) {
 			const id = chapterId(url);
 			if (!id) return null;
-			const response = await fetcher(`https://api.mangadex.org/chapter/${id}?includes[]=manga`);
+			const response = await fetcher(
+				`https://api.mangadex.org/chapter/${id}?includes[]=manga`
+			);
 			if (!response.ok) return null;
 			return parseMangadexChapter(await response.json(), url.href);
 		},

@@ -2,8 +2,8 @@ import type { CustomSite, MediaType, Resolved, TrackResult } from '$lib/api/type
 import type { CurrentPage, DetectedPage } from '$lib/tracking/types';
 import { browser } from 'wxt/browser';
 
-// Mensagens entre os contextos. O content script nunca fala com o server: pede ao background,
-// que tem a sessão e a host permission.
+// Messages between contexts. The content script never talks to the server: it asks the
+// background, which holds the session and the host permission.
 
 export type ResolveResponse =
 	| { status: 'resolved'; resolved: Resolved }
@@ -31,9 +31,9 @@ export type ExtensionMessage =
 	| { type: 'custom-sites:refresh' }
 	| { type: 'open:link'; request: LinkRequest }
 	| { type: 'open:media'; mediaId: number }
-	/** Botão fixo de site personalizado: abre o popup (ou a página cheia, se não der). */
+	/** Custom site floating button: opens the popup (or the full page, if it can't). */
 	| { type: 'open:popup' }
-	/** Popup → content script da aba: "o que está aberto aí?". */
+	/** Popup → tab content script: "what is open there?". */
 	| { type: 'page:current' };
 
 type ResponseOf<T extends ExtensionMessage['type']> = T extends 'track:resolve'
@@ -53,8 +53,8 @@ export function sendMessage<M extends ExtensionMessage>(
 }
 
 /**
- * Registra o roteador do background. Usa `sendResponse` + `return true` em vez de devolver a
- * Promise, porque o Chrome só passou a aceitar Promise no `onMessage` recentemente.
+ * Registers the background router. Uses `sendResponse` + `return true` instead of returning the
+ * Promise, because Chrome only recently started accepting a Promise in `onMessage`.
  */
 export function onMessage(
 	handler: (message: ExtensionMessage) => Promise<unknown> | unknown

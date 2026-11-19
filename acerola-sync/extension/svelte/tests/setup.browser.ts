@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 
-// Mock do storage do WXT — em jsdom não existe `chrome.storage`. Comportamento padrão:
-// retorna null (sem valor salvo), igual ao mock do store do Tauri no acerola-reader.
+// WXT storage mock: jsdom has no `chrome.storage`. Default behavior: returns null (no saved
+// value), like the Tauri store mock in acerola-reader.
 vi.mock('wxt/utils/storage', () => ({
 	storage: {
 		getItem: vi.fn().mockResolvedValue(null),

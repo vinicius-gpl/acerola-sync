@@ -30,7 +30,7 @@ pub struct Entry {
     pub last_push_error: Option<String>,
 }
 
-/// Entrada da lista com a obra junto, do jeito que a extensão consome.
+/// List entry with its media, the way the extension consumes it.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntryWithMedia {
@@ -39,7 +39,7 @@ pub struct EntryWithMedia {
     pub media: Media,
 }
 
-/// Quantas entradas há em cada status, por tipo — alimenta as abas da lista.
+/// How many entries are in each status, per type: feeds the list tabs.
 #[derive(Debug, Clone, FromRow, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EntryCount {
@@ -48,7 +48,7 @@ pub struct EntryCount {
     pub count: i64,
 }
 
-/// O que existe na lista para filtrar.
+/// What exists in the list to filter by.
 #[derive(Debug, Clone, Serialize, FromRow, PartialEq, Eq)]
 pub struct EntryFacets {
     pub genres: Vec<String>,
@@ -56,7 +56,7 @@ pub struct EntryFacets {
     pub years: Vec<i32>,
 }
 
-/// Campos que podem mudar numa edição. `None` = não mexe.
+/// Fields that can change in an edit. `None` = leave as is.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EntryPatch {
@@ -98,7 +98,7 @@ impl Entry {
         }
     }
 
-    /// Entrada nova, ainda sem ID no AniList (obra que não estava na lista).
+    /// New entry, still without an AniList ID (media that was not in the list).
     pub fn blank(user_id: i64, media_id: i64) -> Self {
         Self {
             user_id,

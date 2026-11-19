@@ -44,13 +44,16 @@ async function signIn(context: BrowserContext) {
 		([server]) =>
 			chrome.storage.local.set({
 				serverUrl: server,
-				session: { token: 'tok', user: { id: 1, name: 'vinicius', avatarUrl: null, siteUrl: null } }
+				session: {
+					token: 'tok',
+					user: { id: 1, name: 'vinicius', avatarUrl: null, siteUrl: null }
+				}
 			}),
 		[SERVER]
 	);
 }
 
-/** Server falso: lista, contagens, +1 e um sync que termina na segunda consulta de logs. */
+/** Fake server: list, counts, +1 and a sync that finishes on the second log poll. */
 async function mockServer(page: Page, calls: { patched: unknown[]; synced: number }) {
 	let logPolls = 0;
 	await page.route(`${SERVER}/**`, async (route) => {
@@ -107,13 +110,24 @@ async function mockServer(page: Page, calls: { patched: unknown[]; synced: numbe
 		if (url.pathname === '/sync/runs/9/logs') {
 			logPolls++;
 			const logs = [
-				{ id: logPolls, runId: 9, level: 'INFO', message: `linha ${logPolls}`, createdAt: soon(0) }
+				{
+					id: logPolls,
+					runId: 9,
+					level: 'INFO',
+					message: `linha ${logPolls}`,
+					createdAt: soon(0)
+				}
 			];
-			return route.fulfill({ json: { run: run(logPolls >= 2 ? 'SUCCESS' : 'RUNNING'), logs } });
+			return route.fulfill({
+				json: { run: run(logPolls >= 2 ? 'SUCCESS' : 'RUNNING'), logs }
+			});
 		}
 		if (url.pathname === '/history' || url.pathname === '/custom-sites')
 			return route.fulfill({ json: [] });
-		return route.fulfill({ status: 404, json: { errorType: 'not_found', message: url.pathname } });
+		return route.fulfill({
+			status: 404,
+			json: { errorType: 'not_found', message: url.pathname }
+		});
 	});
 }
 
@@ -149,7 +163,7 @@ test('lista por status, destaque e +1', async ({ context, page, extensionId }) =
 	await page.goto(`chrome-extension://${extensionId}/popup.html`);
 
 	await expect(page.getByRole('tab', { name: /Completed|Completo/ })).toContainText('340');
-	// O primeiro da lista vira o destaque "Continuar"; o +1 dele manda progress + 1.
+	// The first in the list becomes the "Continue" highlight; its +1 sends progress + 1.
 	const spotlight = page.locator('[data-spotlight]');
 	await expect(spotlight).toContainText('Sousou no Frieren');
 
@@ -197,7 +211,7 @@ test('app.html?media= abre direto na obra, mesmo mangá com dados repetidos', as
 	await signIn(context);
 	const calls = { patched: [] as unknown[], synced: 0 };
 	await mockServer(page, calls);
-	// Mangá de formato MANGA, com relação repetida e link repetido: nada disso pode travar.
+	// A MANGA-format manga, with a repeated relation and a repeated link: none of it may break.
 	const relation = {
 		relationType: 'ADAPTATION',
 		id: 9,
@@ -216,8 +230,18 @@ test('app.html?media= abre direto na obra, mesmo mangá com dados repetidos', as
 					chapters: 232,
 					relations: [relation, relation],
 					externalLinks: [
-						{ site: 'Twitter', url: 'https://x.com/csm', kind: 'SOCIAL', language: null },
-						{ site: 'Twitter', url: 'https://x.com/csm', kind: 'SOCIAL', language: null }
+						{
+							site: 'Twitter',
+							url: 'https://x.com/csm',
+							kind: 'SOCIAL',
+							language: null
+						},
+						{
+							site: 'Twitter',
+							url: 'https://x.com/csm',
+							kind: 'SOCIAL',
+							language: null
+						}
 					]
 				}),
 				entry: null,
@@ -242,6 +266,8 @@ test('id da extensão sai da chave do manifest (o login do AniList depende dele)
 	) as { key?: string };
 	test.skip(!manifest.key, 'build sem EXTENSION_PUBLIC_KEY: o id depende da pasta');
 	const hash = createHash('sha256').update(Buffer.from(manifest.key!, 'base64')).digest('hex');
-	const expected = [...hash.slice(0, 32)].map((d) => 'abcdefghijklmnop'[parseInt(d, 16)]).join('');
+	const expected = [...hash.slice(0, 32)]
+		.map((d) => 'abcdefghijklmnop'[parseInt(d, 16)])
+		.join('');
 	expect(extensionId).toBe(expected);
 });

@@ -1,7 +1,7 @@
 import { expect, test } from './fixtures';
 
-// Episódio novo: o background confere o server, põe o número no ícone e avisa pelo sistema o
-// que saiu desde a última conferência. Roda com a extensão de verdade e o server simulado.
+// New episode: the background checks the server, puts the number on the icon and notifies
+// through the system what aired since the last check. Runs with the real extension and a fake server.
 
 const SERVER = 'https://sync.test';
 
@@ -28,7 +28,7 @@ test('número no ícone e aviso só do episódio que saiu depois da primeira olh
 	page,
 	extensionId
 }) => {
-	// Episódio 8 de amanhã: o último lançado é o 7. Na primeira olhada, o 7 vira base.
+	// Episode 8 airs tomorrow: the last aired is 7. On the first look, 7 becomes the baseline.
 	let nextEpisode = 8;
 	await context.route(`${SERVER}/**`, (route) => {
 		const url = new URL(route.request().url());
@@ -43,12 +43,15 @@ test('número no ícone e aviso só do episódio que saiu depois da primeira olh
 		([server]) =>
 			chrome.storage.local.set({
 				serverUrl: server,
-				session: { token: 'tok', user: { id: 1, name: 'v', avatarUrl: null, siteUrl: null } }
+				session: {
+					token: 'tok',
+					user: { id: 1, name: 'v', avatarUrl: null, siteUrl: null }
+				}
 			}),
 		[SERVER]
 	);
 
-	// Fechar o popup pede a conferência.
+	// Closing the popup requests the check.
 	const check = async () => {
 		await page.goto(`chrome-extension://${extensionId}/popup.html`);
 		await page.waitForTimeout(500);
@@ -59,21 +62,21 @@ test('número no ícone e aviso só do episódio que saiu depois da primeira olh
 	};
 
 	await check();
-	// Anime 1 está no 5 com o 7 lançado (atrasado); o 2 está em dia.
+	// Anime 1 is at 5 with 7 aired (behind); anime 2 is up to date.
 	expect(await worker.evaluate(() => chrome.action.getBadgeText({}))).toBe('1');
 	const created: string[] = await worker.evaluate(() =>
 		chrome.notifications.getAll().then((all) => Object.keys(all))
 	);
 	expect(created).toEqual([]);
 
-	nextEpisode = 9; // saiu o 8
+	nextEpisode = 9; // episode 8 aired
 	await check();
 	const after: string[] = await worker.evaluate(() =>
 		chrome.notifications.getAll().then((all) => Object.keys(all))
 	);
 	expect(after).toEqual(['airing:1:8']);
 
-	// O aviso também fica na tela de notificações: o sino ganha o ponto e a tela lista o episódio.
+	// The notice also stays on the notifications screen: the bell gets the dot and the screen lists the episode.
 	await page.goto(`chrome-extension://${extensionId}/popup.html`);
 	await expect(page.locator('[data-unread-dot]')).toBeVisible();
 	await page.locator('[data-notifications-bell]').click();

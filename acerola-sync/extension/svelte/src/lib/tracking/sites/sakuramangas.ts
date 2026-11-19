@@ -1,13 +1,13 @@
 import { humanizeSlug, parseProgress, pathParts, type SiteAdapter } from '../types';
 
-// Capítulo: https://sakuramangas.org/obras/<slug>/<capitulo>/
+// Chapter: https://sakuramangas.org/obras/<slug>/<chapter>/
 function chapterParts(url: URL) {
 	const [section, slug, chapter] = pathParts(url);
 	if (section !== 'obras' || !slug || !chapter) return null;
 	return { slug, chapter };
 }
 
-// Obra: https://sakuramangas.org/obras/<slug>/
+// Media: https://sakuramangas.org/obras/<slug>/
 function overviewSlug(url: URL) {
 	const [section, slug, chapter] = pathParts(url);
 	return section === 'obras' && slug && !chapter ? slug : null;
@@ -29,7 +29,8 @@ export const sakuraMangas: SiteAdapter = {
 		const progress = parseProgress(parts.chapter);
 		if (!progress) return null;
 
-		const title = doc.querySelector('#id-titulo')?.textContent?.trim() || humanizeSlug(parts.slug);
+		const title =
+			doc.querySelector('#id-titulo')?.textContent?.trim() || humanizeSlug(parts.slug);
 		return {
 			site: this.id,
 			identifier: parts.slug,

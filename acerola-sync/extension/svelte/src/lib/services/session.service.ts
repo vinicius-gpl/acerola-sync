@@ -21,7 +21,7 @@ export async function saveSession(session: StoredSession | null): Promise<void> 
 	else await storage.removeItem(STORAGE_KEYS.session);
 }
 
-/** Cliente com a sessão salva, ou `null` se falta o server ou o login. */
+/** Client with the saved session, or `null` if the server or the login is missing. */
 export async function getAuthedApi(): Promise<Api | null> {
 	const [serverUrl, session] = await Promise.all([getServerUrl(), getSession()]);
 	if (!serverUrl || !session) return null;

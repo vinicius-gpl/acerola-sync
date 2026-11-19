@@ -72,7 +72,7 @@ pub enum AnilistError {
 }
 
 impl AnilistError {
-    /// Falha passageira: vale gravar localmente como pendente e reenviar depois.
+    /// Transient failure: worth storing locally as pending and resending later.
     pub fn is_transient(&self) -> bool {
         match self {
             AnilistError::Network(_) | AnilistError::RateLimited { .. } => true,
@@ -82,7 +82,7 @@ impl AnilistError {
     }
 }
 
-/// Erro devolvido pelas rotas. O corpo segue o `ErrorPayload` da extensão.
+/// Error returned by the routes. The body follows the extension's `ErrorPayload`.
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Missing or invalid session.")]
@@ -151,7 +151,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_type) = self.status_and_type();
 
-        // Detalhe interno (SQL, chave) fica no log, nunca no corpo da resposta.
+        // Internal detail (SQL, key) stays in the log, never in the response body.
         let message = if status == StatusCode::INTERNAL_SERVER_ERROR {
             tracing::error!("[AppError] {:?}", self);
             "Internal server error.".to_string()

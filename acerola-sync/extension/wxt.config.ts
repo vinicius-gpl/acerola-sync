@@ -3,12 +3,12 @@ import svg from '@poppanator/sveltekit-svg';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'wxt';
 
-// Mesmo layout do acerola-reader: tudo do frontend mora em `svelte/`.
+// Same layout as acerola-reader: the whole frontend lives in `svelte/`.
 export default defineConfig({
 	srcDir: 'svelte/src',
 	publicDir: 'svelte/static',
 	modules: ['@wxt-dev/module-svelte'],
-	// Imports explícitos, como no reader — nada de auto-import do WXT.
+	// Explicit imports, like in the reader: no WXT auto-import.
 	imports: false,
 	alias: {
 		$lib: 'svelte/src/lib',
@@ -17,8 +17,8 @@ export default defineConfig({
 	manifest: ({ browser }) => ({
 		name: 'Acerola Sync',
 		description: 'Lista, lançamentos e tracking de anime e mangá sincronizados com o AniList.',
-		// Ícones gerados do `acerola.svg` (o mesmo do acerola-reader). O Chrome não aceita SVG
-		// no manifest, então vão em PNG; dentro do popup o logo continua sendo o SVG.
+		// Icons generated from `acerola.svg` (the same as acerola-reader). Chrome does not accept
+		// SVG in the manifest, so they go as PNG; inside the popup the logo is still the SVG.
 		icons: {
 			16: 'icon/16.png',
 			32: 'icon/32.png',
@@ -27,27 +27,27 @@ export default defineConfig({
 			128: 'icon/128.png'
 		},
 		action: { default_title: 'Acerola Sync' },
-		// Id fixo em qualquer PC: o Chrome tira o id da chave pública em `key`. Ela vem de
-		// EXTENSION_PUBLIC_KEY, derivada no build da privada guardada no secret EXTENSION_KEY
-		// (release) ou no 1Password (`mise run build:extension`). Sem ela, o id depende da pasta.
-		// No Firefox o id fixo é o `gecko.id`.
+		// Fixed id on any PC: Chrome derives the id from the public key in `key`. It comes from
+		// EXTENSION_PUBLIC_KEY, derived at build time from the private key stored in the
+		// EXTENSION_KEY secret (release) or in 1Password (`mise run build:extension`). Without it,
+		// the id depends on the folder. On Firefox the fixed id is `gecko.id`.
 		...(browser === 'firefox'
 			? { browser_specific_settings: { gecko: { id: 'acerola-sync@acerola.app' } } }
 			: process.env.EXTENSION_PUBLIC_KEY
 				? { key: process.env.EXTENSION_PUBLIC_KEY }
 				: {}),
-		// storage: tema e sessão · identity: OAuth do AniList · scripting: sites personalizados ·
-		// favicon (só Chrome): ícone dos sites nos ajustes, vindo do cache do navegador.
+		// storage: theme and session · identity: AniList OAuth · scripting: custom sites ·
+		// favicon (Chrome only): site icons in settings, from the browser cache.
 		permissions: [
 			'storage',
 			'identity',
 			'scripting',
-			// alarms + notifications: confere episódio novo e avisa pelo sistema.
+			// alarms + notifications: check for new episodes and notify through the system.
 			'alarms',
 			'notifications',
 			...(browser === 'firefox' ? [] : ['favicon'])
 		],
-		// Sites embutidos (content scripts) e a API do MangaDex.
+		// Built-in sites (content scripts) and the MangaDex API.
 		host_permissions: [
 			'*://*.sakuramangas.org/*',
 			'*://sakuramangas.org/*',
@@ -56,10 +56,10 @@ export default defineConfig({
 			'*://*.crunchyroll.com/*',
 			'*://*.netflix.com/*'
 		],
-		// Ícone do botão fixo que o content script põe na página do site (inclusive nos sites
-		// personalizados, que podem ser qualquer domínio).
+		// Icon of the floating button the content script puts on the site page (custom sites
+		// included, which can be any domain).
 		web_accessible_resources: [{ resources: ['icon/96.png'], matches: ['<all_urls>'] }],
-		// Server e sites personalizados: pedidos na hora, só para o domínio cadastrado.
+		// Server and custom sites: requested on demand, only for the registered domain.
 		optional_host_permissions: ['https://*/*', 'http://*/*']
 	}),
 	vite: () => ({
@@ -75,7 +75,7 @@ export default defineConfig({
 			paraglideVitePlugin({
 				project: './svelte/project.inlang',
 				outdir: './svelte/src/lib/paraglide',
-				// Página de extensão não tem cookie confiável: o idioma fica no localStorage.
+				// An extension page has no reliable cookie: the language lives in localStorage.
 				strategy: ['localStorage', 'preferredLanguage', 'baseLocale']
 			})
 		]

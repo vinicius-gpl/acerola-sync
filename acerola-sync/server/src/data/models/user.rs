@@ -14,7 +14,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-/// O que a extensão vê do usuário: nada do token.
+/// What the extension sees of the user: nothing of the token.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserProfile {

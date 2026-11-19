@@ -1,0 +1,26 @@
+{
+	"project": "acerola-sync",
+	"description": "Sincroniza o que você assiste e lê com o AniList: extensão Svelte, servidor Rust e Postgres.",
+	"commit": {
+		"scopes": {
+			"backend": "acerola-sync/server/",
+			"extension": "acerola-sync/extension/",
+			"db": "acerola-sync/server/src/infra/db/",
+			"docker": "acerola-sync/server/.config/docker/",
+			"kit": "scripts/, lefthook.yml e os arquivos de configuração da raiz",
+			"ci": ".github/",
+			"docs": "docs/ e os .md da raiz",
+			"claude": ".claude/ e CLAUDE.md",
+			"deps": "atualização de dependência"
+		}
+	},
+	"design": {
+		"scan": ["acerola-sync/extension/svelte/src"],
+		"extensions": [".svelte", ".ts", ".css", ".html"],
+		"exempt": ["/theme/", "/lib/components/ui/", "/lib/paraglide/", "\\.test\\.ts$", "\\.d\\.ts$"]
+	},
+	"i18n": {
+		"messages": ["acerola-sync/extension/svelte/messages"],
+		"baseLocale": "pt-br"
+	}
+}

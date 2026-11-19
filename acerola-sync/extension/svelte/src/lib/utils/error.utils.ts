@@ -9,30 +9,30 @@ export function extractErrorMessage(error: unknown): string {
 	if (error === null || error === undefined) {
 		return 'Unknown error occurred';
 	}
-	// Stryker disable next-line ConditionalExpression,BlockStatement,StringLiteral: desativar/curto-circuitar
-	// esse guard faz uma entrada string cair no `return String(error)` lá embaixo. `String(x) === x`
-	// pra qualquer string primitiva por spec, então a saída observável nunca muda — um mutante que
-	// remove ou derruba esse check é equivalente de verdade pra qualquer entrada string.
+	// Stryker disable next-line ConditionalExpression,BlockStatement,StringLiteral: disabling/short-circuiting
+	// this guard makes a string input fall into `return String(error)` below. `String(x) === x`
+	// for any primitive string by spec, so the observable output never changes: a mutant that
+	// removes or knocks down this check is truly equivalent for any string input.
 	if (typeof error === 'string') {
 		return error;
 	}
 	if (typeof error === 'object') {
 		const payload = error as Partial<ErrorPayload>;
-		// Payload vindo de um comando Tauri com `errorType` tipado (ComicError) — traduz via
-		// Paraglide em vez de vazar o `message` cru em inglês do Rust pra UI. Tipo não mapeado
-		// em COMIC_ERROR_MESSAGES cai no `message` cru mesmo (mesmo fallback de sempre).
+		// Payload from a Tauri command with a typed `errorType` (ComicError): translates via
+		// Paraglide instead of leaking Rust's raw English `message` to the UI. A type not mapped
+		// in COMIC_ERROR_MESSAGES falls back to the raw `message` (the usual fallback).
 		if (typeof payload.errorType === 'string' && typeof payload.message === 'string') {
 			return resolveErrorMessage(payload as ErrorPayload);
 		}
 		// Stryker disable next-line ConditionalExpression,LogicalOperator,StringLiteral,EqualityOperator,BlockStatement,MethodExpression:
-		// esse branch e o fallback logo abaixo leem a mesma propriedade `message` do mesmo objeto
-		// (`payload` é só `error` com cast, não uma cópia), sem trim. Sempre que
-		// `typeof payload.message === 'string'` é verdadeiro, `'message' in error` também é
-		// necessariamente verdadeiro, então o fallback dispara com o valor idêntico. Isso torna
-		// o formato exato dessa condição inobservável: desativar, forçar qualquer operando,
-		// inverter a fronteira de `.trim().length > 0` em qualquer direção, tirar o `.trim()`
-		// ou esvaziar o if-block — tudo continua retornando a mesma string, o fluxo só reroteia
-		// pelo branch de fallback (ou vice-versa), mas o valor de retorno é sempre idêntico.
+		// this branch and the fallback right below read the same `message` property of the same
+		// object (`payload` is just `error` with a cast, not a copy), without trim. Whenever
+		// `typeof payload.message === 'string'` is true, `'message' in error` is necessarily
+		// true too, so the fallback fires with the identical value. That makes the exact shape
+		// of this condition unobservable: disabling it, forcing any operand, flipping the
+		// `.trim().length > 0` boundary either way, removing `.trim()` or emptying the if-block
+		// all keep returning the same string; the flow only reroutes through the fallback
+		// branch (or vice versa), but the return value is always identical.
 		if (typeof payload.message === 'string' && payload.message.trim().length > 0) {
 			return payload.message;
 		}

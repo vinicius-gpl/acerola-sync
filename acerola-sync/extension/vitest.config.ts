@@ -44,7 +44,7 @@ export default defineConfig({
 		// Crucial for Svelte 5 Browser Mode
 		conditions: ['browser', 'svelte', 'development']
 	},
-	// INFO: Não usar paraglide nos testes.
+	// INFO: Do not use paraglide in tests.
 	test: {
 		coverage: {
 			provider: 'v8',
@@ -61,7 +61,7 @@ export default defineConfig({
 				'svelte/tests/**'
 			],
 			thresholds: {
-				// Mesmo baseline do acerola-reader.
+				// Same baseline as acerola-reader.
 				lines: 55,
 				statements: 55,
 				functions: 52,

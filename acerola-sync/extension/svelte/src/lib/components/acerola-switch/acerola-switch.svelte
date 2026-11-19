@@ -52,7 +52,7 @@
 >
 	<SwitchPrimitive.Thumb
 		class={cn(
-			'pointer-events-none block rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-full data-[state=unchecked]:translate-x-0',
+			'pointer-events-none block rounded-full bg-background shadow-lift ring-0 transition-transform data-[state=checked]:translate-x-full data-[state=unchecked]:translate-x-0',
 			(ui?.size ?? 'default') === 'default' ? 'h-6 w-6' : 'h-5 w-5'
 		)}
 	/>

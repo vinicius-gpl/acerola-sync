@@ -39,12 +39,12 @@
 {#snippet template(args: Record<string, unknown>)}
 	<AcerolaPopover {...args}>
 		{#snippet trigger()}
-			<button type="button" class="rounded bg-primary px-4 py-2 text-primary-foreground">
+			<button type="button" class="rounded-full bg-primary px-4 py-2 text-primary-foreground">
 				Abrir Popover
 			</button>
 		{/snippet}
 		{#snippet content()}
-			<div class="rounded-lg border bg-popover p-4 text-popover-foreground shadow-md">
+			<div class="rounded-inner bg-popover p-4 text-popover-foreground shadow-float">
 				Conteudo do Popover
 			</div>
 		{/snippet}
@@ -57,8 +57,7 @@
 	parameters={{
 		docs: {
 			description: {
-				story:
-					'Estado inicial fechado. Este e o comportamento padrao para menus contextuais, dicas expandidas e acoes secundarias reveladas sob demanda.'
+				story: 'Estado inicial fechado. Este e o comportamento padrao para menus contextuais, dicas expandidas e acoes secundarias reveladas sob demanda.'
 			}
 		}
 	}}
@@ -71,8 +70,7 @@
 	parameters={{
 		docs: {
 			description: {
-				story:
-					'Estado inicial aberto. E util para inspecao visual, validacao de layout e casos em que o conteudo precisa aparecer imediatamente por regra de negocio ou onboarding.'
+				story: 'Estado inicial aberto. E util para inspecao visual, validacao de layout e casos em que o conteudo precisa aparecer imediatamente por regra de negocio ou onboarding.'
 			}
 		}
 	}}

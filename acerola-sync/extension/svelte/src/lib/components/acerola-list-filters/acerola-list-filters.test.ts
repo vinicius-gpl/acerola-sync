@@ -22,7 +22,13 @@ describe('AcerolaListFilters', () => {
 	it('conta só os filtros do painel', () => {
 		expect(activeFilterCount(EMPTY_FILTERS)).toBe(0);
 		expect(
-			activeFilterCount({ ...EMPTY_FILTERS, q: 'x', sort: 'title', genres: ['A', 'B'], year: 2020 })
+			activeFilterCount({
+				...EMPTY_FILTERS,
+				q: 'x',
+				sort: 'title',
+				genres: ['A', 'B'],
+				year: 2020
+			})
 		).toBe(3);
 	});
 
@@ -47,7 +53,10 @@ describe('AcerolaListFilters', () => {
 		expect(document.querySelector('[data-filters-panel]')).toBeInTheDocument();
 
 		await user.click(screen.getByRole('button', { name: 'Fantasy' }));
-		expect(onChange).toHaveBeenLastCalledWith({ ...EMPTY_FILTERS, genres: ['Drama', 'Fantasy'] });
+		expect(onChange).toHaveBeenLastCalledWith({
+			...EMPTY_FILTERS,
+			genres: ['Drama', 'Fantasy']
+		});
 		await user.click(screen.getByRole('button', { name: 'Drama' }));
 		expect(onChange).toHaveBeenLastCalledWith({ ...EMPTY_FILTERS, genres: [] });
 
@@ -58,7 +67,11 @@ describe('AcerolaListFilters', () => {
 			formats: ['MOVIE']
 		});
 		await user.click(screen.getByRole('button', { name: '2016' }));
-		expect(onChange).toHaveBeenLastCalledWith({ ...EMPTY_FILTERS, genres: ['Drama'], year: 2016 });
+		expect(onChange).toHaveBeenLastCalledWith({
+			...EMPTY_FILTERS,
+			genres: ['Drama'],
+			year: 2016
+		});
 		await user.click(screen.getByRole('button', { name: 'Sua nota' }));
 		expect(onChange).toHaveBeenLastCalledWith({
 			...EMPTY_FILTERS,

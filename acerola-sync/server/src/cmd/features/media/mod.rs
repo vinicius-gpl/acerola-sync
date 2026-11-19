@@ -35,7 +35,7 @@ pub async fn detail(
     Ok(Json(MediaDetailPayload { media, entry, visits }))
 }
 
-/// `POST /entries/{media_id}/sync`: pendência enviada, obra e entrada puxadas de novo.
+/// `POST /entries/{media_id}/sync`: pending change sent, media and entry pulled again.
 pub async fn sync_one(
     State(state): State<AppState>, auth: AuthUser, Path(media_id): Path<i64>,
 ) -> Result<Json<MediaDetailPayload>, AppError> {

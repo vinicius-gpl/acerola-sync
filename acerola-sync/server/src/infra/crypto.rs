@@ -6,8 +6,8 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use rand::Rng;
 use sha2::{Digest, Sha256};
 
-/// Bytes aleatórios de um gerador criptográfico (o `ThreadRng` do rand é um ChaCha12
-/// alimentado e realimentado pelo sistema operacional).
+/// Random bytes from a cryptographic generator (rand's `ThreadRng` is a ChaCha12 seeded and
+/// reseeded by the operating system).
 fn random_bytes<const N: usize>() -> [u8; N] {
     let mut bytes = [0u8; N];
     rand::rng().fill_bytes(&mut bytes);
@@ -16,7 +16,7 @@ fn random_bytes<const N: usize>() -> [u8; N] {
 
 use crate::infra::error::CryptoError;
 
-/// Criptografa com AES-256-GCM e devolve `(ciphertext, nonce)`. O nonce é novo a cada chamada.
+/// Encrypts with AES-256-GCM and returns `(ciphertext, nonce)`. The nonce is new on every call.
 pub fn encrypt(key: &[u8; 32], plaintext: &str) -> Result<(Vec<u8>, Vec<u8>), CryptoError> {
     let cipher = Aes256Gcm::new(&(*key).into());
     let nonce = Nonce::<Aes256Gcm>::from(random_bytes::<12>());
@@ -32,12 +32,12 @@ pub fn decrypt(key: &[u8; 32], ciphertext: &[u8], nonce: &[u8]) -> Result<String
     String::from_utf8(plaintext).map_err(|_| CryptoError::Decrypt)
 }
 
-/// Token de sessão opaco (32 bytes aleatórios em base64url).
+/// Opaque session token (32 random bytes in base64url).
 pub fn generate_session_token() -> String {
     URL_SAFE_NO_PAD.encode(random_bytes::<32>())
 }
 
-/// Só o hash do token vai para o banco: quem lê o banco não consegue se passar pela extensão.
+/// Only the token hash goes to the database: whoever reads the database cannot impersonate the extension.
 pub fn hash_token(token: &str) -> Vec<u8> {
     Sha256::digest(token.as_bytes()).to_vec()
 }
@@ -55,8 +55,8 @@ mod tests {
         assert_eq!(decrypt(&KEY, &ciphertext, &nonce).unwrap(), "anilist-token");
     }
 
-    /// Vetor fixo (AES-256-GCM padrão, gerado fora do Rust): o token que já está cifrado no
-    /// banco continua abrindo depois de trocar a versão da biblioteca.
+    /// Fixed vector (standard AES-256-GCM, generated outside Rust): the token already encrypted
+    /// in the database still opens after upgrading the library version.
     #[test]
     fn test_decrypts_ciphertext_from_any_aes_gcm_implementation() {
         let nonce = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];

@@ -1,33 +1,33 @@
 import { m } from '$lib/paraglide/messages';
 
-// Contrato com o `code` opcional que os protocolos de sync P2P (sync-files, sync-comic,
-// sync-history, browse-library, browse-cover) anexam ao payload de `*:error` quando a causa
-// tem uma tradução estável (ver `classify_sync_error`/`SyncErrorCode` em `transfer.rs`) — o
-// `message` cru continua em inglês/técnico (log/wire, às vezes texto de baixo nível do QUIC
-// tipo "stream reset by peer"), então sem isso esses erros apareceriam sem tradução na UI
-// mesmo com o app todo em pt-BR. Código não reconhecido (`classify_sync_error` retornou
-// `None`) cai no fallback natural de `translateSyncMessage` — mostra o `message` cru, mesmo
-// padrão de `errors.i18n.ts` pros erros de `ComicError`. Compartilhado por todos os hooks que
-// escutam eventos `*:error` desses protocolos (`use-network-sync.svelte.ts`,
-// `use-remote-library.svelte.ts`) — mesmo `code` em todos, um lugar só pra traduzir.
+// Contract with the optional `code` the P2P sync protocols (sync-files, sync-comic,
+// sync-history, browse-library, browse-cover) attach to the `*:error` payload when the cause
+// has a stable translation (see `classify_sync_error`/`SyncErrorCode` in `transfer.rs`). The
+// raw `message` stays in English/technical (log/wire, sometimes low-level QUIC text like
+// "stream reset by peer"), so without this those errors would show untranslated in the UI
+// even with the whole app in pt-BR. An unknown code (`classify_sync_error` returned `None`)
+// falls back naturally to `translateSyncMessage`, which shows the raw `message`, the same
+// pattern as `errors.i18n.ts` for `ComicError` errors. Shared by every hook that listens to
+// `*:error` events of these protocols (`use-network-sync.svelte.ts`,
+// `use-remote-library.svelte.ts`): same `code` everywhere, one place to translate.
 const SYNC_ERROR_MESSAGES: Record<string, () => string> = {
-	busy: m['tauri_errors.sync.session_busy.label'],
-	timeout: m['tauri_errors.sync.timed_out.label'],
-	connection_lost: m['tauri_errors.sync.connection_lost.label'],
-	peer_not_found: m['tauri_errors.sync.peer_not_found.label'],
-	auth_denied: m['tauri_errors.sync.auth_denied.label'],
-	shutdown: m['tauri_errors.sync.shutdown.label'],
-	incompatible_version: m['tauri_errors.sync.incompatible_version.label'],
-	startup_failed: m['tauri_errors.sync.startup_failed.label'],
-	blob_not_found: m['tauri_errors.sync.blob_not_found.label'],
-	missing_blob_hash: m['tauri_errors.sync.missing_blob_hash.label'],
-	blob_fetch_failed: m['tauri_errors.sync.blob_fetch_failed.label'],
-	checksum_mismatch: m['tauri_errors.sync.checksum_mismatch.label'],
-	comic_directory_unavailable: m['tauri_errors.sync.comic_directory_unavailable.label'],
-	persist_failed: m['tauri_errors.sync.persist_failed.label'],
-	no_pending_request: m['tauri_errors.sync.no_pending_request.label'],
-	partial_sync: m['tauri_errors.sync.partial_sync.label'],
-	comic_not_found: m['tauri_errors.sync.comic_not_found.label']
+	busy: m['tauriErrors.sync.sessionBusy.label'],
+	timeout: m['tauriErrors.sync.timedOut.label'],
+	connection_lost: m['tauriErrors.sync.connectionLost.label'],
+	peer_not_found: m['tauriErrors.sync.peerNotFound.label'],
+	auth_denied: m['tauriErrors.sync.authDenied.label'],
+	shutdown: m['tauriErrors.sync.shutdown.label'],
+	incompatible_version: m['tauriErrors.sync.incompatibleVersion.label'],
+	startup_failed: m['tauriErrors.sync.startup.failed.label'],
+	blob_not_found: m['tauriErrors.sync.blob.notFound.label'],
+	missing_blob_hash: m['tauriErrors.sync.missingBlobHash.label'],
+	blob_fetch_failed: m['tauriErrors.sync.blob.fetchFailed.label'],
+	checksum_mismatch: m['tauriErrors.sync.checksumMismatch.label'],
+	comic_directory_unavailable: m['tauriErrors.sync.comic.directoryUnavailable.label'],
+	persist_failed: m['tauriErrors.sync.persist.failed.label'],
+	no_pending_request: m['tauriErrors.sync.noPendingRequest.label'],
+	partial_sync: m['tauriErrors.sync.partialSync.label'],
+	comic_not_found: m['tauriErrors.sync.comic.notFound.label']
 };
 
 export function translateSyncMessage(code: string | undefined, message: string): string {

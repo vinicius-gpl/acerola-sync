@@ -18,7 +18,7 @@ use crate::{
     infra::error::{AnilistError, AppError},
 };
 
-/// Resultado de uma escrita: a entrada como ficou e se ela ainda está pendente de envio.
+/// Result of a write: the entry as it ended up and whether it is still pending to be sent.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SavedEntry {
@@ -27,7 +27,7 @@ pub struct SavedEntry {
     pub pending: bool,
 }
 
-/// Garante que a obra está no espelho. Se não estiver, busca no AniList (1 request).
+/// Makes sure the media is in the mirror. If not, fetches it from AniList (1 request).
 pub async fn ensure_media(state: &AppState, user: &User, media_id: i64) -> Result<Media, AppError> {
     if let Some(media) = media_repository::find(&state.database_pool, media_id).await? {
         return Ok(media);
@@ -39,8 +39,8 @@ pub async fn ensure_media(state: &AppState, user: &User, media_id: i64) -> Resul
     Ok(media)
 }
 
-/// Obra com sinopse e banner. Busca o detalhe no AniList uma vez só por obra; se o AniList
-/// estiver fora, devolve o que o espelho tem.
+/// Media with synopsis and banner. Fetches the detail from AniList only once per media; if
+/// AniList is down, returns what the mirror has.
 pub async fn ensure_details(
     state: &AppState, user: &User, media_id: i64,
 ) -> Result<Media, AppError> {
@@ -68,8 +68,8 @@ pub async fn ensure_details(
     }
 }
 
-/// Botão "sincronizar" da obra: manda o que estava pendente dela e puxa de novo a obra
-/// inteira e a entrada do AniList (1 request, mais 1 se havia pendência).
+/// The media's "sync" button: sends its pending changes and pulls the whole media and the
+/// AniList entry again (1 request, plus 1 if something was pending).
 pub async fn sync_one(
     state: &AppState, user: &User, media_id: i64,
 ) -> Result<(Media, Option<Entry>), AppError> {
@@ -78,7 +78,7 @@ pub async fn sync_one(
         let progress = pending.progress;
         let saved = save(state, user, pending, Some(progress), "MANUAL", None).await?;
         if saved.pending {
-            // O AniList continua fora: não adianta puxar, e a pendência fica.
+            // AniList is still down: no point pulling, and the pending change stays.
             let media = ensure_media(state, user, media_id).await?;
             return Ok((media, Some(saved.entry.entry)));
         }
@@ -100,7 +100,7 @@ pub async fn sync_one(
             .await?,
         ),
         None => {
-            // Saiu da lista no AniList (e não tinha nada pendente aqui): sai daqui também.
+            // Left the list on AniList (and nothing was pending here): leaves here too.
             entry_repository::delete(&mut *transaction, user.id, media_id).await?;
             None
         },
@@ -114,7 +114,7 @@ pub async fn sync_one(
     Ok((media, entry))
 }
 
-/// Aplica uma edição manual. Chegar no total marca como concluído, como no AniMouto.
+/// Applies a manual edit. Reaching the total marks it as completed, like AniMouto.
 pub fn apply_patch(
     current: &Entry, patch: &EntryPatch, total: Option<i32>, today: NaiveDate,
 ) -> Result<Entry, AppError> {
@@ -170,7 +170,7 @@ pub fn apply_patch(
     Ok(next)
 }
 
-/// Datas que o AniList também preenche sozinho no site.
+/// Dates AniList also fills in by itself on the site.
 pub fn fill_dates(entry: &mut Entry, today: NaiveDate) {
     if matches!(entry.status.as_str(), "CURRENT" | "COMPLETED") && entry.started_at.is_none() {
         entry.started_at = Some(today);
@@ -184,8 +184,8 @@ fn fuzzy(date: Option<NaiveDate>) -> Option<Value> {
     date.map(|date| json!({ "year": date.year(), "month": date.month(), "day": date.day() }))
 }
 
-/// Variáveis do `SaveMediaListEntry`. Campo vazio fica de fora: `null` explícito apagaria o
-/// valor no AniList.
+/// `SaveMediaListEntry` variables. An empty field is left out: an explicit `null` would erase
+/// the value on AniList.
 pub fn save_variables(entry: &Entry) -> Value {
     let mut variables = Map::new();
     variables.insert("mediaId".into(), json!(entry.media_id));
@@ -206,8 +206,8 @@ pub fn save_variables(entry: &Entry) -> Value {
     Value::Object(variables)
 }
 
-/// Grava no AniList e no espelho ao mesmo tempo. Se o AniList estiver fora (rede, 5xx, rate
-/// limit), grava só aqui com `dirty = true` e o worker reenvia depois.
+/// Writes to AniList and to the mirror at the same time. If AniList is down (network, 5xx, rate
+/// limit), writes only here with `dirty = true` and the worker resends later.
 pub async fn save(
     state: &AppState, user: &User, next: Entry, previous_progress: Option<i32>, source: &str,
     url: Option<&str>,
@@ -285,8 +285,8 @@ pub async fn delete(state: &AppState, user: &User, media_id: i64) -> Result<(), 
     Ok(())
 }
 
-/// Reenvia ao AniList o que ficou pendente. Para no primeiro erro passageiro: se o AniList
-/// caiu, não adianta tentar o resto agora.
+/// Resends to AniList what was left pending. Stops at the first transient error: if AniList is
+/// down, there is no point trying the rest now.
 pub async fn push_pending(state: &AppState, user: &User) -> Result<i32, AppError> {
     let pending = entry_repository::find_dirty(&state.database_pool, user.id).await?;
     if pending.is_empty() {

@@ -1,23 +1,23 @@
 import type { CustomSite, ProgressSource } from '$lib/api/types';
 import { parseProgress } from './types';
 
-// Número do capítulo/episódio fora da URL. Sites como a Kuro Mangás usam um id interno na URL
-// (`/read/2507/463111`) e só mostram o número no HTML ("Cap. 30" no título da página). O site
-// personalizado diz de onde ler (título da página ou um elemento) e, opcionalmente, uma regex
-// que tira o número do texto.
+// Chapter/episode number outside the URL. Sites like Kuro Mangás use an internal id in the URL
+// (`/read/2507/463111`) and only show the number in the HTML ("Cap. 30" in the page title). The
+// custom site says where to read it from (page title or an element) and, optionally, a regex
+// that pulls the number from the text.
 
-/** O que a página mostra de texto onde o número costuma estar. */
+/** Text the page shows where the number usually is. */
 export type PageSnapshot = {
 	url: string;
 	title: string;
 	h1: string | null;
-	/** Opção marcada nos `<select>` da página (o seletor de capítulos de muitos leitores). */
+	/** Selected option of the page's `<select>`s (the chapter picker of many readers). */
 	selected: string | null;
-	/** Texto do seletor configurado, quando há um. */
+	/** Text of the configured selector, when there is one. */
 	selectorText: string | null;
 };
 
-/** Palavra de capítulo/episódio seguida do número. Sugestão padrão e leitura sem regex. */
+/** Chapter/episode word followed by the number. Default suggestion and regex-free read. */
 export const CHAPTER_PATTERN =
 	'(?:cap[íi]tulo|cap|chapter|ch|epis[óo]dio|episode|ep)\\.?\\s*(?<progress>\\d+(?:[.,]\\d+)?)';
 
@@ -30,8 +30,8 @@ function compile(pattern: string): RegExp | null {
 }
 
 /**
- * Número dentro de um texto. Com regex, vale o grupo `progress`, senão o primeiro grupo, senão o
- * trecho todo. Sem regex, procura "Cap. 30"/"Episódio 4"; sem palavra, o primeiro número.
+ * Number inside a text. With a regex, the `progress` group wins, else the first group, else the
+ * whole match. Without a regex, looks for "Cap. 30"/"Episódio 4"; with no word, the first number.
  */
 export function extractProgress(text: string | null | undefined, pattern?: string | null) {
 	if (!text) return null;
@@ -41,7 +41,7 @@ export function extractProgress(text: string | null | undefined, pattern?: strin
 	return pattern?.trim() ? null : parseProgress(text);
 }
 
-/** Texto de onde o site lê o número. */
+/** Text the site reads the number from. */
 export function sourceText(source: ProgressSource, snapshot: PageSnapshot): string | null {
 	if (source === 'title') return snapshot.title;
 	if (source === 'selector') return snapshot.selectorText;
@@ -58,8 +58,8 @@ export function progressFromSnapshot(
 }
 
 /**
- * Lê da página só o que importa. Também roda dentro da aba pelo `scripting`, que serializa a
- * função: nada de imports nem helpers de fora aqui dentro.
+ * Reads only what matters from the page. It also runs inside the tab through `scripting`, which
+ * serializes the function: no imports or outside helpers in here.
  */
 export function snapshotPage(selector: string | null, doc: Document = document): PageSnapshot {
 	const clean = (value: string | null | undefined) => value?.replace(/\s+/g, ' ').trim() || null;
@@ -88,14 +88,14 @@ export type ProgressSuggestion = {
 	selector: string | null;
 	pattern: string;
 	progress: number;
-	/** Texto onde achou, para mostrar na tela. */
+	/** Text where it was found, to show on screen. */
 	text: string;
 };
 
 /**
- * Onde a página parece mostrar o número ("Cap. 30" no título, no `h1` ou no seletor de
- * capítulos). É só sugestão: quem confirma é a pessoa, porque links de próximo/anterior e
- * contadores de página também têm números.
+ * Where the page seems to show the number ("Cap. 30" in the title, in the `h1` or in the chapter
+ * picker). It is only a suggestion: the person confirms it, because next/previous links and
+ * page counters also have numbers.
  */
 export function suggestProgress(snapshot: PageSnapshot): ProgressSuggestion | null {
 	const regex = compile(CHAPTER_PATTERN)!;

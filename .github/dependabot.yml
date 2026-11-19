@@ -1,5 +1,5 @@
-# Mesmo molde do acerola-reader: PRs semanais na `develop`, agrupados, com a mensagem no
-# formato do projeto (`[chore](<local>): Bump …`) para passar no commitlint.
+# Acerola standard: weekly grouped PRs on `develop`, with the message in the project format
+# (`[chore](<scope>): Bump …`) so it passes the commit-msg hook.
 version: 2
 updates:
   - package-ecosystem: "cargo"

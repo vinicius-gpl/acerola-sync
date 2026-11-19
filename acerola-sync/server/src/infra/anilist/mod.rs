@@ -1,5 +1,5 @@
-//! Cliente do GraphQL do AniList. É o único ponto do server que fala com o AniList: toda
-//! chamada passa pelo mesmo `RateGate`, então o limite vale para o processo inteiro.
+//! AniList GraphQL client. It is the only place in the server that talks to AniList: every
+//! call goes through the same `RateGate`, so the limit applies to the whole process.
 
 pub mod client;
 pub mod queries;

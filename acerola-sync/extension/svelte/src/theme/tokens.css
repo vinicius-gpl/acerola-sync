@@ -1,23 +1,23 @@
-/* Tokens de forma e sombra do Acerola Sync. As cores vêm de `colors/catppuccin.css` (cópia
-   exata do acerola-reader) e não são redefinidas aqui.
+/* Acerola Sync shape and shadow tokens. Colors come from `colors/catppuccin.css` (an exact
+   copy of acerola-reader's) and are not redefined here.
 
-   Use só estes raios: nada de `rounded-[…]`, `rounded-xl`, `rounded-3xl` em código novo.
-   - `rounded-sheet` (32px): painel/folha inteira (painel lateral da obra).
-   - `rounded-card`  (28px): cartões grandes (destaque, estado do sync, perfil, hero).
-   - `rounded-tile`  (24px): blocos de número, linhas de lista, capas.
-   - `rounded-inner` (16px): elementos dentro de um cartão (capa pequena, campo).
-   - `rounded-full`: pílulas, fichas, botões redondos.
-   Sombras: `shadow-lift` (card parado), `shadow-float` (o que flutua: barra, painel, toast).
-   Sobre capa ou arte: `bg-scrim/…`, `from-scrim/…`, `text-on-scrim`.
-   O script `scripts/design/check-design.mjs` recusa o que fugir disso. */
+   Use only these radii: no `rounded-[…]`, `rounded-xl`, `rounded-3xl` in new code.
+   - `rounded-sheet` (32px): whole panel/sheet (the media side panel).
+   - `rounded-card`  (28px): large cards (highlight, sync status, profile, hero).
+   - `rounded-tile`  (24px): number blocks, list rows, covers.
+   - `rounded-inner` (16px): elements inside a card (small cover, field).
+   - `rounded-full`: pills, chips, round buttons.
+   Shadows: `shadow-lift` (resting card), `shadow-float` (what floats: bar, panel, toast).
+   Over a cover or art: `bg-scrim/…`, `from-scrim/…`, `text-on-scrim`.
+   `scripts/design/check-design.mjs` rejects anything outside this. */
 @theme {
 	--radius-sheet: 32px;
 	--radius-card: 28px;
 	--radius-tile: 24px;
 	--radius-inner: 16px;
 
-	/* Véu escuro sobre capa/arte (legível em qualquer imagem, nos dois modos) e o texto por
-	   cima dele. Não mudam com o modo de propósito: a arte da capa é a mesma. */
+	/* Dark veil over cover/art (readable on any image, in both modes) and the text on top of
+	   it. They do not change with the mode on purpose: the cover art is the same. */
 	--color-scrim: #000000;
 	--color-on-scrim: #ffffff;
 
@@ -25,8 +25,8 @@
 	--shadow-lift: 0 10px 24px -10px rgb(0 0 0 / 0.45);
 }
 
-/* Fade nas pontas de uma faixa que rola na horizontal (fichas): o item cortado some aos poucos
-   em vez de o texto parar seco na beira. A cor da máscara não aparece, só a opacidade conta. */
+/* Fade at the ends of a horizontally scrolling strip (chips): the clipped item fades out
+   instead of the text stopping abruptly at the edge. The mask color never shows, only opacity counts. */
 @utility fade-x-start {
 	mask-image: linear-gradient(to right, transparent, #000 28px);
 }
@@ -52,8 +52,7 @@
 	);
 }
 
-/* Topo de área rolável: o conteúdo some aos poucos embaixo da barra do popup em vez de
-   encostar nela. */
+/* Top of a scrolling area: the content fades out under the popup bar instead of touching it. */
 @utility fade-y-top {
 	mask-image: linear-gradient(to bottom, transparent, #000 14px);
 }

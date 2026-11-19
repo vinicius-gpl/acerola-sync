@@ -1,5 +1,5 @@
-// Espelho dos payloads do server (`server/src/cmd/events` e `data/models`). Datas vêm em UTC
-// (ISO 8601); a tela converte para o horário de São Paulo.
+// Mirror of the server payloads (`server/src/cmd/events` and `data/models`). Dates come in UTC
+// (ISO 8601); the screen converts them to São Paulo time.
 
 export type MediaType = 'ANIME' | 'MANGA';
 
@@ -52,10 +52,10 @@ export type Media = {
 	anilistUpdatedAt: string | null;
 	syncedAt: string;
 	startYear: number | null;
-	/** Daqui para baixo, só depois que a obra é aberta (detalhe). */
+	/** From here down, only after the media is opened (detail). */
 	source: string | null;
 	studios: string[];
-	/** `YYYY-MM-DD`; data parcial do AniList cai no dia/mês 1. */
+	/** `YYYY-MM-DD`; a partial AniList date falls on day/month 1. */
 	startDate: string | null;
 	endDate: string | null;
 	externalLinks: ExternalLink[];
@@ -65,7 +65,7 @@ export type Media = {
 export type ExternalLink = {
 	site: string;
 	url: string;
-	/** `STREAMING`, `INFO` ou `SOCIAL`. */
+	/** `STREAMING`, `INFO` or `SOCIAL`. */
 	kind: string | null;
 	language: string | null;
 };
@@ -80,7 +80,7 @@ export type MediaRelation = {
 	coverUrl: string | null;
 };
 
-/** Última página de um site em que a obra foi marcada. */
+/** Last page of a site where the media was marked. */
 export type LastVisit = {
 	source: string;
 	url: string;
@@ -104,7 +104,7 @@ export type Entry = {
 	completedAt: string | null;
 	anilistUpdatedAt: string | null;
 	updatedAt: string;
-	/** Mudou aqui e ainda não chegou no AniList. */
+	/** Changed here and not yet on AniList. */
 	dirty: boolean;
 	pushAttempts: number;
 	lastPushError: string | null;
@@ -133,13 +133,13 @@ export type MediaDetail = {
 export type SyncSettings = {
 	userId: number;
 	scheduleEnabled: boolean;
-	/** `HH:MM:SS` em UTC. */
+	/** `HH:MM:SS` in UTC. */
 	scheduleTimes: string[];
 	lastScheduledSlot: string | null;
 	updatedAt: string;
 	lastPullAt: string | null;
 	lastFullSyncAt: string | null;
-	/** Lista inteira automática a cada N horas; `0` = só no botão. */
+	/** Automatic full list every N hours; `0` = only by the button. */
 	fullSyncEveryHours: number;
 };
 
@@ -153,7 +153,7 @@ export type SyncRun = {
 	entriesPushed: number;
 	entriesRemoved: number;
 	error: string | null;
-	/** `INCREMENTAL` puxa só o que mudou; `FULL` puxa a lista inteira. */
+	/** `INCREMENTAL` pulls only what changed; `FULL` pulls the whole list. */
 	mode: 'FULL' | 'INCREMENTAL';
 	anilistRequests: number;
 };
@@ -173,7 +173,7 @@ export type SyncLogs = {
 
 export type EntrySort = 'updated' | 'title' | 'score' | 'progress' | 'average' | 'year';
 
-/** Filtros da lista; todos aplicados no server. */
+/** List filters; all applied on the server. */
 export type EntryFilters = {
 	q: string;
 	sort: EntrySort;
@@ -183,7 +183,7 @@ export type EntryFilters = {
 	mediaStatuses: string[];
 };
 
-/** O que existe na lista para filtrar. */
+/** What exists in the list to filter by. */
 export type EntryFacets = {
 	genres: string[];
 	formats: string[];
@@ -238,7 +238,7 @@ export type HistoryItem = {
 	mediaType: MediaType;
 };
 
-/** De onde sai o número do capítulo/episódio: URL, título da página ou um elemento. */
+/** Where the chapter/episode number comes from: URL, page title or an element. */
 export type ProgressSource = 'url' | 'title' | 'selector';
 
 export type CustomSite = {
@@ -249,13 +249,13 @@ export type CustomSite = {
 	urlPattern: string;
 	titleSelector: string | null;
 	enabled: boolean;
-	/** Busca do site com `{title}` no lugar do título (botão "abrir no site" da obra). */
+	/** Site search with `{title}` in place of the title (the media's "open on site" button). */
 	searchUrl?: string | null;
-	/** Ausente em sites antigos: `url`. */
+	/** Missing on older sites: `url`. */
 	progressSource?: ProgressSource;
-	/** Elemento com o número (fonte `selector`). */
+	/** Element holding the number (`selector` source). */
 	progressSelector?: string | null;
-	/** Regex que tira o número do texto lido (grupo `progress`, o primeiro grupo ou o todo). */
+	/** Regex that pulls the number from the read text (`progress` group, the first group or the whole match). */
 	progressPattern?: string | null;
 };
 

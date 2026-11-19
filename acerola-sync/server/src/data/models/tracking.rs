@@ -15,7 +15,7 @@ pub struct SiteMapping {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Última página de cada site em que a obra foi marcada: o "continuar de onde parou".
+/// Last page of each site where the media was marked: the "continue where you left off".
 #[derive(Debug, Clone, FromRow, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LastVisit {
@@ -54,12 +54,12 @@ pub struct CustomSite {
     pub title_selector: Option<String>,
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
-    /// Busca do site com `{title}` no lugar do título.
+    /// Site search with `{title}` in place of the title.
     pub search_url: Option<String>,
     pub updated_at: DateTime<Utc>,
-    /// De onde sai o número: `url`, `title` (título da página) ou `selector` (elemento).
+    /// Where the number comes from: `url`, `title` (page title) or `selector` (element).
     pub progress_source: String,
     pub progress_selector: Option<String>,
-    /// Regex que tira o número do texto lido (grupo `progress`, o primeiro grupo ou o todo).
+    /// Regex that pulls the number from the read text (`progress` group, the first group or the whole match).
     pub progress_pattern: Option<String>,
 }

@@ -1,10 +1,10 @@
-//! Acesso ao banco. As tabelas têm chave composta (`user_id`, `media_id`…), então cada uma
-//! tem o seu módulo com SQL explícito.
+//! Database access. The tables have composite keys (`user_id`, `media_id`…), so each one has
+//! its own module with explicit SQL.
 
-/// Colunas explícitas, nunca `*`: com `SELECT *`/`RETURNING *`, uma migration que adiciona coluna
-/// muda o resultado das consultas já preparadas, e o Postgres recusa o plano guardado nas conexões
-/// do pooler ("cached plan must not change result type"). O prefixo (`"entries."`) qualifica as
-/// colunas quando há JOIN.
+/// Explicit columns, never `*`: with `SELECT *`/`RETURNING *`, a migration that adds a column
+/// changes the result of already prepared queries, and Postgres rejects the plan cached on the
+/// pooler connections ("cached plan must not change result type"). The prefix (`"entries."`)
+/// qualifies the columns when there is a JOIN.
 macro_rules! columns {
     ($prefix:literal; $first:ident $(, $rest:ident)* $(,)?) => {
         concat!($prefix, stringify!($first) $(, ", ", $prefix, stringify!($rest))*)

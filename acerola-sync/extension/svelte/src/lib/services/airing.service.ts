@@ -1,15 +1,15 @@
 import type { EntryWithMedia, Media } from '$lib/api/types';
 
-// Avisos de episódio novo. O server mantém o próximo episódio de cada anime em lançamento
-// (sync automático de hora em hora); o background da extensão confere de tempos em tempos e
-// avisa pelo sistema o que saiu desde a última olhada, e põe no ícone quantas obras têm
-// episódio novo esperando.
+// New-episode notices. The server keeps the next episode of each airing anime (automatic
+// hourly sync); the extension background checks from time to time, notifies through the
+// system what aired since the last look, and shows on the icon how many media have a new
+// episode waiting.
 
-/** Último episódio já lançado de um anime em lançamento; `null` quando não dá para saber. */
+/** Last aired episode of an airing anime; `null` when there is no way to know. */
 export function latestAired(media: Pick<Media, 'nextAiringEpisode' | 'nextAiringAt'>, now: number) {
 	if (!media.nextAiringEpisode) return null;
 	const airsAt = media.nextAiringAt ? Date.parse(media.nextAiringAt) : NaN;
-	// O próximo já passou da hora (o espelho só atualiza no próximo sync): ele também saiu.
+	// The next one is already past its time (the mirror only updates on the next sync): it aired too.
 	const aired = airsAt <= now ? media.nextAiringEpisode : media.nextAiringEpisode - 1;
 	return aired > 0 ? aired : null;
 }
@@ -17,17 +17,17 @@ export function latestAired(media: Pick<Media, 'nextAiringEpisode' | 'nextAiring
 export type NewEpisode = { mediaId: number; title: string; episode: number; cover: string | null };
 
 export type AiringCheck = {
-	/** Obras com episódio lançado além do progresso (o número no ícone). */
+	/** Media with an aired episode beyond the progress (the number on the icon). */
 	behind: number;
-	/** Episódios que saíram desde a última conferência (viram notificação). */
+	/** Episodes aired since the last check (they become notifications). */
 	fresh: NewEpisode[];
-	/** Último episódio visto por obra, para a próxima conferência. */
+	/** Last episode seen per media, for the next check. */
 	seen: Record<string, number>;
 };
 
 /**
- * Compara o que saiu com o que já foi visto. Obra vista pela primeira vez só entra na base, sem
- * aviso: senão a primeira conferência avisaria de toda a lista atrasada de uma vez.
+ * Compares what aired with what was already seen. A media seen for the first time only enters
+ * the baseline, with no notice: otherwise the first check would notify the whole backlog at once.
  */
 export function checkAiring(
 	entries: EntryWithMedia[],
@@ -59,23 +59,23 @@ export function checkAiring(
 	return { behind, fresh, seen: next };
 }
 
-/** Aviso que já saiu pelo sistema, guardado para a tela de notificações. */
+/** Notice already sent through the system, kept for the notifications screen. */
 export type NotificationItem = NewEpisode & {
-	/** Mesmo id da notificação do sistema (`airing:{mediaId}:{episódio}`). */
+	/** Same id as the system notification (`airing:{mediaId}:{episode}`). */
 	id: string;
-	/** Quando avisou, em ISO (UTC). */
+	/** When it notified, in ISO (UTC). */
 	at: string;
 	read: boolean;
 };
 
-/** Quantos avisos a tela guarda; os mais velhos saem. */
+/** How many notices the screen keeps; the oldest drop out. */
 export const NOTIFICATIONS_KEPT = 50;
 
 export function notificationId(episode: Pick<NewEpisode, 'mediaId' | 'episode'>) {
 	return `airing:${episode.mediaId}:${episode.episode}`;
 }
 
-/** Põe os avisos novos no topo, sem repetir o mesmo episódio, e corta nos últimos 50. */
+/** Puts new notices on top, without repeating the same episode, and keeps only the last 50. */
 export function addNotifications(
 	list: NotificationItem[],
 	fresh: NewEpisode[],

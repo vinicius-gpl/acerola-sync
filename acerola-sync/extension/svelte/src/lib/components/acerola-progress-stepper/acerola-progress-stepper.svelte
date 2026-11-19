@@ -2,9 +2,9 @@
 	export type AcerolaProgressStepperProps = {
 		data: {
 			value: number;
-			/** Total conhecido; sem ele, não há teto. */
+			/** Known total; without it, there is no ceiling. */
 			max?: number | null;
-			/** Texto sob o número (ex.: "de 12 episódios"). */
+			/** Text under the number (e.g. "of 12 episodes"). */
 			caption?: string | null;
 		};
 		events?: {

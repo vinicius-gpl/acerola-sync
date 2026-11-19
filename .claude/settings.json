@@ -1,17 +1,34 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/acerola-sync/scripts/design/check-design.mjs --hook",
-            "timeout": 20,
-            "statusMessage": "Conferindo o design do Acerola…"
-          }
-        ]
-      }
-    ]
-  }
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/design/check-design.mjs --summary",
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"matcher": "Edit|Write|MultiEdit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/design/check-design.mjs --hook",
+						"timeout": 20,
+						"statusMessage": "Conferindo o design Acerola…"
+					},
+					{
+						"type": "command",
+						"command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/i18n/check-i18n.mjs --hook",
+						"timeout": 20,
+						"statusMessage": "Conferindo o i18n Acerola…"
+					}
+				]
+			}
+		]
+	}
 }

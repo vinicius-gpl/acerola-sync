@@ -1,20 +1,23 @@
 name: "Deploy/Server"
 
-# No molde do deploy do relay: testa, e o Ansible manda o código por rsync, escreve o `.env`,
-# sobe o container e entrega o domínio ao Caddy.
+# Same shape as the relay deploy: tests, then Ansible rsyncs the code, writes the `.env`, starts
+# the container and hands the domain to Caddy.
 #
-# Automático: a cada tag `server/prod/v*`. Manual: botão "Run workflow" (escolha a tag ou a
-# branch).
+# Automatic: on every `server/vX.Y.Z` tag. Manual: "Run workflow" (pick the tag).
 
 on:
   push:
     tags:
-      - 'server/prod/v*'
+      - 'server/v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+
+concurrency:
+  group: server-deploy
+  cancel-in-progress: false
 
 jobs:
   test:
-    name: Testes do server
+    name: Server tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,11 +45,11 @@ jobs:
         run: cargo test
 
   deploy:
-    name: Deploy no VPS
+    name: Deploy to VPS
     needs: test
     runs-on: ubuntu-latest
-    # Segredos em `secrets`, o resto em `vars`, tudo no environment `production`
-    # (Settings → Environments), onde dá para exigir aprovação antes do deploy.
+    # Secrets in `secrets`, the rest in `vars`, all in the `production` environment
+    # (Settings → Environments), where an approval can be required before deploying.
     environment: production
     defaults:
       run:

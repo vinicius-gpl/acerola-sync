@@ -1,6 +1,6 @@
-//! Linhas das tabelas. Os IDs do AniList são `Int` (32 bits) no GraphQL, então vão como
-//! número para a extensão sem perder precisão; só os IDs gerados pelo Postgres (`BIGSERIAL`)
-//! seguiriam a regra de `serialize_i64_as_string`, e nenhum deles sai daqui como chave.
+//! Table rows. AniList IDs are `Int` (32 bits) in GraphQL, so they go to the extension as
+//! numbers without losing precision; only Postgres-generated IDs (`BIGSERIAL`) would follow the
+//! `serialize_i64_as_string` rule, and none of them leaves here as a key.
 
 pub mod entry;
 pub mod media;

@@ -1,14 +1,14 @@
 import { parseProgress, pathParts, type DetectedPage, type SiteAdapter } from '../types';
 
-// Episódio: https://www.netflix.com/watch/<id>
+// Episode: https://www.netflix.com/watch/<id>
 function videoId(url: URL): string | null {
 	const [section, id] = pathParts(url);
 	return section === 'watch' && id ? id : null;
 }
 
 /**
- * O player da Netflix mostra `<h4>Série</h4><span>T1:E5</span>` (ou `S1:E5`) no título do
- * vídeo enquanto os controles estão visíveis. Filme não tem episódio e é ignorado.
+ * Netflix's player shows `<h4>Series</h4><span>T1:E5</span>` (or `S1:E5`) in the video title
+ * while the controls are visible. A movie has no episode and is ignored.
  */
 export function parseNetflixPlayer(doc: Document, url: URL): DetectedPage | null {
 	const container = doc.querySelector('[data-uia="video-title"]');

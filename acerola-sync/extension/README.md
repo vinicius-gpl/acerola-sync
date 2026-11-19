@@ -69,7 +69,7 @@ npm run zip -w extension       # .zip do Chrome (zip:firefox para o Firefox)
 ```bash
 npm test -w extension          # unitários (Vitest + jsdom)
 npx playwright test            # e2e e visuais (Chromium sem janela), dentro de extension/
-npm run lint:design            # padrão de design (na raiz do workspace)
+npm run lint                   # prettier, design e i18n (na raiz do workspace)
 ```
 
 Os testes visuais (`tests/e2e/visual.spec.ts`) medem o layout de verdade: pílula alinhada à ficha, troca Anime ↔ Mangá sem pulo, diálogos sem borda. Os screenshots ficam em `test-results/visual/`.

@@ -57,7 +57,7 @@ pub async fn create_session(
     Ok(())
 }
 
-/// Dono da sessão ativa com esse hash; também marca o último uso.
+/// Owner of the active session with this hash; also marks the last use.
 pub async fn find_by_session(pool: &PgPool, token_hash: &[u8]) -> Result<Option<User>, DbError> {
     Ok(sqlx::query_as(concat!(
         "WITH touched AS (

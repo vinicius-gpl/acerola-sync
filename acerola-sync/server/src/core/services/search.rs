@@ -14,11 +14,11 @@ use crate::{
 pub struct SearchHit {
     pub media: Media,
     pub entry: Option<Entry>,
-    /// `LOCAL` veio do espelho; `ANILIST` precisou de 1 request (e agora já está no espelho).
+    /// `LOCAL` came from the mirror; `ANILIST` needed 1 request (and is now in the mirror).
     pub source: &'static str,
 }
 
-/// Busca primeiro no espelho. Só vai ao AniList se pedido (`remote`) ou se nada foi achado.
+/// Searches the mirror first. Only goes to AniList if asked (`remote`) or if nothing was found.
 pub async fn search(
     state: &AppState, user: &User, query: &str, media_type: Option<&str>, remote: bool,
 ) -> Result<Vec<SearchHit>, AppError> {
@@ -48,7 +48,7 @@ pub async fn search(
                         }
                     }
                 },
-                // Sem AniList a busca local continua valendo.
+                // Without AniList the local search still counts.
                 Err(error) if error.is_transient() && !hits.is_empty() => {
                     tracing::warn!("[Search] AniList unavailable: {}", error);
                 },
@@ -57,7 +57,7 @@ pub async fn search(
         }
     }
 
-    // Uma query para todas as entradas, não uma por resultado.
+    // One query for all the entries, not one per result.
     let ids: Vec<i64> = hits.iter().map(|(media, _)| media.id).collect();
     let mut entries: std::collections::HashMap<i64, Entry> =
         entry_repository::find_many(&state.database_pool, user.id, &ids)

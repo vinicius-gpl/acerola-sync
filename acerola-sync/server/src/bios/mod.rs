@@ -55,8 +55,8 @@ pub fn build(state: AppState) -> Router {
     router.with_state(state)
 }
 
-/// A extensão chama de `chrome-extension://<id>` (o ID muda por instalação no Firefox), então
-/// qualquer origem passa. Quem protege é o token de sessão, não o CORS: não há cookie.
+/// The extension calls from `chrome-extension://<id>` (the ID changes per install on Firefox),
+/// so any origin is allowed. The session token protects it, not CORS: there is no cookie.
 fn setup_cors(router: Router<AppState>) -> Router<AppState> {
     router.layer(
         CorsLayer::new()
@@ -78,7 +78,7 @@ pub fn setup_tracing() {
         .init();
 }
 
-/// Espera o Ctrl+C (local) ou o SIGTERM (Docker) para o desligamento gracioso.
+/// Waits for Ctrl+C (local) or SIGTERM (Docker) for a graceful shutdown.
 pub async fn shutdown_signal() {
     let ctrl_c = async {
         tokio::signal::ctrl_c().await.expect("Erro ao escutar o Ctrl+C");

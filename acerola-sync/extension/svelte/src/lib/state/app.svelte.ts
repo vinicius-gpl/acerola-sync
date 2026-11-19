@@ -22,7 +22,7 @@ export type Route =
 	| { name: 'link'; request: LinkRequest }
 	| { name: 'notifications' };
 
-/** `popup`: janelinha do ícone. `page`: a mesma interface numa aba inteira (`app.html`). */
+/** `popup`: the icon's small window. `page`: the same interface in a full tab (`app.html`). */
 export type AppMode = 'popup' | 'page';
 
 const TOP_ROUTES: TopRoute[] = ['list', 'search', 'activity', 'settings'];
@@ -31,7 +31,7 @@ export function isTopRoute(value: unknown): value is TopRoute {
 	return TOP_ROUTES.includes(value as TopRoute);
 }
 
-/** Obra da aba onde o popup foi aberto (se for um site rastreado). */
+/** Media of the tab where the popup was opened (if it is a tracked site). */
 export type HerePage = {
 	page: CurrentPage;
 	resolved: Resolved | null;
@@ -47,7 +47,7 @@ const stack: Route[] = [];
 
 const api = $derived<Api | null>(serverUrl && session ? createApi(serverUrl, session.token) : null);
 
-/** Copia os sites personalizados para o storage, de onde o background registra os scripts. */
+/** Copies the custom sites to storage, where the background registers the scripts from. */
 async function refreshCustomSites(client: Api) {
 	try {
 		const sites = await client.customSites();
@@ -57,7 +57,7 @@ async function refreshCustomSites(client: Api) {
 	}
 }
 
-/** Pergunta ao content script da aba ativa o que está aberto e acha a obra no espelho. */
+/** Asks the active tab's content script what is open and finds the media in the mirror. */
 async function detectHere(client: Api) {
 	try {
 		const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -74,13 +74,13 @@ async function detectHere(client: Api) {
 		});
 		here = { page, resolved };
 	} catch {
-		// Aba sem content script (site não rastreado, chrome://…): não há obra para mostrar.
+		// Tab without a content script (untracked site, chrome://…): no media to show.
 	}
 }
 
 export const PENDING_MEDIA_TTL_MS = 30_000;
 
-/** Obra que o aviso do site pediu para abrir no popup. Consome o pedido (vale uma vez). */
+/** Media the on-site notice asked to open in the popup. Consumes the request (valid once). */
 async function takePendingMedia(): Promise<number | null> {
 	try {
 		const pending = await storage.getItem<{ mediaId: number; at: number }>(
@@ -111,7 +111,7 @@ export const app = {
 	get mode() {
 		return mode;
 	},
-	/** Última aba do menu aberta — no modo página, a obra abre por cima dela. */
+	/** Last menu tab opened: in page mode, the media opens over it. */
 	get topRoute(): TopRoute {
 		for (let index = stack.length - 1; index >= 0; index--) {
 			const name = stack[index].name;
@@ -119,7 +119,7 @@ export const app = {
 		}
 		return isTopRoute(route.name) ? route.name : 'list';
 	},
-	/** Tela por baixo da obra no modo página: a última que não é obra (aba do menu ou avisos). */
+	/** Screen under the media in page mode: the last one that is not a media (menu tab or notices). */
 	get underRoute(): TopRoute | 'notifications' {
 		for (let index = stack.length - 1; index >= 0; index--) {
 			const name = stack[index].name;
@@ -166,12 +166,12 @@ export const app = {
 		else if (isTopRoute(lastPage)) route = { name: lastPage };
 
 		ready = true;
-		// O background confere episódio novo quando o popup fecha (o progresso pode ter mudado).
+		// The background checks for new episodes when the popup closes (the progress may have changed).
 		if (mode === 'popup') {
 			try {
 				browser.runtime.connect({ name: 'popup' });
 			} catch {
-				// Fora da extensão (testes, Storybook): sem background para avisar.
+				// Outside the extension (tests, Storybook): no background to notify.
 			}
 		}
 		if (api) {
@@ -180,7 +180,7 @@ export const app = {
 		}
 	},
 
-	/** Troca de aba do menu lateral: zera o histórico de "voltar". */
+	/** Switching side menu tabs: clears the "back" history. */
 	open(name: TopRoute) {
 		stack.length = 0;
 		route = { name };
@@ -196,7 +196,7 @@ export const app = {
 		route = stack.pop() ?? { name: 'list' };
 	},
 
-	/** Abre a interface numa aba inteira e fecha o popup. `search` vai junto (ex.: `?site=new`). */
+	/** Opens the interface in a full tab and closes the popup. `search` goes along (e.g. `?site=new`). */
 	async openFullPage(search = '') {
 		await browser.tabs.create({ url: browser.runtime.getURL(`/app.html${search}`) });
 		if (mode === 'popup') window.close();
@@ -214,7 +214,7 @@ export const app = {
 		try {
 			await api?.logout();
 		} catch {
-			// Sessão já inválida no server: limpa do mesmo jeito.
+			// Session already invalid on the server: clear it the same way.
 		}
 		session = null;
 		await saveSession(null);
@@ -225,17 +225,17 @@ export const app = {
 	},
 
 	/**
-	 * Mostra o erro da API num toast. Sessão inválida desloga, e a tela volta para o login.
+	 * Shows the API error in a toast. An invalid session logs out and the screen goes back to login.
 	 */
 	async handleError(error: unknown) {
 		if (error instanceof ApiError && error.isUnauthorized) {
 			session = null;
 			await saveSession(null);
-			toast.error(m['sync.errors.session_expired']());
+			toast.error(m['sync.errors.sessionExpired']());
 			return;
 		}
 		if (error instanceof ApiError && error.status === 0) {
-			toast.error(m['sync.errors.server_offline']());
+			toast.error(m['sync.errors.serverOffline']());
 			return;
 		}
 		toast.error(error instanceof Error ? error.message : String(error));

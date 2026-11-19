@@ -10,11 +10,11 @@ use crate::{
 };
 
 const TICK: Duration = Duration::from_secs(30);
-/// A cada quantos ticks tenta reenviar o que ficou pendente (10 × 30 s = 5 min).
+/// Every how many ticks it tries to resend what was left pending (10 × 30 s = 5 min).
 const PUSH_EVERY_TICKS: u32 = 10;
 
-/// Loop de fundo: roda o sync nos horários escolhidos (UTC), o automático de hora em hora e
-/// reenvia pendências.
+/// Background loop: runs the sync at the chosen times (UTC), the hourly automatic one and
+/// resends pending changes.
 pub fn spawn(state: AppState) {
     tokio::spawn(async move {
         if let Err(error) = sync_repository::fail_stale_runs(&state.database_pool).await {
@@ -55,7 +55,7 @@ async fn run_due_syncs(state: &AppState) -> Result<(), AppError> {
             continue;
         };
 
-        // Marca antes de rodar: se o sync falhar, ele não fica tentando a cada 30 s.
+        // Marks before running: if the sync fails, it does not keep retrying every 30 s.
         sync_repository::mark_slot_done(&state.database_pool, user.id, slot).await?;
         tracing::info!("[Scheduler] Running scheduled sync for slot {}", slot);
         if let Err(error) = sync_service::run(state, &user, "SCHEDULED", false).await {
@@ -65,8 +65,8 @@ async fn run_due_syncs(state: &AppState) -> Result<(), AppError> {
     Ok(())
 }
 
-/// Sync automático: o que mudou de hora em hora e, quando passa do intervalo escolhido, a lista
-/// inteira (o `choose_mode` decide). Mantém o próximo episódio em dia para os avisos da extensão.
+/// Automatic sync: what changed, hourly, and the whole list once the chosen interval is past
+/// (`choose_mode` decides). Keeps the next episode up to date for the extension's notices.
 async fn run_auto_syncs(state: &AppState) -> Result<(), AppError> {
     let now = Utc::now();
     for settings in sync_repository::all_auto(&state.database_pool).await? {

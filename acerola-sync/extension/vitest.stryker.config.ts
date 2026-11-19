@@ -4,10 +4,10 @@ import path from 'path';
 import { defineConfig } from 'vitest/config';
 import svg from '@poppanator/sveltekit-svg';
 
-// Config enxuta usada só pelo Stryker (stryker.conf.json) — mutation testing só faz
-// sentido pro projeto `unit` (lógica pura em .ts/.svelte.ts). Os projetos `integration`/
-// `storybook` do vitest.config.ts principal usam browser real via Playwright, o que só
-// deixaria cada mutante mais lento pra rodar sem agregar sinal de mutação relevante.
+// Lean config used only by Stryker (stryker.conf.json): mutation testing only makes sense for
+// the `unit` project (pure logic in .ts/.svelte.ts). The `integration`/`storybook` projects of
+// the main vitest.config.ts use a real browser through Playwright, which would only make each
+// mutant slower to run without adding relevant mutation signal.
 export default defineConfig({
 	plugins: [
 		svelte({
@@ -41,10 +41,10 @@ export default defineConfig({
 			$theme: path.resolve('./svelte/src/theme')
 		},
 		conditions: ['browser', 'svelte', 'development'],
-		// Stryker roda a partir de um sandbox copiado com node_modules SIMLINKADO de volta
-		// pro projeto real (.stryker-tmp/sandbox*) — sem isso o Vite/Rolldown resolve os
-		// symlinks pro caminho real fora do sandbox e quebra a busca de tsconfig durante a
-		// otimização de dependências ("Tsconfig not found" ao tentar resolver 'node:module').
+		// Stryker runs from a copied sandbox with node_modules SYMLINKED back to the real
+		// project (.stryker-tmp/sandbox*): without this Vite/Rolldown resolves the symlinks to
+		// the real path outside the sandbox and breaks the tsconfig lookup during dependency
+		// optimization ("Tsconfig not found" when resolving 'node:module').
 		preserveSymlinks: true
 	},
 	test: {

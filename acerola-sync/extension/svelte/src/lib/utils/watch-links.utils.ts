@@ -4,17 +4,17 @@ import { BUILT_IN_SITES } from '$lib/tracking/registry';
 import type { SiteAdapter } from '$lib/tracking/types';
 
 /**
- * Onde abrir a obra, na ordem em que interessa:
- * - `continue`: a última página em que ela foi marcada em cada site (continuar de onde parou);
- * - `streaming`: links oficiais do AniList (Crunchyroll, Netflix…);
- * - `search`: busca pelo título nos sites rastreados, embutidos e personalizados.
+ * Where to open the media, in order of interest:
+ * - `continue`: the last page where it was marked on each site (continue where you left off);
+ * - `streaming`: official AniList links (Crunchyroll, Netflix…);
+ * - `search`: search by title on the tracked sites, built-in and custom.
  */
 export type WatchLink = {
 	key: string;
 	kind: 'continue' | 'streaming' | 'search';
 	name: string;
 	url: string;
-	/** Para o favicon. */
+	/** For the favicon. */
 	homepage: string;
 	progress?: number;
 };

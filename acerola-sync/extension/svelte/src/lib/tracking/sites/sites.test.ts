@@ -25,7 +25,10 @@ describe('sakuraMangas', () => {
 		const url = new URL('https://sakuramangas.org/obras/chainsaw-man/11/');
 		expect(sakuraMangas.pageKey(url)).toBe('chainsaw-man/11');
 
-		const detected = await sakuraMangas.detect(url, page('<h1 id="id-titulo"> Chainsaw Man </h1>'));
+		const detected = await sakuraMangas.detect(
+			url,
+			page('<h1 id="id-titulo"> Chainsaw Man </h1>')
+		);
 		expect(detected).toMatchObject({
 			site: 'sakuramangas',
 			identifier: 'chainsaw-man',
@@ -148,7 +151,9 @@ describe('crunchyroll', () => {
 			identifier: 'G3KHEVDJ7:3',
 			title: 'The Apothecary Diaries Season 3'
 		});
-		expect(selectedSeason(page('<div class="season-picker"><h4>S2: Frieren</h4></div>'))).toBe(2);
+		expect(selectedSeason(page('<div class="season-picker"><h4>S2: Frieren</h4></div>'))).toBe(
+			2
+		);
 		expect(selectedSeason(page('<h1>Série de uma temporada</h1>'))).toBe(1);
 	});
 });
@@ -276,7 +281,11 @@ describe('páginas de obra', () => {
 			new URL('https://sakuramangas.org/obras/ruridragon/'),
 			new DOMParser().parseFromString('<h1 class="h1-titulo">RuriDragon</h1>', 'text/html')
 		);
-		expect(page).toMatchObject({ identifier: 'ruridragon', title: 'RuriDragon', progress: null });
+		expect(page).toMatchObject({
+			identifier: 'ruridragon',
+			title: 'RuriDragon',
+			progress: null
+		});
 		expect(
 			await sakuraMangas.overview!(
 				new URL('https://sakuramangas.org/obras/ruridragon/51/'),
@@ -289,7 +298,10 @@ describe('páginas de obra', () => {
 		const fetcher = vi.fn().mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					data: { id: 'm1', attributes: { title: { en: 'Dandadan' }, links: { al: '132029' } } }
+					data: {
+						id: 'm1',
+						attributes: { title: { en: 'Dandadan' }, links: { al: '132029' } }
+					}
 				})
 			)
 		);

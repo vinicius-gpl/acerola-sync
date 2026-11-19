@@ -1,6 +1,6 @@
 import { parseProgress, pathParts, type DetectedPage, type SiteAdapter } from '../types';
 
-// Episódio: https://www.crunchyroll.com[/<idioma>]/watch/<episodio>/<slug>
+// Episode: https://www.crunchyroll.com[/<language>]/watch/<episode>/<slug>
 function episodeId(url: URL): string | null {
 	const parts = pathParts(url);
 	const index = parts.indexOf('watch');
@@ -22,7 +22,7 @@ function readJsonLd(doc: Document): JsonLdEpisode | null {
 			const episode = items.find((item) => item['@type'] === 'TVEpisode');
 			if (episode) return episode;
 		} catch {
-			// JSON-LD quebrado: tenta o próximo.
+			// Broken JSON-LD: try the next one.
 		}
 	}
 	return null;
@@ -39,9 +39,9 @@ function titleWithSeason(series: string, season: number | null): string {
 }
 
 /**
- * Lê série, temporada e episódio da página. Tenta o JSON-LD (`TVEpisode`) e cai para o DOM
- * (link da série + "E5 - Título" no cabeçalho). Cada temporada vira uma obra no AniList, então
- * a temporada entra no `identifier`.
+ * Reads series, season and episode from the page. Tries the JSON-LD (`TVEpisode`) and falls back
+ * to the DOM (series link + "E5 - Title" in the header). Each season is a separate media on
+ * AniList, so the season goes into the `identifier`.
  */
 export function parseCrunchyrollPage(doc: Document, url: URL): DetectedPage | null {
 	const jsonLd = readJsonLd(doc);
@@ -76,7 +76,7 @@ export function parseCrunchyrollPage(doc: Document, url: URL): DetectedPage | nu
 	};
 }
 
-// Série: https://www.crunchyroll.com[/<idioma>]/series/<id>/<slug>
+// Series: https://www.crunchyroll.com[/<language>]/series/<id>/<slug>
 function seriesPageId(url: URL): string | null {
 	const parts = pathParts(url);
 	const index = parts.indexOf('series');
@@ -84,8 +84,8 @@ function seriesPageId(url: URL): string | null {
 }
 
 /**
- * Temporada escolhida no seletor da página da série ("Season 3", "S3: …", "Temporada 3").
- * Sem seletor (série de uma temporada só), é a primeira.
+ * Season chosen in the series page picker ("Season 3", "S3: …", "Temporada 3").
+ * Without a picker (single-season series), it is the first one.
  */
 export function selectedSeason(doc: Document): number {
 	const candidates = doc.querySelectorAll(
@@ -114,7 +114,7 @@ export const crunchyroll: SiteAdapter = {
 		const id = seriesPageId(url);
 		const title = doc.querySelector('h1')?.textContent?.trim();
 		if (!id || !title) return null;
-		// A temporada é a do seletor (a página abre na última que você viu, não na primeira).
+		// The season is the picker's (the page opens on the last one you watched, not the first).
 		const season = selectedSeason(doc);
 		return {
 			site: this.id,

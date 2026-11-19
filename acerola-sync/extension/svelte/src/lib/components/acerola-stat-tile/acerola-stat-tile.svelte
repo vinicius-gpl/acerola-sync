@@ -21,7 +21,7 @@
 
 	let { data, ui }: AcerolaStatTileProps = $props();
 
-	// Bloco de cor sólida (tom "soft" da paleta do reader) com o número grande por cima.
+	// Solid color block (the reader palette's "soft" tone) with the big number on top.
 	const TONE: Record<AcerolaStatTileTone, string> = {
 		primary: 'bg-primary-soft text-primary',
 		success: 'bg-success-soft text-success',

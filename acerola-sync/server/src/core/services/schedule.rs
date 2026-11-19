@@ -1,6 +1,6 @@
 use chrono::{DateTime, Duration, NaiveTime, Utc};
 
-/// O horário agendado mais recente que já passou (hoje ou ontem, em UTC).
+/// The most recent scheduled time already past (today or yesterday, in UTC).
 pub fn latest_slot(times: &[NaiveTime], now: DateTime<Utc>) -> Option<DateTime<Utc>> {
     let today = now.date_naive();
     let yesterday = today - Duration::days(1);
@@ -12,8 +12,8 @@ pub fn latest_slot(times: &[NaiveTime], now: DateTime<Utc>) -> Option<DateTime<U
         .max()
 }
 
-/// Devolve o horário que deve rodar agora, se houver um que ainda não foi atendido. Se o
-/// server ficou fora do ar, roda uma vez só ao voltar, não uma por horário perdido.
+/// Returns the time that should run now, if one has not been served yet. If the server was
+/// down, runs only once when it comes back, not once per missed time.
 pub fn due_slot(
     times: &[NaiveTime], last_done: Option<DateTime<Utc>>, now: DateTime<Utc>,
 ) -> Option<DateTime<Utc>> {
@@ -24,12 +24,12 @@ pub fn due_slot(
     }
 }
 
-/// De quanto em quanto tempo o server sincroniza sozinho quando o automático está ligado.
+/// How often the server syncs by itself when automatic sync is on.
 pub const AUTO_SYNC_EVERY: Duration = Duration::hours(1);
 
-/// Sync automático: ligado quando o intervalo da lista inteira não é "só no botão" (`0`), e roda
-/// uma hora depois do último sync de qualquer tipo (manual, agenda ou automático). Contar a partir
-/// do início, mesmo de um que falhou, evita tentar de novo a cada 30 s.
+/// Automatic sync: on when the full-list interval is not "button only" (`0`), and runs one hour
+/// after the last sync of any kind (manual, scheduled or automatic). Counting from the start,
+/// even of a failed one, avoids retrying every 30 s.
 pub fn auto_due(
     full_every_hours: i32, last_started: Option<DateTime<Utc>>, now: DateTime<Utc>,
 ) -> bool {

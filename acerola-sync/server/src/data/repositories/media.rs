@@ -100,8 +100,8 @@ pub async fn upsert(executor: impl PgExecutor<'_>, media: &Media) -> Result<(), 
     Ok(())
 }
 
-/// A lista e a busca usam a query leve (sem sinopse, banner, gêneros): o que já veio do
-/// detalhe não pode ser apagado por elas. Por isso esses campos usam `COALESCE`.
+/// The list and the search use the light query (no synopsis, banner, genres): what already came
+/// from the detail must not be erased by them. That is why those fields use `COALESCE`.
 pub async fn mark_details_synced(pool: &PgPool, id: i64) -> Result<(), DbError> {
     sqlx::query("UPDATE media SET details_synced_at = now() WHERE id = $1")
         .bind(id)
@@ -110,7 +110,7 @@ pub async fn mark_details_synced(pool: &PgPool, id: i64) -> Result<(), DbError> 
     Ok(())
 }
 
-/// Atualiza só o próximo episódio (e status/total) de uma obra em lançamento.
+/// Updates only the next episode (and status/total) of an airing media.
 pub async fn update_airing(
     pool: &PgPool, id: i64, status: Option<&str>, episodes: Option<i32>, next_episode: Option<i32>,
     next_airing_at: Option<chrono::DateTime<chrono::Utc>>,
@@ -130,8 +130,8 @@ pub async fn update_airing(
     Ok(())
 }
 
-/// Obras em lançamento que o usuário acompanha (ou planeja): as únicas cujo próximo episódio
-/// precisa ser atualizado no sync incremental.
+/// Airing media the user follows (or plans): the only ones whose next episode needs updating in
+/// the incremental sync.
 pub async fn releasing_ids_for_user(pool: &PgPool, user_id: i64) -> Result<Vec<i64>, DbError> {
     let rows: Vec<(i64,)> = sqlx::query_as(
         "SELECT media.id FROM media JOIN entries ON entries.media_id = media.id
@@ -161,7 +161,7 @@ pub async fn find_many(pool: &PgPool, ids: &[i64]) -> Result<Vec<Media>, DbError
         .await?)
 }
 
-/// Resultado da busca local com a nota de similaridade (0–1) do pg_trgm.
+/// Local search result with the pg_trgm similarity score (0–1).
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ScoredMedia {
     #[sqlx(flatten)]
@@ -169,7 +169,7 @@ pub struct ScoredMedia {
     pub similarity: f32,
 }
 
-/// Busca fuzzy nos títulos. `word_similarity` acha "frieren" dentro de "sousou no frieren".
+/// Fuzzy search on titles. `word_similarity` finds "frieren" inside "sousou no frieren".
 pub async fn search(
     pool: &PgPool, query: &str, media_type: Option<&str>, limit: i64,
 ) -> Result<Vec<ScoredMedia>, DbError> {

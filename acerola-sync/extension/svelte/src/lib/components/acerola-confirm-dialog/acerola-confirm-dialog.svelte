@@ -8,7 +8,7 @@
 			description?: string;
 			actionText: string;
 			cancelText: string;
-			/** Ícone no topo; o tom segue `ui.tone`. */
+			/** Icon at the top; the tone follows `ui.tone`. */
 			icon?: Component;
 		};
 		events?: {
@@ -39,8 +39,8 @@
 </script>
 
 <!--
-	Confirmação no padrão do app: folha sem borda, cantos de folha, ícone no tom do estado e
-	botões em pílula, um em cima do outro (cabe no popup estreito).
+	Confirmation in the app pattern: borderless sheet, sheet corners, icon in the state tone and
+	pill buttons, one above the other (fits the narrow popup).
 -->
 <AlertDialog.Root bind:open={state.open}>
 	<AlertDialog.Portal>
@@ -56,7 +56,9 @@
 					use:pop
 					class={cn(
 						'mb-2 grid size-14 place-items-center rounded-full',
-						danger ? 'bg-destructive-soft text-destructive' : 'bg-primary-soft text-primary'
+						danger
+							? 'bg-destructive-soft text-destructive'
+							: 'bg-primary-soft text-primary'
 					)}
 				>
 					<Icon size={26} />

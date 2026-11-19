@@ -1,5 +1,5 @@
-// O server guarda tudo em UTC. A tela mostra no horário de São Paulo (UTC−3, sem horário de
-// verão desde 2019 — o mesmo offset fixo de `server/src/core/services/clock.rs`).
+// The server stores everything in UTC. The screen shows São Paulo time (UTC−3, no daylight
+// saving since 2019: the same fixed offset as `server/src/core/services/clock.rs`).
 
 export const DISPLAY_TIME_ZONE = 'America/Sao_Paulo';
 const SAO_PAULO_OFFSET_MINUTES = -3 * 60;
@@ -21,14 +21,14 @@ function formatClock(totalMinutes: number, withSeconds: boolean): string {
 	return withSeconds ? `${hours}:${minutes}:00` : `${hours}:${minutes}`;
 }
 
-/** `09:00` em São Paulo → `12:00:00` em UTC (formato que o server espera). */
+/** `09:00` in São Paulo → `12:00:00` in UTC (the format the server expects). */
 export function saoPauloToUtc(value: string): string | null {
 	const minutes = parseClock(value);
 	if (minutes === null) return null;
 	return formatClock(minutes - SAO_PAULO_OFFSET_MINUTES, true);
 }
 
-/** `12:00:00` em UTC → `09:00` em São Paulo. */
+/** `12:00:00` in UTC → `09:00` in São Paulo. */
 export function utcToSaoPaulo(value: string): string | null {
 	const minutes = parseClock(value);
 	if (minutes === null) return null;
@@ -52,7 +52,7 @@ export function formatDateTime(iso: string | null | undefined, locale = 'pt-BR')
 	}).format(new Date(iso));
 }
 
-/** Tempo até o próximo episódio, curto: `2d 4h`, `3h 10m`, `45m`. */
+/** Time until the next episode, short: `2d 4h`, `3h 10m`, `45m`. */
 export function countdown(iso: string | null | undefined, now = Date.now()): string | null {
 	if (!iso) return null;
 	const diffMinutes = Math.floor((new Date(iso).getTime() - now) / 60_000);

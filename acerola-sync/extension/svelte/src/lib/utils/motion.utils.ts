@@ -1,17 +1,18 @@
 import gsap from 'gsap';
 import type { Action } from 'svelte/action';
 
-/// Quem pede menos movimento no sistema não vê animação: tudo vai direto pro estado final.
+/// Whoever asks the system for reduced motion sees no animation: everything jumps to the final state.
 export function prefersReducedMotion(): boolean {
 	return (
-		typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+		typeof window !== 'undefined' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches
 	);
 }
 
 export type StaggerOptions = {
-	/// Muda o valor para tocar a entrada de novo (ex.: troca de aba refaz a grade).
+	/// Change the value to replay the entrance (e.g. switching tabs redoes the grid).
 	key?: unknown;
-	/// Seletor dos itens animados; padrão: filhos diretos.
+	/// Selector of the animated items; default: direct children.
 	selector?: string;
 	stagger?: number;
 };
@@ -38,10 +39,10 @@ function playStagger(node: HTMLElement, options: StaggerOptions) {
 	);
 }
 
-/// Entrada em cascata dos itens de uma grade/lista. Toca ao montar e sempre que `key` muda.
+/// Cascading entrance of a grid/list's items. Plays on mount and whenever `key` changes.
 export const staggerIn: Action<HTMLElement, StaggerOptions | undefined> = (node, options = {}) => {
 	let current = options;
-	// Espera o Svelte renderizar os filhos (o `{#each}` roda depois do `use:`).
+	// Waits for Svelte to render the children (the `{#each}` runs after the `use:`).
 	requestAnimationFrame(() => playStagger(node, current));
 
 	return {
@@ -53,7 +54,7 @@ export const staggerIn: Action<HTMLElement, StaggerOptions | undefined> = (node,
 	};
 };
 
-/// Entrada de um bloco só (tela, painel, card de destaque). `skip` monta sem animar.
+/// Entrance of a single block (screen, panel, highlight card). `skip` mounts without animating.
 export const revealIn: Action<
 	HTMLElement,
 	{ y?: number; delay?: number; skip?: boolean } | undefined
@@ -73,7 +74,7 @@ export const revealIn: Action<
 	);
 };
 
-/// Número que "conta" até o valor novo em vez de trocar seco.
+/// A number that "counts" up to the new value instead of switching abruptly.
 export const countUp: Action<HTMLElement, number> = (node, value) => {
 	const state = { value: 0 };
 	let tween: gsap.core.Tween | undefined;
@@ -102,13 +103,13 @@ export const countUp: Action<HTMLElement, number> = (node, value) => {
 	};
 };
 
-/// "Pulo" curto de confirmação (ex.: +1 salvo).
+/// Short confirmation "jump" (e.g. +1 saved).
 export function pop(node: Element | null | undefined) {
 	if (!node || prefersReducedMotion()) return;
 	gsap.fromTo(node, { scale: 0.82 }, { scale: 1, duration: 0.45, ease: 'back.out(3)' });
 }
 
-/// Gira enquanto `active` for verdadeiro (ícone de sync rodando).
+/// Spins while `active` is true (sync icon running).
 export const spinWhile: Action<HTMLElement, boolean> = (node, active) => {
 	let tween: gsap.core.Tween | undefined;
 

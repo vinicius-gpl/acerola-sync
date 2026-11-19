@@ -17,6 +17,8 @@ describe('anilist-auth.service', () => {
 				'https://abc.chromiumapp.org/#access_token=tok&token_type=Bearer&expires_in=31536000'
 			)
 		).toBe('tok');
-		expect(parseTokenFromRedirect('https://abc.chromiumapp.org/?error=access_denied')).toBeNull();
+		expect(
+			parseTokenFromRedirect('https://abc.chromiumapp.org/?error=access_denied')
+		).toBeNull();
 	});
 });

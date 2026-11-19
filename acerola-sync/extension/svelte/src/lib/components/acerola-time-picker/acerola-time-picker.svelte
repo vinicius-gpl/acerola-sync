@@ -10,7 +10,7 @@
 		};
 		ui?: {
 			class?: string;
-			/** Passo dos minutos. */
+			/** Minute step. */
 			minuteStep?: number;
 		};
 	};
@@ -18,9 +18,9 @@
 	export const pad = (value: number) => String(value).padStart(2, '0');
 
 	/**
-	 * Ao abrir, a hora e o minuto escolhidos ficam no meio da coluna (só a coluna rola). O
-	 * cartão só ganha tamanho depois que o popover se posiciona: centraliza quando a coluna
-	 * passa a ter altura, uma vez.
+	 * On open, the chosen hour and minute sit in the middle of the column (only the column
+	 * scrolls). The card only gets its size after the popover positions itself: center once
+	 * the column has a height.
 	 */
 	export function centerSelected(node: HTMLElement) {
 		let done = false;
@@ -28,7 +28,7 @@
 			const selected = node.querySelector<HTMLElement>('[aria-selected="true"]');
 			if (done || !selected || node.clientHeight === 0) return;
 			done = true;
-			// O espaço em cima e embaixo da coluna deixa até o primeiro e o último no meio.
+			// The space above and below the column lets even the first and last items reach the middle.
 			node.scrollTop = selected.offsetTop - node.clientHeight / 2 + selected.offsetHeight / 2;
 		};
 		const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(center);
@@ -67,7 +67,7 @@
 	const minutes = $derived(
 		Array.from({ length: Math.ceil(60 / step) }, (_, index) => index * step)
 			.concat(
-				// Valor salvo fora do passo (ex.: 09:07) continua aparecendo e selecionado.
+				// A saved value off the step (e.g. 09:07) still shows up and stays selected.
 				current.minute % step ? [current.minute] : []
 			)
 			.sort((a, b) => a - b)
@@ -112,8 +112,8 @@
 	</div>
 {/snippet}
 
-<!-- Seletor de horário no padrão do app: pílula com a hora grande; abre um cartão com as
-     colunas de hora (24h) e minuto, sem o seletor nativo do navegador. -->
+<!-- Time picker in the app pattern: a pill with the big time; opens a card with the
+     hour (24h) and minute columns, without the browser's native picker. -->
 <Popover.Root bind:open>
 	<Popover.Trigger
 		aria-label={data.label}
@@ -132,8 +132,8 @@
 			sideOffset={8}
 			align="start"
 			onOpenAutoFocus={(event) => {
-				// O foco automático ia para o "00" e rolava a coluna de volta ao topo. O foco vai
-				// para a hora escolhida, sem rolar (a coluna já está centralizada nela).
+				// Autofocus went to "00" and scrolled the column back to the top. Focus goes to the
+				// chosen hour, without scrolling (the column is already centered on it).
 				event.preventDefault();
 				requestAnimationFrame(() =>
 					(event.currentTarget as HTMLElement | null)
@@ -144,18 +144,18 @@
 			class="z-50 flex w-60 flex-col gap-3 rounded-card bg-card p-3 text-foreground shadow-float outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
 		>
 			<div class="flex gap-2">
-				{@render column(m['sync.time_picker.hour'](), hours, current.hour, (hour) =>
+				{@render column(m['sync.timePicker.hour'](), hours, current.hour, (hour) =>
 					pick({ hour })
 				)}
 				<span class="self-center pt-5 text-xl font-black text-muted-foreground">:</span>
-				{@render column(m['sync.time_picker.minute'](), minutes, current.minute, (minute) =>
+				{@render column(m['sync.timePicker.minute'](), minutes, current.minute, (minute) =>
 					pick({ minute })
 				)}
 			</div>
 			<Popover.Close
 				class="h-10 cursor-pointer rounded-full bg-foreground text-sm font-black text-background transition-transform active:scale-[0.98]"
 			>
-				{m['sync.time_picker.done']()}
+				{m['sync.timePicker.done']()}
 			</Popover.Close>
 		</Popover.Content>
 	</Popover.Portal>

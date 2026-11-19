@@ -75,20 +75,22 @@ O `build:extension` lê a chave da extensão no 1Password (`op signin` antes) pa
 
 ## Release e deploy
 
-Tags no mesmo molde do acerola-reader: `<app>/<canal>/v<versão>`, canal `alpha`, `beta` ou `prod`.
+Uma tag por app, `<app>/vX.Y.Z`, sempre na `main` (`-rc.N` sai como pré-lançamento).
 
 | Tag | O que acontece |
 | --- | --- |
-| `extension/prod/v1.2.0` | Sobe a versão, testa, gera os `.zip` de Chrome e Firefox e publica o Release. |
-| `server/prod/v1.2.0` | Sobe a versão (commit de bump) e dispara o deploy. |
+| `extension/v1.2.0` | Sobe a versão, testa, gera os `.zip` de Chrome e Firefox e publica o Release. |
+| `server/v1.2.0` | Sobe a versão (commit de bump) e dispara o deploy. |
 
-O deploy usa o Ansible em [`acerola-sync/server/.config/ansible/`](acerola-sync/server/.config/ansible/): rsync do código, `.env` gerado, `docker compose up` e a config do Caddy para o domínio do `hosts.ini`. Roda sozinho na tag `server/prod/*`, pelo botão do workflow **Deploy/Server** ou local com `mise run deploy`. Detalhes em [docs/ARQUITETURA.md](docs/ARQUITETURA.md#release-e-deploy) e o modelo de notas em [RELEASE.md](RELEASE.md).
+O deploy usa o Ansible em [`acerola-sync/server/.config/ansible/`](acerola-sync/server/.config/ansible/): rsync do código, `.env` gerado, `docker compose up` e a config do Caddy para o domínio do `hosts.ini`. Roda sozinho na tag `server/vX.Y.Z`, pelo botão do workflow **Deploy/Server** ou local com `mise run deploy`. Detalhes em [docs/ARQUITETURA.md](docs/ARQUITETURA.md#release-e-deploy) e o modelo de notas em [RELEASE.md](RELEASE.md).
 
 ## Documentação
 
 - Arquitetura e decisões: [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
 - Extensão (contextos, permissões, uso pessoal sem loja): [docs/EXTENSAO.md](docs/EXTENSAO.md)
 - Padrão de design: [`.claude/skills/acerola-design/SKILL.md`](.claude/skills/acerola-design/SKILL.md)
-- Regras do projeto e de commit: [CLAUDE.md](CLAUDE.md) e [`.gitmessage`](.gitmessage)
+- Padrão Acerola (projeto e git): [`.claude/skills/acerola-project`](.claude/skills/acerola-project/SKILL.md) e [`.claude/skills/acerola-git`](.claude/skills/acerola-git/SKILL.md)
+- Como contribuir: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Regras do projeto e de commit: [CLAUDE.md](CLAUDE.md), [`acerola.config.json`](acerola.config.json) e [`.gitmessage`](.gitmessage)
 - Assets dos READMEs: [`docs/github/`](docs/github/) (a capa é gerada de `docs/github/source/hero.html`)
 - Licença: [LICENSE](LICENSE) (MPL-2.0, a mesma do acerola-reader)

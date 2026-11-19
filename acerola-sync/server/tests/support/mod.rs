@@ -19,7 +19,7 @@ use wiremock::MockServer;
 pub const ENCRYPTION_KEY: [u8; 32] = [42u8; 32];
 pub const VIEWER_ID: i64 = 5001;
 
-/// Router com um pool preguiçoso: não conecta enquanto nenhuma rota tocar no banco.
+/// Router with a lazy pool: does not connect until a route touches the database.
 pub fn build_test_app() -> Router {
     let database_pool = PgPoolOptions::new()
         .connect_lazy("postgres://acerola:acerola@localhost:5432/acerola_sync_test")
@@ -34,8 +34,8 @@ pub fn build_test_app() -> Router {
     ))
 }
 
-/// Banco novo e vazio por teste, criado a partir de `TEST_DATABASE_URL` (um Postgres onde o
-/// usuário pode criar bancos). Sem a variável, o teste é pulado.
+/// New, empty database per test, created from `TEST_DATABASE_URL` (a Postgres where the user
+/// can create databases). Without the variable, the test is skipped.
 pub struct TestDb {
     pub pool: PgPool,
     admin_url: String,
@@ -151,7 +151,7 @@ pub fn viewer() -> Value {
     json!({ "data": { "Viewer": { "id": VIEWER_ID, "name": "vinicius", "siteUrl": null, "avatar": { "large": null } } } })
 }
 
-/// Dispara um sync (`POST /sync`, que responde 202 na hora) e espera ele terminar pelos logs.
+/// Triggers a sync (`POST /sync`, which answers 202 right away) and waits for it to end through the logs.
 pub async fn run_sync(app: &Router, token: &str, full: bool) -> Value {
     let path = if full { "/sync?full=true" } else { "/sync" };
     let (status, run) = call(app, Method::POST, path, Some(token), None).await;
@@ -169,7 +169,7 @@ pub async fn run_sync(app: &Router, token: &str, full: bool) -> Value {
     panic!("sync never finished");
 }
 
-/// Espera o sync disparado pelo primeiro login terminar.
+/// Waits for the sync triggered by the first login to finish.
 pub async fn wait_sync_idle(app: &Router, token: &str) {
     for _ in 0..100 {
         let (_, status) = call(app, Method::GET, "/sync/status", Some(token), None).await;

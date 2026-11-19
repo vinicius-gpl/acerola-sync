@@ -15,7 +15,7 @@ pub struct SyncStatusPayload {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SyncQuery {
-    /// Força a lista inteira em vez do incremental.
+    /// Forces the whole list instead of the incremental one.
     #[serde(default)]
     pub full: bool,
 }
@@ -37,7 +37,7 @@ pub struct SyncLogsPayload {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FullSyncIntervalRequest {
-    /// Horas entre listas inteiras automáticas; `0` = só no botão.
+    /// Hours between automatic full lists; `0` = only by the button.
     pub hours: i32,
 }
 
@@ -45,6 +45,6 @@ pub struct FullSyncIntervalRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ScheduleRequest {
     pub enabled: bool,
-    /// Horários em UTC (`HH:MM`).
+    /// Times in UTC (`HH:MM`).
     pub times: Vec<NaiveTime>,
 }

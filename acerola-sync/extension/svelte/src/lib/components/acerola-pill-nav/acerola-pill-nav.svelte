@@ -33,8 +33,8 @@
 	let indicator = $state<HTMLElement>();
 	let first = true;
 
-	/// A pílula ativa desliza e estica até o item novo enquanto o nome dele abre — tudo no
-	/// mesmo tempo, para a troca de aba parecer um movimento só.
+	/// The active pill slides and stretches to the new item while its name opens, all at the
+	/// same time, so switching tabs looks like a single movement.
 	async function moveTo(id: string | null) {
 		await tick();
 		if (!nav || !indicator) return;
@@ -67,7 +67,7 @@
 	});
 </script>
 
-<!-- Barra em pílula: o item ativo vira uma pílula com o nome, e ela desliza entre os itens. -->
+<!-- Pill bar: the active item becomes a pill with its name, and it slides between items. -->
 <nav
 	bind:this={nav}
 	class={cn(

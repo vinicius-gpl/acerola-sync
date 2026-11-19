@@ -1,9 +1,9 @@
-# Deploy do server do Acerola Sync, no mesmo molde do relay do acerola-reader: manda o código
-# por rsync, escreve o `.env`, sobe o container e entrega o domínio ao Caddy que já roda no
-# servidor (container `caddy`, rede docker `proxy`, configs em /opt/caddy/conf.d).
+# Acerola Sync server deploy, in the same shape as the acerola-reader relay: rsyncs the code,
+# writes the `.env`, starts the container and hands the domain to the Caddy already running on
+# the server (`caddy` container, `proxy` docker network, configs in /opt/caddy/conf.d).
 #
-# Servidor e domínio vêm do inventário (hosts.ini). Os segredos chegam por -e (no GitHub,
-# pelos secrets; local, pelo `mise run deploy`).
+# Server and domain come from the inventory (hosts.ini). Secrets arrive through -e (on GitHub,
+# from secrets; locally, from `mise run deploy`).
 
 - name: Deploy do Acerola Sync
   hosts: acerola_sync
@@ -32,7 +32,7 @@
         recursive: true
         delete: true
         rsync_opts:
-          # Só o que o build usa: sem o target, sem o .env local e sem o próprio ansible.
+          # Only what the build uses: no target, no local .env and not the ansible folder itself.
           - --exclude=/target
           - --exclude=/.env
           - --exclude=/.config/ansible

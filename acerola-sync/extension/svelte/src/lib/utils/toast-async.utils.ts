@@ -4,9 +4,9 @@ type ToastAsyncMessages<T> = {
 	loading: string;
 	success: string | ((result: T) => string);
 	error: string | ((err: unknown) => string);
-	/// Tempo mínimo (ms) que o toast fica no estado "loading" antes de virar sucesso/erro —
-	/// sem isso, uma operação local quase instantânea pula direto pro resultado final e a
-	/// animação de transição do ícone (loading -> check) nunca chega a ser percebida.
+	/// Minimum time (ms) the toast stays in the "loading" state before turning into success/error:
+	/// without it, a near-instant local operation jumps straight to the final result and the
+	/// icon transition animation (loading -> check) is never noticed.
 	minDurationMs?: number;
 };
 
@@ -18,10 +18,10 @@ function waitRemaining(startedAt: number, minDurationMs: number): Promise<void> 
 	return new Promise((resolve) => setTimeout(resolve, remaining));
 }
 
-/// Dispara um toast de loading, roda `action`, e atualiza o MESMO toast (mesmo `id`) pra
-/// sucesso ou erro quando termina — o svelte-sonner troca o ícone in-place nesse caso (ver
-/// `toastIconEnter` em `toast-icon-motion.utils.ts`), em vez de empilhar um segundo toast
-/// independente como `toast.info(...)` seguido de `toast.success(...)` fazia antes.
+/// Fires a loading toast, runs `action`, and updates the SAME toast (same `id`) to success or
+/// error when it ends: svelte-sonner swaps the icon in place in that case (see `toastIconEnter`
+/// in `toast-icon-motion.utils.ts`), instead of stacking a second independent toast as
+/// `toast.info(...)` followed by `toast.success(...)` used to.
 export async function toastAsync<T>(
 	action: () => Promise<T>,
 	messages: ToastAsyncMessages<T>

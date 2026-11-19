@@ -33,11 +33,11 @@
 	let canStart = $state(false);
 	let canEnd = $state(false);
 
-	// Tem mais fichas escondidas de algum lado? Liga o fade só nesse lado.
+	// More chips hidden on either side? Turn on the fade only on that side.
 	function measure() {
 		if (!list) return;
 		const { scrollLeft, scrollWidth, clientWidth } = list;
-		// Folga de 2px: arredondamento de subpixel não pode ligar o fade sem ter nada escondido.
+		// 2px slack: subpixel rounding must not turn on the fade with nothing hidden.
 		canStart = scrollLeft > 2;
 		canEnd = scrollLeft + clientWidth < scrollWidth - 2;
 	}
@@ -56,14 +56,14 @@
 		void tick().then(measure);
 	});
 
-	// A ficha ativa sempre visível: se ela está fora da área rolada, rola até ela.
+	// The active chip is always visible: if it is outside the scrolled area, scroll to it.
 	$effect(() => {
 		const active = data.active;
 		void tick().then(() => {
 			const chip = list?.querySelector<HTMLElement>(`[data-chip="${active}"]`);
 			if (!list || !chip) return;
-			// Só rola a faixa na horizontal. `scrollIntoView` também rolava a tela inteira na
-			// vertical (a obra abria rolada, com as ações escondidas).
+			// Only scrolls the strip horizontally. `scrollIntoView` also scrolled the whole screen
+			// vertically (the media opened scrolled, with the actions hidden).
 			const start = chip.offsetLeft;
 			const end = start + chip.offsetWidth;
 			const left =
@@ -78,9 +78,9 @@
 </script>
 
 <!--
-	Abas em fichas, com contagem. A ficha ativa desliza (mesma action do reader). A moldura de
-	fora (mesma cor da trilha) fica parada enquanto as fichas rolam por dentro: a ficha cortada
-	some atrás dela, em vez de o texto encostar na beira da trilha.
+	Chip tabs, with counts. The active chip slides (same action as the reader). The outer frame
+	(same color as the track) stays still while the chips scroll inside: the clipped chip
+	disappears behind it, instead of the text touching the track's edge.
 -->
 <div data-chip-frame class={cn('w-fit max-w-full rounded-full bg-surface p-1', ui?.class)}>
 	<div
@@ -90,10 +90,10 @@
 		onscroll={measure}
 		data-fade={canStart && canEnd ? 'both' : canStart ? 'start' : canEnd ? 'end' : 'none'}
 		class={cn(
-			// `relative` precisa estar aqui: a classe é reescrita a cada troca de fade e apagaria
-			// o `relative` que o indicador deslizante põe sozinho.
-			// `px-px`: largura de ficha quebrada (subpixel) passava ~0,5px da faixa e a borda
-			// da pílula ativa era cortada reta pelo `overflow`.
+			// `relative` must be here: the class is rewritten on every fade change and would wipe
+			// the `relative` the sliding indicator sets on its own.
+			// `px-px`: a fractional chip width (subpixel) overflowed the strip by ~0.5px and the
+			// active pill's edge was cut straight by the `overflow`.
 			'relative isolate flex [scrollbar-width:none] gap-1 overflow-x-auto rounded-full px-px',
 			canStart && canEnd ? 'fade-x-both' : canStart ? 'fade-x-start' : canEnd && 'fade-x-end'
 		)}
@@ -118,7 +118,9 @@
 			>
 				{item.label}
 				{#if item.count !== undefined && item.count !== null}
-					<span class={cn('text-[10px] tabular-nums', active ? 'opacity-70' : 'opacity-60')}>
+					<span
+						class={cn('text-[10px] tabular-nums', active ? 'opacity-70' : 'opacity-60')}
+					>
 						{item.count}
 					</span>
 				{/if}

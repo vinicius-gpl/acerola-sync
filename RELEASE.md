@@ -1,6 +1,6 @@
 # Release vX.Y.Z
 
-Modelo das notas de release (mesmo do acerola-reader). A tag diz o app: `extension/<canal>/vX.Y.Z` ou `server/<canal>/vX.Y.Z`.
+Modelo das notas de release (mesmo do acerola-reader). A tag diz o app: `extension/vX.Y.Z` ou `server/vX.Y.Z`.
 
 ## Destaques
 - Resumo curto (1-3 linhas) do que essa release traz de mais importante.

@@ -156,7 +156,7 @@ WXT + Svelte 5, com os componentes e temas do acerola-reader.
 
 ### 4.1 Interface
 
-A mesma interface roda em dois modos (`lib/screens/AppShell.svelte`):
+A mesma interface roda em dois modos (`lib/screens/app-shell.svelte`):
 - **Popup** (440×600): barra em pílula flutuando embaixo.
 - **Página cheia** (`app.html`, botão "Abrir em aba"): barra em pílula no topo, blocos de números e a obra abrindo num painel à direita.
 
@@ -169,7 +169,7 @@ Telas:
 
 Ao abrir o popup numa página de obra ou capítulo de um site rastreado, o topo da lista mostra **essa obra** (o content script responde `page:current`). Se ela não foi achada, o botão "Vincular" abre a busca.
 
-Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só claro/escuro), tipografia grande e pesada, blocos de cor `*-soft` e **nenhuma borda colorida**. Animações com GSAP (`lib/utils/motion.utils.ts`): entrada em cascata dos cards, contagem dos números, pílula que desliza entre as abas, "pulo" do +1 e linhas de log entrando. Quem pede menos movimento no sistema não vê animação. As regras de design (só tokens de cor, raio e sombra; nenhuma borda colorida) estão na skill `.claude/skills/acerola-design` e são conferidas por `npm run lint:design` (pre-commit) e por um hook do Claude Code.
+Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só claro/escuro), tipografia grande e pesada, blocos de cor `*-soft` e **nenhuma borda colorida**. Animações com GSAP (`lib/utils/motion.utils.ts`): entrada em cascata dos cards, contagem dos números, pílula que desliza entre as abas, "pulo" do +1 e linhas de log entrando. Quem pede menos movimento no sistema não vê animação. As regras de design (só tokens de cor, raio e sombra; nenhuma borda colorida) estão na skill `.claude/skills/acerola-design` e são conferidas por `scripts/design/check-design.mjs` (pre-commit do lefthook, CI e hook do Claude Code).
 
 ### 4.2 Tracking (estilo MALSync)
 
@@ -208,22 +208,25 @@ Visual: paleta única do acerola-reader (`theme/colors/catppuccin.css`, só clar
 
 ## Release e deploy
 
-Tags no mesmo molde do acerola-reader: `<app>/<canal>/v<versão>`, canal `alpha`, `beta` ou `prod`.
+Tags por app, `<app>/vX.Y.Z` (desvio do padrão Acerola, que usa uma tag `vX.Y.Z` por repositório: aqui os dois apps têm versões próprias). Pré-versão é `<app>/vX.Y.Z-rc.N` e sai como pré-lançamento. O workflow recusa tag fora da `main`.
 
 | Tag | Workflow | O que faz |
 |---|---|---|
-| `extension/prod/v1.2.0` | `.github/workflows/extension-release.yml` | Sobe a versão do `extension/package.json`, testa, gera os `.zip` de Chrome e Firefox, devolve o commit `[build](extension): Versão …` para `main` e `develop` e publica o Release (pré-lançamento fora de `prod`). |
-| `server/prod/v1.2.0` | `.github/workflows/server-release.yml` | Só sobe a versão do `server/Cargo.toml`/`Cargo.lock` e devolve o commit `[build](backend): Versão …` para `main` e `develop`. Sem Release, sem imagem. |
+| `extension/v1.2.0` | `.github/workflows/extension-release.yml` | Sobe a versão do `extension/package.json`, testa, gera os `.zip` de Chrome e Firefox, devolve o commit `[build](extension): Versão …` para `main` e `develop` e publica o Release (pré-lançamento numa tag `-rc.N`). |
+| `server/v1.2.0` | `.github/workflows/server-release.yml` | Só sobe a versão do `server/Cargo.toml`/`Cargo.lock` e devolve o commit `[build](backend): Versão …` para `main` e `develop`. Sem Release, sem imagem. |
 
-O bump é o `scripts/release/bump.mjs` (testado em `npm run test:release`). Os commits do bot
-rodam com `HUSKY=0` e usam a `DEPLOY_KEY` para poder escrever na `main`.
+O bump é o `scripts/release/bump.mjs` (testado em `npm run test:release`). Os commits do bot usam
+a `DEPLOY_KEY` para poder escrever na `main` (os hooks do lefthook não rodam no CI).
+
+Testes: `Tests/Extension` (`extension-tests.yml`: prettier, design, i18n, tipos, testes e build) e
+`Tests/Server` (`server-tests.yml`: fmt, clippy e testes) rodam em push e PR na `develop` e na `main`.
 
 **Deploy do server** (`acerola-sync/server/.config/ansible/deploy.yml`, igual ao relay): rsync da pasta do
 server (com `.config/docker/`), `.env` gerado do template, `docker compose up -d --build --wait` (o mesmo
 `compose.yml` de casa: porta só em `127.0.0.1`, na rede `proxy` do Caddy) e a config do Caddy gerada do
 template para o `domain` do `hosts.ini` (`/opt/caddy/conf.d/acerola-sync.caddy`, com reload só
 quando ela muda). Sem script shell no playbook: só módulos e templates em `server/.config/ansible/templates/`.
-Roda sozinho na tag `server/prod/v*`, pelo botão do workflow `Deploy/Server` (testa antes) ou
+Roda sozinho na tag `server/vX.Y.Z`, pelo botão do workflow `Deploy/Server` (testa antes) ou
 local com `mise run deploy`.
 
 No GitHub:

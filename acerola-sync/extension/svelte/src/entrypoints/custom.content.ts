@@ -4,8 +4,8 @@ import { startTracking } from '$lib/tracking/runner';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 
 /**
- * Script genérico dos sites personalizados. Não entra no manifest: o background registra em
- * tempo de execução nos domínios que o usuário cadastrou e liberou.
+ * Generic script for custom sites. It is not in the manifest: the background registers it at
+ * runtime on the domains the user added and granted.
  */
 export default defineContentScript({
 	registration: 'runtime',

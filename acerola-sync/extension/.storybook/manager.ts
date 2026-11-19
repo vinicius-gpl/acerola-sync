@@ -5,10 +5,10 @@ addons.setConfig({
 	theme: create({
 		base: 'dark',
 		brandTitle: 'Acerola',
-		// Logo de verdade do app (cópia de svelte/src/lib/assets/icons/acerola.svg em
-		// svelte/static/logo.svg — precisa ser um arquivo estático simples, a manager UI
-		// do Storybook não processa imports do Vite tipo `?component`). O favicon.ico real
-		// da aba é setado à parte em manager-head.html, não por aqui.
+		// The app's real logo (copy of svelte/src/lib/assets/icons/acerola.svg in
+		// svelte/static/logo.svg: it must be a plain static file, Storybook's manager UI does
+		// not process Vite imports like `?component`). The tab's real favicon.ico is set
+		// separately in manager-head.html, not here.
 		brandImage: 'logo.svg',
 		brandTarget: '_self'
 	})

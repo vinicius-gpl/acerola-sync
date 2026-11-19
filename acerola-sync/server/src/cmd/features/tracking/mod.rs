@@ -73,8 +73,8 @@ pub async fn list_custom_sites(
     Ok(Json(tracking_repository::list_custom_sites(&state.database_pool, auth.user.id).await?))
 }
 
-/// Confere a regex do site personalizado antes de salvar: ela roda na extensão, e uma regex
-/// quebrada só apareceria lá, em silêncio.
+/// Checks the custom site's regex before saving: it runs in the extension, and a broken regex
+/// would only show up there, silently.
 pub fn validate_custom_site(request: &CustomSiteRequest) -> Result<(), AppError> {
     if request.name.trim().is_empty() {
         return Err(AppError::BadRequest("name is required.".into()));
@@ -88,7 +88,7 @@ pub fn validate_custom_site(request: &CustomSiteRequest) -> Result<(), AppError>
     let regex = Regex::new(&request.url_pattern)
         .map_err(|error| AppError::BadRequest(format!("Invalid urlPattern: {error}")))?;
     let names: Vec<&str> = regex.capture_names().flatten().collect();
-    // Com o número fora da URL, a regex da URL só precisa achar a obra.
+    // With the number outside the URL, the URL regex only needs to find the media.
     let from_url = request.progress_source == "url";
     let required: &[&str] = if from_url { &["id", "progress"] } else { &["id"] };
     for required in required {
@@ -146,7 +146,7 @@ fn input(request: &CustomSiteRequest) -> CustomSiteInput<'_> {
         enabled: request.enabled,
         search_url: request.search_url.as_deref().map(str::trim).filter(|url| !url.is_empty()),
         progress_source: &request.progress_source,
-        // Fonte na URL: seletor e regex do número não valem, não ficam guardados.
+        // Source in the URL: the number's selector and regex do not apply and are not stored.
         progress_selector: trimmed(&request.progress_selector)
             .filter(|_| request.progress_source == "selector"),
         progress_pattern: trimmed(&request.progress_pattern).filter(|_| !from_url),

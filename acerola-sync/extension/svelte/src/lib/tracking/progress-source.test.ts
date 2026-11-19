@@ -85,6 +85,8 @@ describe('suggestProgress', () => {
 	});
 
 	it('sem palavra de capítulo não sugere nada', () => {
-		expect(suggestProgress(snapshotPage(null, page('<title>Página 1 de 31</title>')))).toBeNull();
+		expect(
+			suggestProgress(snapshotPage(null, page('<title>Página 1 de 31</title>')))
+		).toBeNull();
 	});
 });

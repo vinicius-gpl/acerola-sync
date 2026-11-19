@@ -12,7 +12,7 @@ use crate::{
     infra::error::AppError,
 };
 
-/// Usuário da sessão. Toda rota que recebe `AuthUser` exige `Authorization: Bearer <token>`.
+/// Session user. Every route that takes `AuthUser` requires `Authorization: Bearer <token>`.
 pub struct AuthUser {
     pub user: User,
     pub session_token: String,
@@ -34,7 +34,7 @@ impl FromRequestParts<AppState> for AuthUser {
     }
 }
 
-/// Client ID do AniList vindo do `.env`, para a extensão montar o OAuth sem configurar nada.
+/// AniList Client ID from `.env`, so the extension builds the OAuth without any setup.
 pub async fn config(State(state): State<AppState>) -> Json<AuthConfigPayload> {
     Json(AuthConfigPayload { anilist_client_id: state.anilist_client_id.clone() })
 }

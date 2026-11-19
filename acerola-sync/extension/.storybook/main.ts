@@ -17,8 +17,8 @@ const config: StorybookConfig = {
 	framework: '@storybook/svelte-vite',
 	staticDirs: ['../svelte/static'],
 	viteFinal(config) {
-		// Sem SvelteKit e sem vite.config.ts (o build é do WXT), os plugins entram aqui — ANTES
-		// dos do Storybook, senão o svelte-docgen tenta ler o .svelte ainda não compilado.
+		// No SvelteKit and no vite.config.ts (WXT owns the build), so the plugins go here, BEFORE
+		// Storybook's, or svelte-docgen tries to read the .svelte file before it is compiled.
 		const projectConfig = {
 			plugins: [
 				svelte(),
@@ -45,7 +45,10 @@ const config: StorybookConfig = {
 					}
 				},
 				optimizeDeps: {
-					entries: ['../svelte/src/**/*.stories.@(js|ts|svelte)', '../svelte/src/**/*.svelte'],
+					entries: [
+						'../svelte/src/**/*.stories.@(js|ts|svelte)',
+						'../svelte/src/**/*.svelte'
+					],
 					holdUntilResolved: true,
 					include: [
 						'svelte',

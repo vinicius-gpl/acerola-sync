@@ -9,8 +9,8 @@ import {
 import { parseProgress } from '$lib/tracking/types';
 import { browser } from 'wxt/browser';
 
-// "Testar numa aba aberta" do modo avançado do site personalizado: lê a aba do site mais
-// recente e mostra o que a configuração tira dela, antes de salvar.
+// "Test on an open tab" from the custom site's advanced mode: reads the site's most recent tab
+// and shows what the configuration pulls from it, before saving.
 
 export type SiteTestResult =
 	| { status: 'no-tab' }
@@ -20,11 +20,11 @@ export type SiteTestResult =
 			url: string;
 			id: string | null;
 			progress: number | null;
-			/** Onde a página parece mostrar o número, quando a configuração não achou. */
+			/** Where the page seems to show the number, when the configuration found nothing. */
 			suggestion: ProgressSuggestion | null;
 	  };
 
-/** O que a configuração tira da página. Separado da aba para dar para testar. */
+/** What the configuration pulls from the page. Kept apart from the tab so it can be tested. */
 export function evaluateSnapshot(
 	site: Pick<CustomSiteInput, 'urlPattern' | 'progressSource' | 'progressPattern'>,
 	snapshot: PageSnapshot
@@ -49,8 +49,8 @@ export function evaluateSnapshot(
 }
 
 /**
- * Roda na aba aberta mais recente do site. A permissão do domínio precisa ter sido pedida no
- * clique, antes de chamar isto.
+ * Runs on the site's most recent open tab. The domain permission must have been requested on
+ * click, before calling this.
  */
 export async function testSiteOnTab(site: CustomSiteInput): Promise<SiteTestResult> {
 	try {

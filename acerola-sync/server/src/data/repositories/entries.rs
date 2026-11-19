@@ -67,7 +67,7 @@ pub async fn find(
     .await?)
 }
 
-/// Várias entradas de uma vez (busca): uma query só, em vez de uma por resultado.
+/// Several entries at once (search): a single query, instead of one per result.
 pub async fn find_many(
     pool: &PgPool, user_id: i64, media_ids: &[i64],
 ) -> Result<Vec<Entry>, DbError> {
@@ -82,8 +82,8 @@ pub async fn find_many(
     .await?)
 }
 
-/// Quantas entradas há em cada (tipo, status), respeitando os filtros da lista (o status
-/// dos filtros é ignorado: a contagem é justamente por status).
+/// How many entries are in each (type, status), honoring the list filters (the filters' status
+/// is ignored: the count is precisely by status).
 pub async fn count_by_status(
     pool: &PgPool, user_id: i64, filters: &EntryFilters,
 ) -> Result<Vec<EntryCount>, DbError> {
@@ -94,13 +94,13 @@ pub async fn count_by_status(
          GROUP BY media.media_type, entries.status
          ORDER BY media.media_type, entries.status"
     );
-    // O SQL dinâmico só junta constantes (`FILTER_SQL`); os valores vão por bind.
+    // The dynamic SQL only joins constants (`FILTER_SQL`); values go through bind.
     Ok(bind_filters(sqlx::query_as(AssertSqlSafe(sql)).bind(user_id), filters, false)
         .fetch_all(pool)
         .await?)
 }
 
-/// Gêneros, formatos e anos que existem na lista do usuário, para montar os filtros.
+/// Genres, formats and years that exist in the user's list, to build the filters.
 pub async fn facets(
     pool: &PgPool, user_id: i64, media_type: Option<&str>,
 ) -> Result<EntryFacets, DbError> {
@@ -164,7 +164,7 @@ pub async fn delete(
     Ok(())
 }
 
-/// Remove do espelho o que sumiu do AniList, sem tocar no que ainda está pendente de envio.
+/// Removes from the mirror what disappeared from AniList, without touching what is still pending.
 pub async fn delete_missing(
     executor: impl PgExecutor<'_>, user_id: i64, media_type: &str, kept_media_ids: &[i64],
 ) -> Result<u64, DbError> {
@@ -184,8 +184,8 @@ pub async fn delete_missing(
     Ok(result.rows_affected())
 }
 
-/// Uma página da lista. A tela pede de pouco em pouco (rolagem infinita): uma aba com 475
-/// completos não vem de uma vez.
+/// One page of the list. The screen asks a little at a time (infinite scroll): a tab with 475
+/// completed does not come at once.
 #[derive(Debug, Clone, Copy)]
 pub struct PageRequest {
     pub limit: i64,
@@ -204,7 +204,7 @@ impl PageRequest {
     }
 }
 
-/// Ordem da lista. Cada uma desempata pelo id para a paginação não repetir nem pular.
+/// List sort. Each one breaks ties by id so pagination neither repeats nor skips.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum EntrySort {
     #[default]
@@ -243,23 +243,23 @@ impl EntrySort {
     }
 }
 
-/// Filtros da lista, todos aplicados no banco. Vazio/`None` = não filtra.
+/// List filters, all applied in the database. Empty/`None` = no filter.
 #[derive(Debug, Clone, Default)]
 pub struct EntryFilters {
     pub media_type: Option<String>,
     pub statuses: Vec<String>,
-    /// Trecho do título (qualquer título ou sinônimo, sem acento de maiúscula).
+    /// Part of the title (any title or synonym, ignoring accents and case).
     pub query: Option<String>,
     pub formats: Vec<String>,
-    /// A obra precisa ter todos estes gêneros.
+    /// The media must have all these genres.
     pub genres: Vec<String>,
     pub year: Option<i32>,
-    /// Situação da obra no AniList (`RELEASING`, `FINISHED`…).
+    /// Media status on AniList (`RELEASING`, `FINISHED`…).
     pub media_statuses: Vec<String>,
 }
 
-/// Mesmo `WHERE` na lista e na contagem. `$2..$8` = tipo, status, busca, formatos, gêneros,
-/// ano, situação.
+/// Same `WHERE` for the list and the count. `$2..$8` = type, status, search, formats, genres,
+/// year, status on AniList.
 const FILTER_SQL: &str = "($2::text IS NULL OR media.media_type = $2)
            AND (cardinality($3::text[]) = 0 OR entries.status = ANY($3))
            AND ($4::text IS NULL OR media.search_text LIKE '%' || $4 || '%')
@@ -272,7 +272,7 @@ fn bind_filters<'q, O>(
     query: sqlx::query::QueryAs<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments>,
     filters: &'q EntryFilters, with_status: bool,
 ) -> sqlx::query::QueryAs<'q, sqlx::Postgres, O, sqlx::postgres::PgArguments> {
-    // `search_text` já é minúsculo; `%`/`_` digitados viram texto, não curinga.
+    // `search_text` is already lowercase; typed `%`/`_` become text, not wildcards.
     let query_text =
         filters.query.as_deref().map(str::trim).filter(|text| !text.is_empty()).map(|text| {
             text.to_lowercase().replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
@@ -288,7 +288,7 @@ fn bind_filters<'q, O>(
         .bind(filters.media_statuses.as_slice())
 }
 
-/// Uma página da lista do usuário (com as obras), filtrada e ordenada no banco.
+/// One page of the user's list (with the media), filtered and sorted in the database.
 pub async fn list_with_media(
     pool: &PgPool, user_id: i64, filters: &EntryFilters, sort: EntrySort, page: PageRequest,
 ) -> Result<Vec<EntryWithMedia>, DbError> {
@@ -300,7 +300,7 @@ pub async fn list_with_media(
         sort.order_by(),
         columns = entry_columns!("entries.")
     );
-    // Só constantes (`FILTER_SQL` e a ordem de um enum fechado); os valores vão por bind.
+    // Only constants (`FILTER_SQL` and the order of a closed enum); values go through bind.
     let entries: Vec<Entry> =
         bind_filters(sqlx::query_as(AssertSqlSafe(sql)).bind(user_id), filters, true)
             .bind(page.limit)
@@ -388,7 +388,7 @@ mod tests {
         let pending = Entry { dirty: true, ..find(&db.pool, 1, 11).await.unwrap().unwrap() };
         upsert(&db.pool, &pending).await.unwrap();
 
-        // O AniList só devolveu a obra 10: a 11 sumiu de lá, mas está pendente aqui.
+        // AniList only returned media 10: 11 disappeared from there, but is pending here.
         let removed = delete_missing(&db.pool, 1, "ANIME", &[10]).await.unwrap();
         assert_eq!(removed, 0);
         assert!(find(&db.pool, 1, 11).await.unwrap().is_some());
@@ -473,12 +473,12 @@ mod tests {
             filters
         };
 
-        // Busca em qualquer título/sinônimo, sem diferenciar maiúscula.
+        // Searches any title/synonym, case-insensitive.
         assert_eq!(
             ids(pool, with(|f| f.query = Some(" YOUR Name ".into())), EntrySort::Title).await,
             [2]
         );
-        // `%` e `_` digitados são texto, não curinga.
+        // Typed `%` and `_` are text, not wildcards.
         assert_eq!(
             ids(pool, with(|f| f.query = Some("100%_".into())), EntrySort::Title).await,
             [3]
@@ -490,7 +490,7 @@ mod tests {
             ids(pool, with(|f| f.formats = vec!["MOVIE".into()]), EntrySort::Title).await,
             [2]
         );
-        // Gêneros: precisa ter todos.
+        // Genres: must have all of them.
         assert_eq!(
             ids(pool, with(|f| f.genres = vec!["Drama".into()]), EntrySort::Title).await,
             [3, 2, 1]
@@ -504,7 +504,7 @@ mod tests {
             .await,
             [1]
         );
-        // Ano: mangá cai no ano de início.
+        // Year: manga falls on its start year.
         assert_eq!(ids(pool, with(|f| f.year = Some(2018)), EntrySort::Title).await, [3]);
         assert_eq!(
             ids(pool, with(|f| f.media_statuses = vec!["RELEASING".into()]), EntrySort::Title)
@@ -537,7 +537,7 @@ mod tests {
         let drama_anime = EntryFilters {
             media_type: Some("ANIME".into()),
             genres: vec!["Drama".into()],
-            // Ignorado na contagem: ela é por status.
+            // Ignored in the count: it is by status.
             statuses: vec!["CURRENT".into()],
             ..Default::default()
         };

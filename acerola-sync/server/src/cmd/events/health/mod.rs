@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-/// Resposta do `/health`, usada pelo Docker e pelo proxy para saber se o servidor está de pé.
+/// `/health` response, used by Docker and the proxy to know whether the server is up.
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HealthPayload {

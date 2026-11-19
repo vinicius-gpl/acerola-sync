@@ -1,9 +1,9 @@
 import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
-// Testes de layout de verdade (Chromium headless): o jsdom dos testes unitários não mede nada,
-// então indicador desalinhado, texto cortado e pulo de layout só aparecem aqui. Cada estado
-// também vira screenshot em `test-results/visual/` para conferência.
+// Real layout tests (headless Chromium): the unit tests' jsdom measures nothing, so a
+// misaligned indicator, clipped text and layout jumps only show up here. Each state also
+// becomes a screenshot in `test-results/visual/` for review.
 
 const SERVER = 'https://sync.test';
 const SHOTS = 'test-results/visual';
@@ -54,18 +54,21 @@ async function signIn(context: BrowserContext) {
 		([server]) =>
 			chrome.storage.local.set({
 				serverUrl: server,
-				session: { token: 'tok', user: { id: 1, name: 'vinicius', avatarUrl: null, siteUrl: null } }
+				session: {
+					token: 'tok',
+					user: { id: 1, name: 'vinicius', avatarUrl: null, siteUrl: null }
+				}
 			}),
 		[SERVER]
 	);
 }
 
-/** Na página ou no contexto inteiro (abas novas, como a página cheia aberta pelo popup). */
+/** On the page or the whole context (new tabs, like the full page opened by the popup). */
 async function mockServer(page: Pick<Page, 'route'> | BrowserContext) {
 	await page.route(`${SERVER}/**`, async (route) => {
 		const url = new URL(route.request().url());
 		if (url.pathname === '/entries/counts') {
-			// Anime tem "Reassistindo" (aba a mais); mangá não: a faixa muda de tamanho na troca.
+			// Anime has "Rewatching" (one extra tab); manga does not: the strip changes size on switch.
 			return route.fulfill({
 				json: [
 					{ mediaType: 'ANIME', status: 'CURRENT', count: 5 },
@@ -109,13 +112,16 @@ async function mockServer(page: Pick<Page, 'route'> | BrowserContext) {
 			});
 		if (url.pathname === '/history' || url.pathname === '/custom-sites')
 			return route.fulfill({ json: [] });
-		return route.fulfill({ status: 404, json: { errorType: 'not_found', message: url.pathname } });
+		return route.fulfill({
+			status: 404,
+			json: { errorType: 'not_found', message: url.pathname }
+		});
 	});
 }
 
 type Box = { x: number; y: number; width: number; height: number };
 
-/** Caixa do indicador deslizante e do item ativo, já no fim da animação. */
+/** Box of the sliding indicator and of the active item, already at the end of the animation. */
 async function indicatorAndActive(container: Locator) {
 	return container.evaluate((node) => {
 		const box = (el: Element | null): Box | null => {
@@ -131,7 +137,7 @@ async function indicatorAndActive(container: Locator) {
 	});
 }
 
-/** A pílula cobre a ficha ativa (ou a barra fica embaixo dela, se `underline`). */
+/** The pill covers the active chip (or the bar sits under it, if `underline`). */
 async function expectAligned(container: Locator, underline = false) {
 	await expect
 		.poll(
@@ -145,20 +151,22 @@ async function expectAligned(container: Locator, underline = false) {
 					underline ? 0 : Math.abs(indicator.height - active.height)
 				);
 				if (off > 0.25) return `desalinhado ${off.toFixed(2)}px`;
-				// A pílula não pode passar da faixa (ali ela é cortada reta pelo overflow).
+				// The pill must not overflow the strip (there it is cut straight by the overflow).
 				const box = (await container.boundingBox())!;
 				const outside = Math.max(
 					box.x - indicator.x,
 					indicator.x + indicator.width - (box.x + box.width)
 				);
-				return underline || outside <= 0.05 ? 'ok' : `pílula cortada ${outside.toFixed(2)}px`;
+				return underline || outside <= 0.05
+					? 'ok'
+					: `pílula cortada ${outside.toFixed(2)}px`;
 			},
 			{ timeout: 3000 }
 		)
 		.toBe('ok');
 }
 
-// Mesmo tamanho do popup (`w-[440px] h-[600px]`).
+// Same size as the popup (`w-[440px] h-[600px]`).
 test.use({ viewport: { width: 440, height: 600 } });
 
 test('fichas e Anime/Mangá acompanham a troca de tipo, a rolagem e o texto', async ({
@@ -177,7 +185,7 @@ test('fichas e Anime/Mangá acompanham a troca de tipo, a rolagem e o texto', as
 	await expectAligned(types, true);
 	await page.screenshot({ path: `${SHOTS}/01-anime.png` });
 
-	// Anime → Mangá: "Watching" vira "Reading" na mesma ficha ativa e some uma aba.
+	// Anime → Manga: "Watching" becomes "Reading" on the same active chip and one tab goes away.
 	await types.getByRole('tab', { name: /Mang/ }).click();
 	await expect(page.getByText('Chainsaw Man').first()).toBeVisible();
 	await expectAligned(statuses);
@@ -189,14 +197,14 @@ test('fichas e Anime/Mangá acompanham a troca de tipo, a rolagem e o texto', as
 	await expectAligned(statuses);
 	await expectAligned(types, true);
 
-	// Última ficha (fora da área visível): rola até ela e a pílula vai junto.
+	// Last chip (outside the visible area): scrolls to it and the pill follows.
 	const last = statuses.getByRole('tab').last();
 	await last.click();
 	await expectAligned(statuses);
 	await page.screenshot({ path: `${SHOTS}/03-ultima-ficha.png` });
 	await expect(statuses).toHaveAttribute('data-fade', /start|both/);
 
-	// Nada da faixa pode ficar fora da moldura.
+	// Nothing of the strip may stick out of the frame.
 	const frame = await statuses.locator('xpath=..').boundingBox();
 	const list = await statuses.boundingBox();
 	expect(list!.x).toBeGreaterThanOrEqual(frame!.x);
@@ -215,7 +223,7 @@ test('troca de tipo não faz o cabeçalho pular', async ({ context, page, extens
 		tabs: (await statuses.boundingBox())!,
 		search: (await search.boundingBox())!
 	});
-	// Espera a entrada da tela (GSAP) assentar antes de medir.
+	// Waits for the screen entrance (GSAP) to settle before measuring.
 	await expect
 		.poll(async () => {
 			const first = await layout();
@@ -226,12 +234,14 @@ test('troca de tipo não faz o cabeçalho pular', async ({ context, page, extens
 	const before = await layout();
 
 	await page.getByRole('tab', { name: /Mang/ }).click();
-	// Mede durante a troca (antes, no meio e depois de a lista chegar): nada pode pular.
+	// Measures during the switch (before, during and after the list arrives): nothing may jump.
 	for (const wait of [0, 60, 200, 500]) {
 		await page.waitForTimeout(wait);
 		const now = await layout();
 		expect(Math.abs(now.tabs.y - before.tabs.y), `abas em ${wait}ms`).toBeLessThanOrEqual(1);
-		expect(Math.abs(now.search.y - before.search.y), `busca em ${wait}ms`).toBeLessThanOrEqual(1);
+		expect(Math.abs(now.search.y - before.search.y), `busca em ${wait}ms`).toBeLessThanOrEqual(
+			1
+		);
 		expect(now.tabs.height).toBeCloseTo(before.tabs.height, 0);
 	}
 	await expect(page.getByText('Chainsaw Man').first()).toBeVisible();
@@ -254,7 +264,7 @@ test('barra de baixo e fichas da obra alinhadas; diálogo no padrão', async ({
 	await nav.getByRole('button').first().click();
 	await expectAligned(nav);
 
-	// Lista rolada antes de abrir a obra: a obra tem que abrir do topo, com as ações à vista.
+	// List scrolled before opening the media: the media must open at the top, with the actions in view.
 	await page.locator('[data-scroller]').evaluate((node) => (node.scrollTop = 400));
 	await page.getByRole('button', { name: 'Sousou no Frieren' }).first().click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Sousou no Frieren' })).toBeVisible();
@@ -296,14 +306,14 @@ test('seletor de horário: cartão dentro do popup, hora escolhida no meio da co
 	await expect(hours).toBeVisible();
 	await page.waitForTimeout(300);
 
-	// O cartão inteiro cabe no popup.
+	// The whole card fits in the popup.
 	const panel = (await hours.locator('xpath=../../..').boundingBox())!;
 	expect(panel.x).toBeGreaterThanOrEqual(0);
 	expect(panel.x + panel.width).toBeLessThanOrEqual(440);
 	expect(panel.y).toBeGreaterThanOrEqual(0);
 	expect(panel.y + panel.height).toBeLessThanOrEqual(600);
 
-	// A hora selecionada está visível dentro da coluna (rolou até ela).
+	// The selected hour is visible inside the column (it scrolled to it).
 	const column = (await hours.boundingBox())!;
 	const selected = (await hours.locator('[aria-selected="true"]').boundingBox())!;
 	expect(selected.y).toBeGreaterThanOrEqual(column.y);
@@ -324,7 +334,7 @@ test('fichas dentro do formulário de site cabem inteiras, sem corte nem fade', 
 	extensionId
 }) => {
 	await signIn(context);
-	// Em português ("Mangá", nomes maiores) foi onde quebrou.
+	// In Portuguese ("Mangá", longer names) is where it broke.
 	await page.addInitScript(() => localStorage.setItem('PARAGLIDE_LOCALE', 'pt-br'));
 	await mockServer(page);
 	await page.goto(`chrome-extension://${extensionId}/popup.html`);
@@ -344,12 +354,12 @@ test('fichas dentro do formulário de site cabem inteiras, sem corte nem fade', 
 	await page.waitForTimeout(300);
 	await dialog.screenshot({ path: `${SHOTS}/07-form-site.png` });
 	await types.locator('xpath=..').screenshot({ path: `${SHOTS}/07b-fichas-form.png` });
-	// A pílula ativa fica inteira dentro da moldura, com a folga da borda dos dois lados.
+	// The active pill stays fully inside the frame, with the border slack on both sides.
 	const frame = (await types.locator('xpath=..').boundingBox())!;
 	const pill = (await types.getByRole('tab', { selected: true }).boundingBox())!;
 	expect(pill.x + pill.width).toBeLessThanOrEqual(frame.x + frame.width - 3);
 	expect(pill.x).toBeGreaterThanOrEqual(frame.x + 3);
-	// A pílula (indicador) não pode passar da faixa que rola: lá ela é cortada reta.
+	// The pill (indicator) must not overflow the scrolling strip: there it is cut straight.
 	const clip = await types.evaluate((node) => {
 		const list = node.getBoundingClientRect();
 		const pill = [...node.children]
@@ -359,7 +369,7 @@ test('fichas dentro do formulário de site cabem inteiras, sem corte nem fade', 
 	});
 	expect(clip.left).toBeGreaterThanOrEqual(0);
 	expect(clip.right).toBeGreaterThanOrEqual(0);
-	// E a pílula tem o tamanho da ficha (medida depois do zoom de entrada do diálogo).
+	// And the pill has the chip's size (measured after the dialog's entrance zoom).
 	const fit = await types.evaluate((node) => {
 		const pill = [...node.children]
 			.find((child) => child.classList.contains('pointer-events-none'))!
@@ -395,7 +405,7 @@ test('modo avançado do site: popup leva para a página cheia e o diálogo cresc
 
 	const dialog = full.getByRole('dialog');
 	await expect(dialog.locator('[data-advanced]')).toBeVisible();
-	// O rascunho veio junto do popup.
+	// The draft came along from the popup.
 	await expect(dialog.getByPlaceholder(/Nome|Name/)).toHaveValue('Kuro');
 	await dialog.getByRole('tab', { name: /Título da página|Page title/ }).click();
 	await full.waitForTimeout(400);
@@ -404,7 +414,7 @@ test('modo avançado do site: popup leva para a página cheia e o diálogo cresc
 	expect(box.width).toBeGreaterThan(800);
 	const overflow = await dialog.evaluate((node) => node.scrollWidth - node.clientWidth);
 	expect(overflow).toBeLessThanOrEqual(1);
-	// Formulário à esquerda, número à direita, lado a lado.
+	// Form on the left, number on the right, side by side.
 	const form = (await dialog.getByPlaceholder(/Nome|Name/).boundingBox())!;
 	const advanced = (await dialog.locator('[data-advanced]').boundingBox())!;
 	expect(advanced.x).toBeGreaterThan(form.x + form.width);
@@ -412,8 +422,8 @@ test('modo avançado do site: popup leva para a página cheia e o diálogo cresc
 	await expectAligned(dialog.locator('[data-advanced]').getByRole('tablist'));
 	await dialog.screenshot({ path: `${SHOTS}/08-site-avancado.png` });
 
-	// Teste numa aba aberta de verdade: um capítulo com o número só no título da página. O
-	// domínio é um dos já permitidos no manifesto, então a permissão não abre pergunta.
+	// Test on a real open tab: a chapter with the number only in the page title. The domain is
+	// one already allowed in the manifest, so the permission does not prompt.
 	await context.route('https://sakuramangas.org/**', (route) =>
 		route.fulfill({
 			contentType: 'text/html',
@@ -423,10 +433,12 @@ test('modo avançado do site: popup leva para a página cheia e o diálogo cresc
 	const chapter = await context.newPage();
 	await chapter.goto('https://sakuramangas.org/read/2507/463111');
 	await full.bringToFront();
-	await dialog.getByPlaceholder('https://leitor.exemplo.com/*').fill('https://sakuramangas.org/*');
+	await dialog
+		.getByPlaceholder('https://leitor.exemplo.com/*')
+		.fill('https://sakuramangas.org/*');
 	await dialog.getByPlaceholder(/\/read\//).fill('/read/(?<id>\\d+)/\\d+');
 
-	// Fonte na URL: não acha o número, mas sugere o título da página.
+	// Source in the URL: does not find the number, but suggests the page title.
 	await dialog.getByRole('tab', { name: /^URL$/ }).click();
 	await dialog.getByRole('button', { name: /Testar numa aba|Test on an open tab/ }).click();
 	const suggestion = dialog.locator('[data-suggestion]');
@@ -435,7 +447,9 @@ test('modo avançado do site: popup leva para a página cheia e o diálogo cresc
 	await expect(dialog.locator('[data-test-result]')).toContainText(
 		/Obra: 2507 · número: 30|Media: 2507 · number: 30/
 	);
-	await expect(dialog.getByRole('tab', { selected: true, name: /Título da página/ })).toBeVisible();
+	await expect(
+		dialog.getByRole('tab', { selected: true, name: /Título da página/ })
+	).toBeVisible();
 	await expectAligned(dialog.locator('[data-advanced]').getByRole('tablist'));
 	await full.waitForTimeout(400);
 	await dialog.screenshot({ path: `${SHOTS}/08b-site-avancado-teste.png` });

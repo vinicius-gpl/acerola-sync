@@ -14,7 +14,10 @@ describe('AcerolaPillNav', () => {
 	it('marca o item ativo e mostra só o nome dele', () => {
 		render(AcerolaPillNav, { props: { data: { items, active: 'list' } } });
 
-		expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute('aria-current', 'page');
+		expect(screen.getByRole('button', { name: 'Lista' })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
 		expect(screen.getByRole('button', { name: 'Buscar' })).not.toHaveAttribute('aria-current');
 		expect(screen.getByText('Lista')).toBeInTheDocument();
 		expect(screen.queryByText('Buscar')).not.toBeInTheDocument();
@@ -22,7 +25,9 @@ describe('AcerolaPillNav', () => {
 
 	it('avisa o item escolhido', async () => {
 		const onSelect = vi.fn();
-		render(AcerolaPillNav, { props: { data: { items, active: 'list' }, events: { onSelect } } });
+		render(AcerolaPillNav, {
+			props: { data: { items, active: 'list' }, events: { onSelect } }
+		});
 		await userEvent.setup().click(screen.getByRole('button', { name: 'Buscar' }));
 		expect(onSelect).toHaveBeenCalledWith('search');
 	});

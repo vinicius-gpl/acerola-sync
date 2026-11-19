@@ -15,8 +15,8 @@ pub struct LoginResult {
     pub user: UserProfile,
 }
 
-/// Recebe o token do AniList que a extensão pegou no OAuth (implicit grant, como o AniMouto),
-/// confere de quem ele é, guarda criptografado e devolve um token de sessão do server.
+/// Takes the AniList token the extension got through OAuth (implicit grant, like AniMouto),
+/// checks whose it is, stores it encrypted and returns a server session token.
 pub async fn login(
     state: &AppState, anilist_token: &str, device: &str,
 ) -> Result<LoginResult, AppError> {
@@ -54,7 +54,7 @@ pub async fn login(
 
     tracing::info!("[Auth] User {} logged in from '{}'", user.id, device);
 
-    // O espelho começa vazio: o primeiro login já puxa a lista inteira.
+    // The mirror starts empty: the first login already pulls the whole list.
     if is_first_login {
         let state = state.clone();
         let user = user.clone();
@@ -78,7 +78,7 @@ async fn ensure_allowed(state: &AppState, anilist_user_id: i64) -> Result<(), Ap
         return Ok(());
     }
 
-    // Uso pessoal: sem a variável, quem logou primeiro é o dono da instância.
+    // Personal use: without the variable, whoever logs in first owns the instance.
     let owners = user_repository::find_all(&state.database_pool).await?;
     if owners.iter().any(|owner| owner.id != anilist_user_id) {
         return Err(AppError::Forbidden(

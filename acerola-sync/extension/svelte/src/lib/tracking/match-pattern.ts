@@ -1,6 +1,6 @@
 /**
- * Confere uma URL contra um match pattern de extensão (`https://*.site.com/*`). Usado para
- * achar qual site personalizado vale na aba aberta.
+ * Checks a URL against an extension match pattern (`https://*.site.com/*`). Used to find which
+ * custom site applies to the open tab.
  */
 export function matchesPattern(pattern: string, href: string): boolean {
 	if (pattern === '<all_urls>') return /^https?:/.test(href);
@@ -34,7 +34,7 @@ export function matchesPattern(pattern: string, href: string): boolean {
 	return pathRegex.test(url.pathname + url.search);
 }
 
-/** Origem para pedir a permissão do site (`https://site.com/*`). */
+/** Origin to request the site permission for (`https://site.com/*`). */
 export function originPattern(pattern: string): string | null {
 	const match = /^(\*|https?):\/\/([^/]+)\//.exec(pattern.trim());
 	return match ? `${match[1]}://${match[2]}/*` : null;

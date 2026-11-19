@@ -1,10 +1,10 @@
-# Um compose só, local e no servidor. Sobe só o server: o Postgres é externo (o endereço vem
-# do `DATABASE_URL` no `.env` do server).
+# A single compose, local and on the server. Starts only the server: Postgres is external (the
+# address comes from `DATABASE_URL` in the server `.env`).
 #
-# - Porta presa ao `127.0.0.1`: localmente a extensão usa http://localhost:3010; no servidor
-#   ninguém de fora chega nela.
-# - Rede `proxy` (externa): no servidor é por ela que o Caddy alcança o container e cuida do
-#   domínio e do TLS. Localmente o `mise run build:server` cria a rede se ela não existir.
+# - Port bound to `127.0.0.1`: locally the extension uses http://localhost:3010; on the server
+#   nobody from outside reaches it.
+# - `proxy` network (external): on the server, Caddy reaches the container through it and
+#   handles domain and TLS. Locally `mise run build:server` creates the network if missing.
 name: acerola-sync
 
 services:
@@ -27,12 +27,12 @@ services:
       options:
         max-size: '10m'
         max-file: '3'
-    # Deixa o container alcançar um Postgres rodando na própria máquina via
-    # `host.docker.internal` (no Linux esse nome não existe sem isso).
+    # Lets the container reach a Postgres running on the host machine through
+    # `host.docker.internal` (on Linux that name does not exist without this).
     extra_hosts:
       - 'host.docker.internal:host-gateway'
-    # O teste usa o `bash` que já está na imagem — nada de instalar `curl` só pra isso.
-    # `start_period` dá tempo às migrations, que o server aplica sozinho ao subir.
+    # The check uses the `bash` already in the image: no installing `curl` just for this.
+    # `start_period` gives time to the migrations, which the server applies on startup.
     healthcheck:
       test:
         [

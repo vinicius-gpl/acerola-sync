@@ -7,13 +7,13 @@ use sqlx::FromRow;
 pub struct SyncSettings {
     pub user_id: i64,
     pub schedule_enabled: bool,
-    /// Horários em UTC.
+    /// Times in UTC.
     pub schedule_times: Vec<NaiveTime>,
     pub last_scheduled_slot: Option<DateTime<Utc>>,
     pub updated_at: DateTime<Utc>,
     pub last_pull_at: Option<DateTime<Utc>>,
     pub last_full_sync_at: Option<DateTime<Utc>>,
-    /// Lista inteira automática a cada N horas; `0` = só quando pedida.
+    /// Automatic full list every N hours; `0` = only when requested.
     pub full_sync_every_hours: i32,
 }
 

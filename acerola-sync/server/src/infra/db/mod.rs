@@ -11,8 +11,8 @@ use crate::infra::error::DbError;
 #[cfg(test)]
 pub mod test_support;
 
-/// Lista ordenada de migrações, organizada por domínio em `migrations/` (mesmo esquema do
-/// acerola-reader). A versão é global e nunca é reaproveitada.
+/// Ordered list of migrations, organized by domain in `migrations/` (same scheme as
+/// acerola-reader). The version is global and never reused.
 pub fn get_migrations() -> Vec<Migration> {
     let mut migrations = vec![];
     migrations.extend(extension_migrations());
@@ -21,8 +21,8 @@ pub fn get_migrations() -> Vec<Migration> {
     migrations.extend(entry_migrations());
     migrations.extend(sync_migrations());
     migrations.extend(tracking_migrations());
-    // A versão é global: ordena para o Migrator aplicar 6 antes de 7 mesmo vindo de domínios
-    // diferentes.
+    // The version is global: sort so the Migrator applies 6 before 7 even when they come from
+    // different domains.
     migrations.sort_by_key(|migration| migration.version);
     migrations
 }

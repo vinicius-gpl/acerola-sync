@@ -9,7 +9,11 @@ describe('AcerolaSheetDialog', () => {
 		render(AcerolaSheetDialog, {
 			props: {
 				state: { open: true },
-				data: { title: 'Novo site', description: 'Rastreio pela URL.', closeLabel: 'Fechar' },
+				data: {
+					title: 'Novo site',
+					description: 'Rastreio pela URL.',
+					closeLabel: 'Fechar'
+				},
 				events: { onOpenChange }
 			}
 		});

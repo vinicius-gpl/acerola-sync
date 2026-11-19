@@ -2,18 +2,18 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 
 use crate::infra::{anilist::client::DEFAULT_API_URL, error::EnvError};
 
-/// Variáveis de ambiente lidas na inicialização. Ver `server/.env.example`.
+/// Environment variables read at startup. See `server/.env.example`.
 #[derive(Debug, Clone)]
 pub struct Env {
     pub database_url: String,
     pub server_port: u16,
-    /// Chave AES-256 (32 bytes) que criptografa o token do AniList no banco.
+    /// AES-256 key (32 bytes) that encrypts the AniList token in the database.
     pub encryption_key: [u8; 32],
     pub anilist_api_url: String,
-    /// Client ID do app cadastrado no AniList (Settings → Developer). A extensão busca em
-    /// `/auth/config` para montar o OAuth.
+    /// Client ID of the app registered on AniList (Settings → Developer). The extension fetches
+    /// it from `/auth/config` to build the OAuth.
     pub anilist_client_id: String,
-    /// Trava a instância num usuário do AniList. Sem ela, o primeiro login vira o dono.
+    /// Locks the instance to one AniList user. Without it, the first login becomes the owner.
     pub allowed_anilist_user_id: Option<i64>,
 }
 
@@ -61,7 +61,7 @@ impl Env {
     }
 }
 
-/// A chave vem em base64 (`openssl rand -base64 32`).
+/// The key comes in base64 (`openssl rand -base64 32`).
 pub fn parse_encryption_key(value: &str) -> Result<[u8; 32], EnvError> {
     STANDARD
         .decode(value.trim())

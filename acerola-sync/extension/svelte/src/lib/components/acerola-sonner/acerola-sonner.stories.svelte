@@ -5,8 +5,8 @@
 	import { toastAsync } from '$lib/utils/toast-async.utils';
 
 	function fakeInstantAction(): Promise<void> {
-		// Resolve na hora de propósito — é o caso que `toastAsync` protege (`minDurationMs`),
-		// pra sempre dar tempo da animação de loading -> check ser percebida.
+		// Resolves immediately on purpose: it is the case `toastAsync` guards (`minDurationMs`),
+		// so the loading -> check animation always has time to be noticed.
 		return Promise.resolve();
 	}
 
@@ -34,14 +34,14 @@
 		<AcerolaSonner />
 		<button
 			type="button"
-			class="rounded bg-primary px-4 py-2 text-primary-foreground"
+			class="rounded-full bg-primary px-4 py-2 text-primary-foreground"
 			onclick={() => toast.success('Toast disparado!')}
 		>
 			Disparar Toast
 		</button>
 		<button
 			type="button"
-			class="rounded bg-secondary px-4 py-2 text-secondary-foreground"
+			class="rounded-full bg-secondary px-4 py-2 text-secondary-foreground"
 			onclick={() =>
 				toastAsync(fakeInstantAction, {
 					loading: 'Processando...',
@@ -53,7 +53,7 @@
 		</button>
 		<button
 			type="button"
-			class="rounded bg-destructive px-4 py-2 text-white"
+			class="rounded-full bg-destructive px-4 py-2 text-destructive-foreground"
 			onclick={() =>
 				toastAsync(fakeFailingAction, {
 					loading: 'Processando...',
@@ -73,8 +73,7 @@
 	parameters={{
 		docs: {
 			description: {
-				story:
-					'Este exemplo monta o toaster e expoe um botao para disparar um toast de sucesso. Em uso real, o `AcerolaSonner` deve permanecer montado em um layout ou shell principal, enquanto os toasts podem ser chamados com `toast.success(...)`, `toast.error(...)` e variacoes semelhantes em eventos de acao, feedback de formulario e operacoes assincronas.'
+				story: 'Este exemplo monta o toaster e expoe um botao para disparar um toast de sucesso. Em uso real, o `AcerolaSonner` deve permanecer montado em um layout ou shell principal, enquanto os toasts podem ser chamados com `toast.success(...)`, `toast.error(...)` e variacoes semelhantes em eventos de acao, feedback de formulario e operacoes assincronas.'
 			}
 		}
 	}}

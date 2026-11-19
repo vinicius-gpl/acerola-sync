@@ -13,18 +13,13 @@
     "test": "npm run test -w extension",
     "test:e2e": "npm run test:e2e -w extension",
     "test:mutation": "npm run test:mutation -w extension",
-    "lint": "npm run lint -w extension && npm run lint:design",
+    "lint": "npm run lint -w extension && npm run lint:design && npm run lint:i18n",
     "format": "npm run format -w extension",
     "typecheck": "npm run check -w extension",
     "storybook": "npm run storybook -w extension",
-    "prepare": "cd .. && husky acerola-sync/.husky && node acerola-sync/scripts/git/setup-git.mjs",
-    "lint:design": "node scripts/design/check-design.mjs",
-    "test:release": "node --test scripts/release/bump.test.mjs",
-    "test:design": "node --test scripts/design/check-design.test.mjs"
-  },
-  "devDependencies": {
-    "@commitlint/cli": "^21.2.4",
-    "@commitlint/types": "^21.2.3",
-    "husky": "^9.1.6"
+    "lint:design": "node ../scripts/design/check-design.mjs",
+    "test:release": "node --test ../scripts/release/bump.test.mjs",
+    "test:design": "node --test ../scripts/design/check-design.test.mjs",
+    "lint:i18n": "node ../scripts/i18n/check-i18n.mjs"
   }
 }

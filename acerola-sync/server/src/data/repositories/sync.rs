@@ -50,7 +50,7 @@ pub async fn save_schedule(
     .await?)
 }
 
-/// Garante a linha de ajustes e grava o intervalo da lista inteira automática.
+/// Ensures the settings row and stores the automatic full-list interval.
 pub async fn save_full_sync_interval(
     pool: &PgPool, user_id: i64, hours: i32,
 ) -> Result<SyncSettings, DbError> {
@@ -123,7 +123,7 @@ pub async fn finish_run(
     .await?)
 }
 
-/// Marca até onde o espelho está em dia. `full` também registra a lista inteira.
+/// Marks how far the mirror is up to date. `full` also records the whole list.
 pub async fn mark_pulled(
     pool: &PgPool, user_id: i64, pulled_at: DateTime<Utc>, full: bool,
 ) -> Result<(), DbError> {
@@ -156,7 +156,7 @@ pub async fn insert_log(
     .await?)
 }
 
-/// Logs de um sync depois de `after_id` — a tela pede só as linhas novas a cada segundo.
+/// Logs of a sync after `after_id`: the screen asks only for the new lines every second.
 pub async fn logs_after(
     pool: &PgPool, user_id: i64, run_id: i64, after_id: i64,
 ) -> Result<Vec<SyncLog>, DbError> {
@@ -175,7 +175,7 @@ pub async fn logs_after(
     .await?)
 }
 
-/// Sync que ficaram `RUNNING` porque o processo caiu no meio.
+/// Syncs left `RUNNING` because the process died midway.
 pub async fn fail_stale_runs(pool: &PgPool) -> Result<(), DbError> {
     sqlx::query(
         "UPDATE sync_runs SET status = 'FAILED', finished_at = now(), error = 'interrupted'
@@ -200,7 +200,7 @@ pub async fn find_run(
     .await?)
 }
 
-/// Usuários com o sync automático ligado (intervalo da lista inteira diferente de "só no botão").
+/// Users with automatic sync on (full-list interval other than "button only").
 pub async fn all_auto(pool: &PgPool) -> Result<Vec<SyncSettings>, DbError> {
     Ok(sqlx::query_as(concat!(
         "SELECT ",
@@ -211,7 +211,7 @@ pub async fn all_auto(pool: &PgPool) -> Result<Vec<SyncSettings>, DbError> {
     .await?)
 }
 
-/// Quando começou o último sync do usuário, de qualquer tipo e com qualquer resultado.
+/// When the user's last sync started, of any kind and with any result.
 pub async fn last_run_started_at(
     pool: &PgPool, user_id: i64,
 ) -> Result<Option<DateTime<Utc>>, DbError> {
@@ -250,7 +250,7 @@ mod tests {
         user_repository::upsert(&db.pool, &user(1)).await.unwrap();
         settings(&db.pool, 1).await.unwrap();
         assert_eq!(last_run_started_at(&db.pool, 1).await.unwrap(), None);
-        // Padrão: lista inteira a cada 24h, então o automático vale.
+        // Default: whole list every 24h, so automatic sync is on.
         assert_eq!(all_auto(&db.pool).await.unwrap().len(), 1);
 
         let run = start_run(&db.pool, 1, "AUTO", "INCREMENTAL").await.unwrap();
@@ -276,7 +276,7 @@ mod tests {
             ["começou", "AniList lento"]
         );
         assert_eq!(logs_after(&db.pool, 1, run.id, first.id).await.unwrap().len(), 1);
-        // Logs de outro usuário não aparecem.
+        // Another user's logs do not show up.
         assert!(logs_after(&db.pool, 2, run.id, 0).await.unwrap().is_empty());
 
         let totals = RunTotals { pulled: 3, pushed: 1, removed: 0, anilist_requests: 2 };

@@ -24,7 +24,7 @@ pub struct Media {
     pub duration: Option<i32>,
     pub season: Option<String>,
     pub season_year: Option<i32>,
-    /// Ano de início. Mangá não tem `season_year`; o filtro de ano usa este.
+    /// Start year. Manga has no `season_year`; the year filter uses this.
     pub start_year: Option<i32>,
     pub average_score: Option<i32>,
     pub genres: Vec<String>,
@@ -40,10 +40,10 @@ pub struct Media {
     pub synced_at: DateTime<Utc>,
     #[serde(skip)]
     pub search_text: String,
-    /// Quando a sinopse e o banner foram buscados. `None` = a obra só veio de lista ou busca.
+    /// When the synopsis and banner were fetched. `None` = the media only came from a list or search.
     #[serde(skip)]
     pub details_synced_at: Option<DateTime<Utc>>,
-    /// Origem (`MANGA`, `ORIGINAL`, `LIGHT_NOVEL`…). Daqui para baixo, só o detalhe traz.
+    /// Source (`MANGA`, `ORIGINAL`, `LIGHT_NOVEL`…). From here down, only the detail brings it.
     pub source: Option<String>,
     pub studios: Vec<String>,
     pub start_date: Option<NaiveDate>,
@@ -52,18 +52,18 @@ pub struct Media {
     pub relations: Json<Vec<Relation>>,
 }
 
-/// Link externo do AniList (site oficial, redes, streaming).
+/// AniList external link (official site, social, streaming).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalLink {
     pub site: String,
     pub url: String,
-    /// `STREAMING`, `INFO` ou `SOCIAL`.
+    /// `STREAMING`, `INFO` or `SOCIAL`.
     pub kind: Option<String>,
     pub language: Option<String>,
 }
 
-/// Obra relacionada (continuação, origem, spin-off…).
+/// Related media (sequel, source, spin-off…).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Relation {
@@ -76,14 +76,14 @@ pub struct Relation {
     pub cover_url: Option<String>,
 }
 
-/// Data parcial do AniList: sem dia ou mês, cai no primeiro.
+/// Partial AniList date: without day or month, falls on the first.
 fn partial_date(date: Option<anilist::FuzzyDate>) -> Option<NaiveDate> {
     let date = date?;
     NaiveDate::from_ymd_opt(date.year?, date.month.unwrap_or(1), date.day.unwrap_or(1))
 }
 
 impl Media {
-    /// Total de episódios (anime) ou capítulos (mangá), quando o AniList sabe.
+    /// Total episodes (anime) or chapters (manga), when AniList knows.
     pub fn total_units(&self) -> Option<i32> {
         if self.media_type == "ANIME" {
             self.episodes
@@ -97,7 +97,7 @@ pub fn timestamp(seconds: Option<i64>) -> Option<DateTime<Utc>> {
     seconds.and_then(|seconds| Utc.timestamp_opt(seconds, 0).single())
 }
 
-/// Todos os títulos e sinônimos em minúsculas, numa string só, para o índice trigram.
+/// All titles and synonyms in lowercase, in a single string, for the trigram index.
 pub fn build_search_text(titles: &[Option<&str>], synonyms: &[String]) -> String {
     titles
         .iter()

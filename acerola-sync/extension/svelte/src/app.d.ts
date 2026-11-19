@@ -1,4 +1,4 @@
-// Ícones SVG como componente (`?component`), pelo `@poppanator/sveltekit-svg`.
+// SVG icons as components (`?component`), through `@poppanator/sveltekit-svg`.
 declare module '*.svg?component' {
 	import type { Component } from 'svelte';
 	import type { SVGAttributes } from 'svelte/elements';

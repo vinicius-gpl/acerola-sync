@@ -24,14 +24,14 @@ use crate::{
 
 pub const MEDIA_TYPES: [&str; 2] = ["ANIME", "MANGA"];
 
-/// De quanto em quanto tempo a lista inteira é puxada (e o que foi apagado no AniList some
-/// daqui). Entre uma e outra, o sync é incremental.
-/// Intervalos que a tela oferece para a lista inteira automática (`0` = só no botão).
+/// How often the whole list is pulled (and what was deleted on AniList disappears from here).
+/// In between, the sync is incremental.
+/// Intervals the screen offers for the automatic full list (`0` = button only).
 pub const FULL_SYNC_INTERVALS: [i32; 5] = [0, 6, 24, 72, 168];
-/// Folga do incremental: reprocessa o que mudou um pouco antes do último pull, para não perder
-/// nada que mudou enquanto o pull anterior rodava.
+/// Incremental slack: reprocesses what changed a bit before the last pull, so nothing that
+/// changed while the previous pull ran is lost.
 const INCREMENTAL_MARGIN: Duration = Duration::minutes(5);
-/// Teto do incremental (20 × 50 entradas). Passou disso, vale mais a lista inteira.
+/// Incremental ceiling (20 × 50 entries). Past that, the whole list is better.
 const MAX_INCREMENTAL_PAGES: u32 = 20;
 const AIRING_BATCH: usize = 50;
 
@@ -51,8 +51,8 @@ impl SyncMode {
     }
 }
 
-/// Lista inteira quando pedida, quando nunca rodou ou quando a última passou do intervalo
-/// escolhido (`every_hours`; `0` = automático nunca puxa a lista inteira).
+/// Whole list when requested, when it never ran or when the last one is past the chosen
+/// interval (`every_hours`; `0` = automatic never pulls the whole list).
 pub fn choose_mode(
     force_full: bool, last_full: Option<DateTime<Utc>>, last_pull: Option<DateTime<Utc>>,
     now: DateTime<Utc>, every_hours: i32,
@@ -68,7 +68,7 @@ pub fn choose_mode(
     }
 }
 
-/// Grava cada passo em `sync_logs` (a tela acompanha ao vivo) e no log do processo.
+/// Writes each step to `sync_logs` (the screen follows live) and to the process log.
 struct SyncLogger<'a> {
     state: &'a AppState,
     run_id: i64,
@@ -98,7 +98,7 @@ impl SyncLogger<'_> {
     }
 }
 
-/// Um sync já registrado em `sync_runs`, segurando o lock até terminar.
+/// A sync already registered in `sync_runs`, holding the lock until it ends.
 struct PreparedRun {
     _guard: OwnedMutexGuard<()>,
     run: SyncRun,
@@ -129,9 +129,9 @@ async fn prepare(
     Ok(PreparedRun { _guard: guard, run, mode, started_at, last_pull_at: settings.last_pull_at })
 }
 
-/// Atualiza o espelho e espera terminar (agenda e primeiro login). Envia o que está pendente
-/// e puxa do AniList: a lista inteira (2 requests numa lista comum) ou só o que mudou desde o
-/// último pull (normalmente 1 request), mais o próximo episódio do que está em lançamento.
+/// Updates the mirror and waits for it to finish (schedule and first login). Sends what is
+/// pending and pulls from AniList: the whole list (2 requests for a regular list) or only what
+/// changed since the last pull (usually 1 request), plus the next episode of what is airing.
 pub async fn run(
     state: &AppState, user: &User, trigger: &str, force_full: bool,
 ) -> Result<SyncRun, AppError> {
@@ -139,7 +139,7 @@ pub async fn run(
     execute(state, user, prepared).await
 }
 
-/// Começa o sync em segundo plano e devolve o registro na hora: a tela acompanha pelos logs.
+/// Starts the sync in the background and returns the record right away: the screen follows the logs.
 pub async fn start(
     state: &AppState, user: &User, trigger: &str, force_full: bool,
 ) -> Result<SyncRun, AppError> {
@@ -209,7 +209,7 @@ async fn push_pending(
         totals.pushed = entry_service::push_pending(state, user).await?;
     }
 
-    // O que ainda não chegou no AniList não pode ser sobrescrito pelo que vem de lá.
+    // What has not reached AniList yet must not be overwritten by what comes from there.
     let still_pending: HashSet<i64> = entry_repository::find_dirty(&state.database_pool, user.id)
         .await?
         .into_iter()
@@ -303,8 +303,8 @@ fn queries_page_size() -> usize {
     crate::infra::anilist::queries::PAGE_SIZE as usize
 }
 
-/// Próximo episódio do que está em lançamento: a query leve não muda quando ninguém mexe na
-/// entrada, então o incremental atualiza isso à parte (1 request a cada 50 obras).
+/// Next episode of what is airing: the light query does not change when nobody touches the
+/// entry, so the incremental sync updates it separately (1 request per 50 media).
 async fn refresh_airing(
     state: &AppState, user: &User, logger: &SyncLogger<'_>, token: &str,
 ) -> Result<(), AppError> {
@@ -359,7 +359,7 @@ mod tests {
         let yesterday = at(12) - Duration::hours(25);
         assert_eq!(choose_mode(false, Some(yesterday), Some(at(10)), at(12), 24), SyncMode::Full);
         assert_eq!(choose_mode(true, Some(at(11)), Some(at(11)), at(12), 24), SyncMode::Full);
-        // Semanal: um dia depois ainda é incremental; só no botão: nunca automático.
+        // Weekly: one day later is still incremental; button only: never automatic.
         assert_eq!(
             choose_mode(false, Some(yesterday), Some(at(10)), at(12), 168),
             SyncMode::Incremental
@@ -369,7 +369,7 @@ mod tests {
             SyncMode::Incremental
         );
         assert_eq!(choose_mode(true, Some(at(11)), Some(at(11)), at(12), 0), SyncMode::Full);
-        // Nunca rodou: puxa tudo mesmo no "só no botão".
+        // Never ran: pulls everything even with "button only".
         assert_eq!(choose_mode(false, None, None, at(12), 0), SyncMode::Full);
     }
 }

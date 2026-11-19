@@ -5,13 +5,13 @@ use crate::data::models::user::UserProfile;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginRequest {
-    /// Token do AniList obtido pela extensão no OAuth.
+    /// AniList token the extension got through OAuth.
     pub access_token: String,
     #[serde(default)]
     pub device: String,
 }
 
-/// Configuração pública do login: o Client ID não é segredo (vai na URL do OAuth).
+/// Public login configuration: the Client ID is not a secret (it goes in the OAuth URL).
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AuthConfigPayload {

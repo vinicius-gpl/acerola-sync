@@ -92,7 +92,7 @@ pub struct Media {
     #[serde(default)]
     pub external_links: Vec<Option<ExternalLink>>,
     pub relations: Option<RelationConnection>,
-    /// Entrada do usuário logado (só na query `media_with_entry`).
+    /// Logged-in user's entry (only in the `media_with_entry` query).
     pub media_list_entry: Option<ViewerEntry>,
 }
 
@@ -141,7 +141,7 @@ pub struct RelationNode {
     pub cover_image: Option<CoverImage>,
 }
 
-/// Os campos de `MediaListEntry` sem a obra (ela é a própria `Media` em volta).
+/// `MediaListEntry` fields without the media (it is the surrounding `Media` itself).
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ViewerEntry {

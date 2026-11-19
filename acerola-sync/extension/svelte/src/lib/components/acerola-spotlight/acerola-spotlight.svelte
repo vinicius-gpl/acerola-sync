@@ -4,9 +4,9 @@
 	export type AcerolaSpotlightProps = {
 		data: {
 			entry: EntryWithMedia;
-			/** Etiqueta pequena acima do título (ex.: "Continuar"). */
+			/** Small label above the title (e.g. "Continue"). */
 			eyebrow: string;
-			/** Linha de apoio (ex.: "Ep 4 de 12"). */
+			/** Supporting line (e.g. "Ep 4 of 12"). */
 			caption: string;
 		};
 		events?: {
@@ -34,7 +34,7 @@
 	const incrementable = $derived(!!events?.onIncrement && canIncrement(data.entry, media));
 </script>
 
-<!-- Destaque do topo: a obra que você mexeu por último, com a capa desfocada de fundo. -->
+<!-- Top highlight: the media you touched last, with the cover blurred in the background. -->
 <article
 	use:revealIn
 	class={cn('relative isolate overflow-hidden rounded-card bg-crust text-on-scrim', ui?.class)}
@@ -92,7 +92,7 @@
 				onclick={events?.onIncrement}
 				aria-label={m['sync.card.increment']()}
 			>
-				<!-- "+" desenhado com traço grosso: o "+" da fonte ficava fino perto do "1". -->
+				<!-- "+" drawn with a thick stroke: the font's "+" looked thin next to the "1". -->
 				<span class="flex items-center text-2xl leading-none font-black tracking-tighter">
 					<PlusIcon size={18} strokeWidth={4} class="-mr-0.5" />1
 				</span>

@@ -2,19 +2,19 @@ use serde::Deserialize;
 
 use crate::data::repositories::entries::{EntryFilters, EntrySort};
 
-/// Query string de `/entries` e `/entries/counts`. Listas vão separadas por vírgula
+/// Query string of `/entries` and `/entries/counts`. Lists are comma separated
 /// (`status=CURRENT,REPEATING`, `genre=Action,Drama`).
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListEntriesQuery {
     pub media_type: Option<String>,
     pub status: Option<String>,
-    /// Trecho do título.
+    /// Part of the title.
     pub q: Option<String>,
     pub format: Option<String>,
     pub genre: Option<String>,
     pub year: Option<i32>,
-    /// Situação da obra no AniList (`RELEASING`, `FINISHED`…).
+    /// Media status on AniList (`RELEASING`, `FINISHED`…).
     pub media_status: Option<String>,
     pub sort: Option<String>,
     pub limit: Option<i64>,
@@ -42,7 +42,7 @@ impl ListEntriesQuery {
             statuses: self.statuses(),
             query: self.q.clone(),
             formats: split(self.format.as_deref(), true),
-            // Gênero do AniList tem maiúscula no meio ("Slice of Life"): vai como veio.
+            // AniList genres have uppercase in the middle ("Slice of Life"): passed as is.
             genres: split(self.genre.as_deref(), false),
             year: self.year,
             media_statuses: split(self.media_status.as_deref(), true),

@@ -5,26 +5,26 @@ import { cn } from '$lib/utils/cn.utils';
 type TrackedProp = 'x' | 'y' | 'width' | 'height';
 
 export type SlidingIndicatorOptions = {
-	/// Seletor (relativo ao container) do item atualmente ativo — lido via atributo, não via
-	/// valor reativo (`aria-current="page"` na sidebar, `data-state="on"` no toggle group), pra
-	/// action ficar pura DOM e não precisar de um `update()` amarrado a uma rune.
+	/// Selector (relative to the container) of the currently active item, read through an
+	/// attribute, not a reactive value (`aria-current="page"` in the sidebar, `data-state="on"` in
+	/// the toggle group), so the action stays pure DOM and needs no `update()` tied to a rune.
 	selector: string;
-	/// Classes do elemento indicador injetado — controla a aparência (pill atrás de um ícone,
-	/// barra fina embaixo de uma aba). Propriedades de posição/tamanho que a classe já fixa via
-	/// CSS (ex.: `bottom-0 h-1` numa barra) devem ficar de fora de `track` abaixo.
+	/// Classes of the injected indicator element: controls the look (pill behind an icon, thin
+	/// bar under a tab). Position/size properties the class already fixes via CSS (e.g.
+	/// `bottom-0 h-1` on a bar) must be left out of `track` below.
 	indicatorClass: string;
 	duration?: number;
-	/// Quais propriedades da caixa do item ativo espelhar no indicador — o resto fica fixo pelas
-	/// classes CSS acima. Default: todas (caso "pill" que cobre a caixa inteira).
+	/// Which properties of the active item's box to mirror on the indicator; the rest stays fixed
+	/// by the CSS classes above. Default: all of them (the "pill" case covering the whole box).
 	track?: TrackedProp[];
 };
 
 const DEFAULT_TRACK: TrackedProp[] = ['x', 'y', 'width', 'height'];
 const DEFAULT_DURATION = 0.22;
 
-/// Substitui uma troca instantânea de classe (ex.: `bg-primary` pulando de item pra item) por um
-/// indicador que desliza até a posição/tamanho do item ativo — reaplicado sempre que o atributo
-/// que marca "ativo" muda no container (via `MutationObserver`, não via prop reativa).
+/// Replaces an instant class swap (e.g. `bg-primary` jumping from item to item) with an
+/// indicator that slides to the active item's position/size, reapplied whenever the attribute
+/// marking "active" changes in the container (via `MutationObserver`, not a reactive prop).
 export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (node, opts) => {
 	node.classList.add('relative');
 
@@ -49,17 +49,17 @@ export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (n
 
 		const containerRect = node.getBoundingClientRect();
 		const rect = active.getBoundingClientRect();
-		// `getBoundingClientRect` vem com a escala de quem está em volta: medido no meio do
-		// zoom de entrada de um diálogo (95%), o indicador ficava com o tamanho errado para
-		// sempre. Dividir pela escala atual devolve a medida de layout, a mesma do `transform`.
-		// Largura de layout com fração (`offsetWidth` arredonda e criava erro próprio).
+		// `getBoundingClientRect` carries the surrounding scale: measured in the middle of a
+		// dialog's entrance zoom (95%), the indicator kept the wrong size forever. Dividing by the
+		// current scale gives back the layout size, the same as the `transform`.
+		// Fractional layout width (`offsetWidth` rounds and created its own error).
 		const style = getComputedStyle(node);
 		const layoutWidth = parseFloat(style.width);
 		const layoutHeight = parseFloat(style.height);
 		const scaleX = layoutWidth > 0 ? containerRect.width / layoutWidth : 1;
 		const scaleY = layoutHeight > 0 ? containerRect.height / layoutHeight : 1;
-		// O indicador mora dentro do container: num container com rolagem (fichas que não cabem),
-		// a posição é a do conteúdo, então soma o quanto já rolou.
+		// The indicator lives inside the container: in a scrolling container (chips that do not
+		// fit), the position is the content's, so add how far it has scrolled.
 		const full: Record<TrackedProp, number> = {
 			x: (rect.left - containerRect.left) / (scaleX || 1) + node.scrollLeft,
 			y: (rect.top - containerRect.top) / (scaleY || 1) + node.scrollTop,
@@ -67,8 +67,8 @@ export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (n
 			height: rect.height / (scaleY || 1)
 		};
 
-		// `autoRound: false`: o GSAP arredonda px para inteiro e a pílula ficava até meio pixel
-		// fora da ficha (cortada reta pelo overflow da faixa).
+		// `autoRound: false`: GSAP rounds px to integers and the pill ended up to half a pixel
+		// off the chip (cut straight by the strip's overflow).
 		const target: Record<string, number | boolean> = { opacity: 1, autoRound: false };
 		for (const key of track) target[key] = full[key];
 
@@ -84,18 +84,18 @@ export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (n
 	}
 
 	snap(false);
-	// Bibliotecas de aba/toggle (bits-ui) resolvem qual item começa "ativo" através da própria
-	// reatividade interna delas, não de uma prop direta — não dá pra garantir que o atributo já
-	// está no DOM no instante síncrono deste `use:`. Um re-snap no próximo frame cobre essa
-	// janela sem esperar por uma mutação que talvez nunca aconteça (o item já nasce ativo).
+	// Tab/toggle libraries (bits-ui) resolve which item starts "active" through their own
+	// internal reactivity, not a direct prop: there is no guarantee the attribute is already in
+	// the DOM at the synchronous moment of this `use:`. A re-snap on the next frame covers that
+	// window without waiting for a mutation that may never happen (the item is born active).
 	requestAnimationFrame(() => snap(false));
-	// Métricas de fonte só assentam depois do primeiro paint — sem isso, um item com texto
-	// pode medir a largura errada até o layout se estabilizar de vez.
+	// Font metrics only settle after the first paint: without this, an item with text may
+	// measure the wrong width until the layout fully settles.
 	document.fonts?.ready?.then(() => snap(false));
 
-	// O tamanho de cada item conta, não só o do container: trocar Anime ↔ Mangá muda o texto
-	// da ficha ativa ("Assistindo" ↔ "Lendo") sem mudar qual está ativa, e um container com
-	// `max-w-full` nem muda de largura. Sem isso, a pílula ficava com a largura antiga.
+	// Each item's size counts, not just the container's: switching Anime ↔ Manga changes the
+	// active chip's text ("Watching" ↔ "Reading") without changing which one is active, and a
+	// container with `max-w-full` does not even change width. Without this, the pill kept the old width.
 	const resizeObserver =
 		typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => snap(false));
 	const observed = new Set<Element>();
@@ -117,8 +117,8 @@ export const slidingIndicator: Action<HTMLElement, SlidingIndicatorOptions> = (n
 	observeItems();
 
 	const mutationObserver = new MutationObserver((mutations) => {
-		// Item que entra ou sai (ex.: aba "Reassistindo" só aparece com contagem) também move os
-		// outros; texto que muda dentro de um item muda a largura dele.
+		// An item entering or leaving (e.g. the "Rewatching" tab only shows with a count) also
+		// moves the others; text changing inside an item changes its width.
 		if (mutations.some((mutation) => mutation.type === 'childList')) observeItems();
 		snap(mutations.some((mutation) => mutation.type === 'attributes'));
 	});
