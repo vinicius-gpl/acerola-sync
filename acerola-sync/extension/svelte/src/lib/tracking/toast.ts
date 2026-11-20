@@ -1,5 +1,6 @@
 import paletteCss from '$theme/colors/catppuccin.css?inline';
 import { resolveMode, type ThemeModeOption } from '$lib/hooks/theme/use-theme.svelte';
+import { brandFallbackUrl, loadBrandImage } from '$lib/constants/brand';
 import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { m } from '$lib/paraglide/messages';
 import { storage } from 'wxt/utils/storage';
@@ -65,8 +66,7 @@ const STYLE = `
 		line-height: 1.4; box-shadow: 0 16px 40px -12px color-mix(in srgb, var(--crust) 90%, transparent);
 		transform-origin: var(--origin); animation: in 260ms cubic-bezier(.2,.8,.2,1); }
 	.toast img { width: 60px; height: 86px; object-fit: cover; border-radius: 16px; flex: none; }
-	.badge { width: 48px; height: 48px; border-radius: 999px; flex: none; display: grid; place-items: center;
-		background: color-mix(in srgb, var(--tone-fg) 18%, transparent); font-weight: 900; font-size: 18px; }
+	.toast img.mascot { width: 56px; height: 56px; object-fit: contain; border-radius: 0; }
 	.body { flex: 1; min-width: 0; }
 	.title { font-size: 17px; font-weight: 900; letter-spacing: -0.01em; color: var(--foreground);
 		padding-right: 20px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -99,8 +99,6 @@ const STYLE = `
 
 const CLOSE_ICON =
 	'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.25" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
-
-const BADGE: Record<ToastTone, string> = { info: 'i', success: '✓', warning: '!', error: '×' };
 
 let host: HTMLElement | null = null;
 let dock: HTMLElement | null = null;
@@ -243,10 +241,12 @@ export async function showToast(options: ToastOptions): Promise<HTMLElement> {
 		img.alt = '';
 		toast.append(img);
 	} else {
-		const badge = document.createElement('span');
-		badge.className = 'badge';
-		badge.textContent = BADGE[tone];
-		toast.append(badge);
+		// No cover: the mascot speaks for the app (brand rule: notices get the mascot).
+		const mascot = document.createElement('img');
+		mascot.className = 'mascot';
+		mascot.alt = '';
+		loadBrandImage(mascot, 'mascot');
+		toast.append(mascot);
 	}
 
 	const body = document.createElement('div');
@@ -327,6 +327,11 @@ export async function setFab(
 		fab.className = 'fab';
 		const img = document.createElement('img');
 		img.alt = '';
+		// The site's CSP may block the CDN: the packaged logo takes over.
+		img.onerror = () => {
+			img.onerror = null;
+			img.src = brandFallbackUrl('logo');
+		};
 		fab.append(img);
 		container.append(fab);
 		makeDraggable(fab);

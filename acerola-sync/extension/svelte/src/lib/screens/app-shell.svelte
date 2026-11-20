@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AcerolaLogo from '$lib/assets/icons/acerola.svg?component';
+	import AcerolaBrandImage from '$lib/components/acerola-brand-image/acerola-brand-image.svelte';
 	import AcerolaPillNav from '$lib/components/acerola-pill-nav/acerola-pill-nav.svelte';
 	import AcerolaSonner from '$lib/components/acerola-sonner/acerola-sonner.svelte';
 	import { initTheme } from '$lib/hooks/theme/use-theme.svelte';
@@ -131,7 +131,10 @@
 			class="sticky top-0 z-20 flex items-center justify-between gap-4 bg-background/80 px-8 py-4 backdrop-blur-xl"
 		>
 			<div class="flex items-center gap-2.5">
-				<AcerolaLogo class="size-9" />
+				<AcerolaBrandImage
+					data={{ asset: 'logo', alt: 'Acerola' }}
+					ui={{ class: 'size-9' }}
+				/>
 				<span class="text-lg font-black tracking-tight">Acerola Sync</span>
 			</div>
 			{#if loggedIn}
@@ -187,7 +190,10 @@
 	>
 		{#if loggedIn}
 			<div class="flex flex-none items-center justify-between px-4 pt-3 pb-1">
-				<AcerolaLogo class="size-7" />
+				<AcerolaBrandImage
+					data={{ asset: 'logo', alt: 'Acerola' }}
+					ui={{ class: 'size-7' }}
+				/>
 				<div class="flex items-center gap-2">
 					{@render bell()}
 					<button

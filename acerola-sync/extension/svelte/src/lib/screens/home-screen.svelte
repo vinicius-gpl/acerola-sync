@@ -25,7 +25,6 @@
 	import { slidingIndicator } from '$lib/utils/sliding-indicator.utils';
 	import { BUILT_IN_SITES } from '$lib/tracking/registry';
 	import { countdown } from '$lib/utils/time.utils';
-	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import LinkIcon from '@lucide/svelte/icons/link';
 	import LoaderIcon from '@lucide/svelte/icons/loader-circle';
 	import { onDestroy, onMount } from 'svelte';
@@ -427,8 +426,7 @@
 					: m['sync.home.empty.label']({
 							status: statusLabel(status, mediaType).toLowerCase()
 						}),
-				hint: m['sync.home.empty.hint'](),
-				icon: InboxIcon
+				hint: m['sync.home.empty.hint']()
 			}}
 		/>
 	{/if}

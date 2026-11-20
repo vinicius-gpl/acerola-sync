@@ -13,7 +13,6 @@
 	import { relativeAge } from '$lib/utils/greeting.utils';
 	import { revealIn, spinWhile, staggerIn } from '$lib/utils/motion.utils';
 	import { formatDateTime, saoPauloToUtc, shortUtc, utcToSaoPaulo } from '$lib/utils/time.utils';
-	import HistoryIcon from '@lucide/svelte/icons/history';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import XIcon from '@lucide/svelte/icons/x';
@@ -375,8 +374,7 @@
 		<AcerolaEmptyState
 			data={{
 				title: m['sync.activity.history.empty'](),
-				hint: m['sync.activity.history.hint'](),
-				icon: HistoryIcon
+				hint: m['sync.activity.history.hint']()
 			}}
 		/>
 	{:else}

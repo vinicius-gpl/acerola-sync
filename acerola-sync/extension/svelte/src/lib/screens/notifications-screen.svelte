@@ -7,7 +7,6 @@
 	import { staggerIn } from '$lib/utils/motion.utils';
 	import { formatDateTime } from '$lib/utils/time.utils';
 	import ArrowLeftIcon from '@lucide/svelte/icons/arrow-left';
-	import BellIcon from '@lucide/svelte/icons/bell';
 	import XIcon from '@lucide/svelte/icons/x';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -81,8 +80,7 @@
 		<AcerolaEmptyState
 			data={{
 				title: m['sync.notifications.empty.label'](),
-				hint: m['sync.notifications.empty.hint'](),
-				icon: BellIcon
+				hint: m['sync.notifications.empty.hint']()
 			}}
 		/>
 	{:else}

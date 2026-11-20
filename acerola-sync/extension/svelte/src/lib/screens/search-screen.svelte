@@ -9,7 +9,6 @@
 	import { staggerIn } from '$lib/utils/motion.utils';
 	import GlobeIcon from '@lucide/svelte/icons/globe';
 	import SearchIcon from '@lucide/svelte/icons/search';
-	import SearchXIcon from '@lucide/svelte/icons/search-x';
 	import { onMount, untrack } from 'svelte';
 
 	let {
@@ -144,8 +143,7 @@
 		<AcerolaEmptyState
 			data={{
 				title: m['sync.search.empty.label'](),
-				hint: m['sync.search.empty.hint'](),
-				icon: SearchXIcon
+				hint: m['sync.search.empty.hint']()
 			}}
 		/>
 	{/if}

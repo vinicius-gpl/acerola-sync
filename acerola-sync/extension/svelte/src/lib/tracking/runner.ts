@@ -1,4 +1,5 @@
 import type { Resolved } from '$lib/api/types';
+import { brandUrl } from '$lib/constants/brand';
 import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { sendMessage } from '$lib/messaging';
 import { m } from '$lib/paraglide/messages';
@@ -15,7 +16,7 @@ const DEFAULT_MANGA_DELAY_SECONDS = 10;
 const DETECTED_TOAST_MS = 6000;
 const OVERVIEW_TOAST_MS = 6750;
 const HERE_TOAST_ID = 'acerola-here';
-const FAB_ICON = browser.runtime.getURL('/icon/96.png');
+const FAB_ICON = brandUrl('logo');
 
 type Cancel = () => void;
 

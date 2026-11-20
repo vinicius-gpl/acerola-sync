@@ -58,7 +58,12 @@ export default defineConfig({
 		],
 		// Icon of the floating button the content script puts on the site page (custom sites
 		// included, which can be any domain).
-		web_accessible_resources: [{ resources: ['icon/96.png'], matches: ['<all_urls>'] }],
+		web_accessible_resources: [
+			{
+				resources: ['icon/96.png', 'brand/acerola-logo.svg', 'brand/acerola-mascot.svg'],
+				matches: ['<all_urls>']
+			}
+		],
 		// Server and custom sites: requested on demand, only for the registered domain.
 		optional_host_permissions: ['https://*/*', 'http://*/*']
 	}),

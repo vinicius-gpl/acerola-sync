@@ -15,6 +15,7 @@
 </script>
 
 <script lang="ts">
+	import AcerolaBrandImage from '$lib/components/acerola-brand-image/acerola-brand-image.svelte';
 	import { cn } from '$lib/utils/cn.utils';
 	import { revealIn } from '$lib/utils/motion.utils';
 
@@ -28,6 +29,8 @@
 		>
 			<data.icon size={24} />
 		</span>
+	{:else}
+		<AcerolaBrandImage data={{ asset: 'mascot' }} ui={{ class: 'mb-1 size-24' }} />
 	{/if}
 	<p class="font-black tracking-tight text-base">{data.title}</p>
 	{#if data.hint}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createApi, normalizeServerUrl } from '$lib/api/client';
-	import AcerolaLogo from '$lib/assets/icons/acerola.svg?component';
+	import AcerolaBrandImage from '$lib/components/acerola-brand-image/acerola-brand-image.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { getRedirectUrl, requestAnilistToken } from '$lib/services/anilist-auth.service';
 	import { app } from '$lib/state/app.svelte';
@@ -77,7 +77,7 @@
 
 <div class="flex min-h-full flex-col justify-center gap-6 py-4">
 	<div use:revealIn class="flex flex-col items-start gap-3">
-		<AcerolaLogo class="size-16" />
+		<AcerolaBrandImage data={{ asset: 'mascot', alt: '' }} ui={{ class: 'size-28' }} />
 		<h1 class="text-[52px] leading-[0.9] font-black tracking-tighter">
 			Acerola<br /><span class="text-primary">Sync</span>
 		</h1>
