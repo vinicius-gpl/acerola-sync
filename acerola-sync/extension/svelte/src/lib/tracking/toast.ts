@@ -1,6 +1,6 @@
 import paletteCss from '$theme/colors/catppuccin.css?inline';
 import { resolveMode, type ThemeModeOption } from '$lib/hooks/theme/use-theme.svelte';
-import { brandFallbackUrl, loadBrandImage } from '$lib/constants/brand';
+import { brandUrl } from '$lib/constants/brand';
 import { STORAGE_KEYS } from '$lib/constants/storage-keys';
 import { m } from '$lib/paraglide/messages';
 import { storage } from 'wxt/utils/storage';
@@ -245,7 +245,7 @@ export async function showToast(options: ToastOptions): Promise<HTMLElement> {
 		const mascot = document.createElement('img');
 		mascot.className = 'mascot';
 		mascot.alt = '';
-		loadBrandImage(mascot, 'mascot');
+		mascot.src = brandUrl('mascot');
 		toast.append(mascot);
 	}
 
@@ -327,11 +327,6 @@ export async function setFab(
 		fab.className = 'fab';
 		const img = document.createElement('img');
 		img.alt = '';
-		// The site's CSP may block the CDN: the packaged logo takes over.
-		img.onerror = () => {
-			img.onerror = null;
-			img.src = brandFallbackUrl('logo');
-		};
 		fab.append(img);
 		container.append(fab);
 		makeDraggable(fab);

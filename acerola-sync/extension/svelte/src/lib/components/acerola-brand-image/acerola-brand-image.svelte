@@ -14,21 +14,17 @@
 </script>
 
 <script lang="ts">
-	import { brandFallbackUrl, brandUrl } from '$lib/constants/brand';
+	import { brandUrl } from '$lib/constants/brand';
 	import { cn } from '$lib/utils/cn.utils';
 
 	let { data, ui }: AcerolaBrandImageProps = $props();
-
-	let failed = $state(false);
-	const src = $derived(failed ? brandFallbackUrl(data.asset) : brandUrl(data.asset));
 </script>
 
-<!-- Logo or mascot from the brand CDN; falls back to the copy shipped with the extension. -->
+<!-- Logo or mascot from the copies shipped with the extension. -->
 <img
-	{src}
+	src={brandUrl(data.asset)}
 	alt={data.alt ?? ''}
 	data-brand={data.asset}
 	class={cn('object-contain select-none', ui?.class)}
 	draggable="false"
-	onerror={() => (failed = true)}
 />
