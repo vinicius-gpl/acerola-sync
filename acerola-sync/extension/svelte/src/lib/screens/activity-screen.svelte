@@ -70,7 +70,7 @@
 			// Opens the logs of the last sync (and follows them, if it is still running).
 			if (!watcher.run && status.runs[0]) watcher.watch(status.runs[0]);
 		} catch (error) {
-			await app.handleError(error);
+			await app.failScreen(error);
 		}
 	}
 

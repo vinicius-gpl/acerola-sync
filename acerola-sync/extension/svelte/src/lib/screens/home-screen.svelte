@@ -113,7 +113,7 @@
 			firstPageSize = page.length;
 			hasMore = page.length === PAGE_SIZE;
 		} catch (error) {
-			await app.handleError(error);
+			await app.failScreen(error);
 		} finally {
 			loading = false;
 		}

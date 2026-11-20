@@ -1511,6 +1511,56 @@
 			"new": "New",
 			"clear": "Clear",
 			"cleared": "Notifications cleared"
+		},
+		"errorScreen": {
+			"eyebrow": "Error {status}",
+			"eyebrowOffline": "No connection",
+			"sticker": "Oops!",
+			"actions": {
+				"home": "Go to the start",
+				"back": "Go back",
+				"retry": "Try again"
+			},
+			"badRequest": {
+				"title": "Something in the request was off",
+				"text": "The address or the data sent came in a shape we don't understand. Check it and start over from the home page."
+			},
+			"unauthorized": {
+				"title": "Sign in to continue",
+				"text": "This page is only for signed-in accounts. Sign in and come back here."
+			},
+			"forbidden": {
+				"title": "This page isn't for you",
+				"text": "Your account has no access to this. If you think it should, talk to whoever runs the app."
+			},
+			"notFound": {
+				"title": "Page not found",
+				"text": "What you opened no longer exists or never did. Go back home and start from there."
+			},
+			"timeout": {
+				"title": "That took too long",
+				"text": "The answer didn't arrive in time. Try again in a moment."
+			},
+			"tooMany": {
+				"title": "Easy, too many requests",
+				"text": "Too many requests in a short time. Wait a minute and try again."
+			},
+			"server": {
+				"title": "Something broke on our side",
+				"text": "The error was ours, not yours. Try again; if it keeps happening, come back later."
+			},
+			"unavailable": {
+				"title": "Down for a moment",
+				"text": "The Acerola Sync server did not answer. Check that it is up and try again in a few minutes."
+			},
+			"offline": {
+				"title": "You're offline",
+				"text": "Check your Wi-Fi or mobile data and try again."
+			},
+			"unknown": {
+				"title": "Something went wrong",
+				"text": "We're not sure what happened. Try again; if it keeps happening, go back to the start."
+			}
 		}
 	}
 }

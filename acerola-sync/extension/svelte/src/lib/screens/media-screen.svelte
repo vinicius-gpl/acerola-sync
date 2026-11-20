@@ -150,7 +150,7 @@
 			visits = detail.visits ?? [];
 			fill(detail.entry);
 		} catch (error) {
-			await app.handleError(error);
+			await app.failScreen(error);
 		}
 	});
 

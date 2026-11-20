@@ -10,6 +10,7 @@ import {
 	saveSession,
 	type StoredSession
 } from '$lib/services/session.service';
+import { screenError, type ScreenError } from '$lib/utils/error-screen.utils';
 import { toast } from 'svelte-sonner';
 import { browser } from 'wxt/browser';
 import { storage } from 'wxt/utils/storage';
@@ -43,6 +44,10 @@ let ready = $state(false);
 let serverUrl = $state('');
 let session = $state<StoredSession | null>(null);
 let route = $state<Route>({ name: 'list' });
+/** Main load of the current screen failed: the shell shows the error screen instead of it. */
+let failure = $state<ScreenError | null>(null);
+/** Bumped by "Try again" so the screen mounts again and redoes its load. */
+let attempt = $state(0);
 const stack: Route[] = [];
 
 const api = $derived<Api | null>(serverUrl && session ? createApi(serverUrl, session.token) : null);
@@ -142,6 +147,12 @@ export const app = {
 	get here() {
 		return here;
 	},
+	get failure() {
+		return failure;
+	},
+	get attempt() {
+		return attempt;
+	},
 	get canGoBack() {
 		return stack.length > 0;
 	},
@@ -182,17 +193,20 @@ export const app = {
 
 	/** Switching side menu tabs: clears the "back" history. */
 	open(name: TopRoute) {
+		failure = null;
 		stack.length = 0;
 		route = { name };
 		void storage.setItem(STORAGE_KEYS.lastPage, name);
 	},
 
 	push(next: Route) {
+		failure = null;
 		stack.push(route);
 		route = next;
 	},
 
 	back() {
+		failure = null;
 		route = stack.pop() ?? { name: 'list' };
 	},
 
@@ -225,9 +239,29 @@ export const app = {
 	},
 
 	/**
+	 * The screen could not load what it shows: swaps it for the error screen. An invalid session
+	 * still logs out, like `handleError`.
+	 */
+	async failScreen(error: unknown) {
+		if (error instanceof ApiError && error.isUnauthorized) return this.handleError(error);
+		console.warn('[App] Screen load failed', error);
+		// The error screen already says it: no toast repeating it on top.
+		toast.dismiss();
+		failure = screenError(error, typeof navigator === 'undefined' ? true : navigator.onLine);
+	},
+
+	/** "Try again" on the error screen: mounts the screen again. */
+	retryScreen() {
+		failure = null;
+		attempt++;
+	},
+
+	/**
 	 * Shows the API error in a toast. An invalid session logs out and the screen goes back to login.
 	 */
 	async handleError(error: unknown) {
+		// The error screen is up: side loads (counts, facets) failing too need no toast.
+		if (failure && !(error instanceof ApiError && error.isUnauthorized)) return;
 		if (error instanceof ApiError && error.isUnauthorized) {
 			session = null;
 			await saveSession(null);

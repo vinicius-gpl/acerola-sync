@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AcerolaBrandImage from '$lib/components/acerola-brand-image/acerola-brand-image.svelte';
+	import AcerolaErrorScreen from '$lib/components/acerola-error-screen/acerola-error-screen.svelte';
 	import AcerolaPillNav from '$lib/components/acerola-pill-nav/acerola-pill-nav.svelte';
 	import AcerolaSonner from '$lib/components/acerola-sonner/acerola-sonner.svelte';
 	import { initTheme } from '$lib/hooks/theme/use-theme.svelte';
@@ -125,7 +126,31 @@
 	{/if}
 {/snippet}
 
-{#if page}
+{#snippet errorScreen()}
+	{#if app.failure}
+		<AcerolaErrorScreen
+			data={app.failure}
+			events={{ onRetry: () => app.retryScreen(), onHome: () => app.open('list') }}
+		/>
+	{/if}
+{/snippet}
+
+<!-- Brand rule: only the error on screen, no top bar or navigation; its two actions are the way out. -->
+{#if loggedIn && app.failure}
+	{#if page}
+		<div
+			class="flex min-h-screen items-center justify-center bg-background px-8 text-foreground"
+		>
+			<div class="w-full max-w-6xl">{@render errorScreen()}</div>
+		</div>
+	{:else}
+		<div
+			class="flex h-[600px] w-[440px] flex-col justify-center overflow-y-auto bg-background px-5 text-foreground"
+		>
+			{@render errorScreen()}
+		</div>
+	{/if}
+{:else if page}
 	<div class="min-h-screen bg-background text-foreground">
 		<header
 			class="sticky top-0 z-20 flex items-center justify-between gap-4 bg-background/80 px-8 py-4 backdrop-blur-xl"
@@ -163,8 +188,10 @@
 			{:else if !loggedIn}
 				<div class="mx-auto max-w-md"><LoginScreen /></div>
 			{:else}
-				{#key screen}
-					<div use:revealIn>{@render content(screen)}</div>
+				{#key app.attempt}
+					{#key screen}
+						<div use:revealIn>{@render content(screen)}</div>
+					{/key}
 				{/key}
 			{/if}
 		</main>
@@ -222,8 +249,10 @@
 			{:else if !loggedIn}
 				<LoginScreen />
 			{:else}
-				{#key app.route}
-					<div use:revealIn>{@render content(screen)}</div>
+				{#key app.attempt}
+					{#key app.route}
+						<div use:revealIn>{@render content(screen)}</div>
+					{/key}
 				{/key}
 			{/if}
 		</main>

@@ -1511,6 +1511,56 @@
 			"new": "Novo",
 			"clear": "Limpar",
 			"cleared": "Notificações limpas"
+		},
+		"errorScreen": {
+			"eyebrow": "Erro {status}",
+			"eyebrowOffline": "Sem conexão",
+			"sticker": "Ops!",
+			"actions": {
+				"home": "Ir para o início",
+				"back": "Voltar",
+				"retry": "Tentar de novo"
+			},
+			"badRequest": {
+				"title": "Algo no pedido não fechou",
+				"text": "O endereço ou os dados enviados vieram de um jeito que a gente não entende. Confira e tente de novo pelo início."
+			},
+			"unauthorized": {
+				"title": "Entre para continuar",
+				"text": "Esta página é só para quem entrou na conta. Entre e volte aqui."
+			},
+			"forbidden": {
+				"title": "Esta página não é para você",
+				"text": "Sua conta não tem acesso a isto. Se acha que deveria ter, fale com quem cuida do app."
+			},
+			"notFound": {
+				"title": "Página não encontrada",
+				"text": "O que você abriu não existe mais ou nunca existiu. Volte ao início e siga de lá."
+			},
+			"timeout": {
+				"title": "Demorou demais",
+				"text": "A resposta não chegou a tempo. Tente de novo em instantes."
+			},
+			"tooMany": {
+				"title": "Calma, muitos pedidos",
+				"text": "Foram muitos pedidos em pouco tempo. Espere um minuto e tente de novo."
+			},
+			"server": {
+				"title": "Algo quebrou do nosso lado",
+				"text": "O erro foi nosso, não seu. Tente de novo; se continuar, volte mais tarde."
+			},
+			"unavailable": {
+				"title": "Fora do ar por um momento",
+				"text": "O server do Acerola Sync não respondeu. Confira se ele está no ar e tente de novo em alguns minutos."
+			},
+			"offline": {
+				"title": "Você está sem internet",
+				"text": "Confira o Wi-Fi ou os dados móveis e tente de novo."
+			},
+			"unknown": {
+				"title": "Algo deu errado",
+				"text": "Não sabemos bem o que houve. Tente de novo; se continuar, volte ao início."
+			}
 		}
 	}
 }

@@ -106,7 +106,7 @@
 
 		<button
 			type="button"
-			class="h-14 cursor-pointer rounded-full bg-primary font-black text-base text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
+			class="h-14 cursor-pointer rounded-full bg-primary text-base font-black text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
 			disabled={busy}
 			onclick={login}
 		>

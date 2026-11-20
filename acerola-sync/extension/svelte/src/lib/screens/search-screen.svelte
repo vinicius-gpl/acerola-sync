@@ -84,7 +84,7 @@
 		<!-- svelte-ignore a11y_autofocus -->
 		<input
 			type="search"
-			class="h-full min-w-0 flex-1 bg-transparent font-semibold text-base text-foreground outline-none placeholder:text-muted-foreground"
+			class="h-full min-w-0 flex-1 bg-transparent text-base font-semibold text-foreground outline-none placeholder:text-muted-foreground"
 			spellcheck="false"
 			autocomplete="off"
 			placeholder={m['sync.search.placeholder']()}

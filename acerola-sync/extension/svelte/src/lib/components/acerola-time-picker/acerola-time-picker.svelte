@@ -99,7 +99,7 @@
 					aria-selected={item === selected}
 					onclick={() => onPick(item)}
 					class={cn(
-						'h-9 flex-none cursor-pointer rounded-full font-black text-base tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
+						'h-9 flex-none cursor-pointer rounded-full text-base font-black tabular-nums transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring',
 						item === selected
 							? 'bg-primary text-primary-foreground'
 							: 'text-muted-foreground hover:bg-mantle hover:text-foreground'

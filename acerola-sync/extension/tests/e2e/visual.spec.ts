@@ -454,3 +454,35 @@ test('modo avançado do site: popup leva para a página cheia e o diálogo cresc
 	await full.waitForTimeout(400);
 	await dialog.screenshot({ path: `${SHOTS}/08b-site-avancado-teste.png` });
 });
+
+test('tela de erro: server fora do ar no popup cabe inteira e tentar de novo volta à lista', async ({
+	context,
+	page,
+	extensionId
+}) => {
+	await signIn(context);
+	let down = true;
+	await page.route(`${SERVER}/**`, async (route) => {
+		if (down)
+			return route.fulfill({ status: 503, json: { error: 'unavailable', message: 'x' } });
+		const url = new URL(route.request().url());
+		if (url.pathname === '/entries')
+			return route.fulfill({ json: [entry(1, 'Sousou no Frieren')] });
+		return route.fulfill({ json: [] });
+	});
+	await page.goto(`chrome-extension://${extensionId}/popup.html`);
+
+	const error = page.locator('[data-error-screen="unavailable"]');
+	await expect(error).toBeVisible();
+	// Only the error on screen: no pill bar, and everything fits the 600px popup without scrolling.
+	await expect(page.getByRole('navigation')).toHaveCount(0);
+	const fits = await error.evaluate((node) => node.getBoundingClientRect().bottom <= 600);
+	expect(fits).toBe(true);
+	await expect(page.getByRole('button', { name: /Tentar de novo|Try again/ })).toBeInViewport();
+	await page.waitForTimeout(1200);
+	await page.screenshot({ path: `${SHOTS}/09-erro.png` });
+
+	down = false;
+	await page.getByRole('button', { name: /Tentar de novo|Try again/ }).click();
+	await expect(page.getByText('Sousou no Frieren').first()).toBeVisible();
+});
